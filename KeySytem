@@ -1,216 +1,217 @@
 ----------------------------------------------------
--- SERVICES
+-- 🔑 RSQ KEY SYSTEM (FORTNITE HUD + DEBUG)
 ----------------------------------------------------
+
+-- SERVICES
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
-local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
-local Lighting = game:GetService("Lighting")
-local UserInputService = game:GetService("UserInputService")
+local StarterGui = game:GetService("StarterGui")
 
 local PLAYER = Players.LocalPlayer
 
 ----------------------------------------------------
 -- CONFIG
 ----------------------------------------------------
-local KEY_DB_URL = "https://api.jsonbin.io/v3/b/694c4aefae596e708faef157/latest"
-local MAIN_SCRIPT_URL = "https://api.junkie-development.de/api/v1/luascripts/public/4e568fb1f75b086c3795b9f604343a7564bbf2f50dfddd8e68df52daaf437411/download"
-local KEY_WEBSITE = "https://realscripts-q.github.io/KEY-JSONHandler/"
+
+local JSONBIN_URL =
+  "https://api.jsonbin.io/v3/b/694c4aefae596e708faef157/latest"
+
+local SCRIPT_URL =
+  "https://api.junkie-development.de/api/v1/luascripts/public/4e568fb1f75b086c3795b9f604343a7564bbf2f50dfddd8e68df52daaf437411/download"
+
+local HWID_FILE = "rsq_hwid.txt"
 
 ----------------------------------------------------
--- BLUR
+-- HWID (Executor-safe)
 ----------------------------------------------------
-local blur = Instance.new("BlurEffect")
-blur.Size = 16
-blur.Parent = Lighting
+
+local function getHWID()
+	if not writefile or not readfile or not isfile then
+		return "STUDIO"
+	end
+
+	if isfile(HWID_FILE) then
+		return readfile(HWID_FILE)
+	end
+
+	local id = HttpService:GenerateGUID(false)
+	writefile(HWID_FILE, id)
+	return id
+end
+
+local HWID = getHWID()
 
 ----------------------------------------------------
 -- GUI
 ----------------------------------------------------
+
 local gui = Instance.new("ScreenGui")
-gui.Name = "MySuperHub"
+gui.Name = "RSQ_KeyHUD"
 gui.IgnoreGuiInset = true
 gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-gui.Parent = CoreGui
+gui.Parent = PLAYER:WaitForChild("PlayerGui")
 
-local scale = Instance.new("UIScale", gui)
-scale.Scale = UserInputService.TouchEnabled and 0.9 or 1
-
-----------------------------------------------------
--- MAIN CARD
-----------------------------------------------------
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.fromOffset(420,170)
-main.Position = UDim2.fromScale(0.5,0.5)
-main.AnchorPoint = Vector2.new(0.5,0.5)
-main.BackgroundColor3 = Color3.fromRGB(18,18,18)
+main.AnchorPoint = Vector2.new(0.5, 0.5)
+main.Position = UDim2.fromScale(0.5, 0.5)
+main.Size = UDim2.fromScale(0, 0)
+main.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 main.BorderSizePixel = 0
-Instance.new("UICorner", main).CornerRadius = UDim.new(0,16)
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 18)
 
 local stroke = Instance.new("UIStroke", main)
-stroke.Color = Color3.fromRGB(0,120,255)
-stroke.Thickness = 1
-stroke.Transparency = 0.55
+stroke.Color = Color3.fromRGB(0, 150, 255)
+stroke.Thickness = 1.6
+stroke.Transparency = 0.25
 
-----------------------------------------------------
--- TEXT
-----------------------------------------------------
 local title = Instance.new("TextLabel", main)
-title.Size = UDim2.new(1,-24,0,26)
-title.Position = UDim2.fromOffset(12,10)
+title.Size = UDim2.new(1, 0, 0, 36)
+title.Position = UDim2.fromOffset(0, 12)
+title.Text = "RSQ ACCESS"
+title.Font = Enum.Font.GothamBlack
+title.TextSize = 18
+title.TextColor3 = Color3.fromRGB(235, 235, 235)
 title.BackgroundTransparency = 1
-title.Text = "🔑 My Super Hub"
-title.Font = Enum.Font.GothamBold
-title.TextSize = 15
-title.TextColor3 = Color3.fromRGB(235,235,235)
-title.TextXAlignment = Enum.TextXAlignment.Left
 
-local subtitle = Instance.new("TextLabel", main)
-subtitle.Size = UDim2.new(1,-24,0,20)
-subtitle.Position = UDim2.fromOffset(12,34)
-subtitle.BackgroundTransparency = 1
-subtitle.Text = "hi, im urdev"
-subtitle.Font = Enum.Font.Gotham
-subtitle.TextSize = 12
-subtitle.TextColor3 = Color3.fromRGB(150,150,150)
-subtitle.TextXAlignment = Enum.TextXAlignment.Left
-
-----------------------------------------------------
--- INPUT
-----------------------------------------------------
 local input = Instance.new("TextBox", main)
-input.Size = UDim2.new(1,-24,0,36)
-input.Position = UDim2.fromOffset(12,62)
-input.BackgroundColor3 = Color3.fromRGB(30,30,30)
-input.TextColor3 = Color3.fromRGB(230,230,230)
-input.PlaceholderText = "Enter Key"
+input.Size = UDim2.new(1, -40, 0, 42)
+input.Position = UDim2.fromOffset(20, 60)
+input.PlaceholderText = "Enter your key"
+input.Text = ""
 input.ClearTextOnFocus = false
 input.Font = Enum.Font.Gotham
-input.TextSize = 13
+input.TextSize = 14
+input.TextColor3 = Color3.fromRGB(235, 235, 235)
+input.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
 input.BorderSizePixel = 0
-Instance.new("UICorner", input).CornerRadius = UDim.new(0,10)
+Instance.new("UICorner", input).CornerRadius = UDim.new(0, 12)
+
+local submit = Instance.new("TextButton", main)
+submit.Size = UDim2.new(1, -40, 0, 44)
+submit.Position = UDim2.fromOffset(20, 112)
+submit.Text = "VERIFY"
+submit.Font = Enum.Font.GothamBold
+submit.TextSize = 14
+submit.TextColor3 = Color3.new(1, 1, 1)
+submit.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+submit.BorderSizePixel = 0
+Instance.new("UICorner", submit).CornerRadius = UDim.new(0, 14)
 
 ----------------------------------------------------
--- BUTTON ROW
+-- ANIMATE IN
 ----------------------------------------------------
-local btnRow = Instance.new("Frame", main)
-btnRow.Size = UDim2.new(1,-24,0,34)
-btnRow.Position = UDim2.fromOffset(12,112)
-btnRow.BackgroundTransparency = 1
 
-local layout = Instance.new("UIListLayout", btnRow)
-layout.FillDirection = Enum.FillDirection.Horizontal
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Right
-layout.Padding = UDim.new(0,8)
+TweenService:Create(
+	main,
+	TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+	{ Size = UDim2.fromOffset(420, 170) }
+):Play()
 
-local function makeBtn(text,color)
-	local b = Instance.new("TextButton")
-	b.Size = UDim2.fromOffset(110,34)
-	b.Text = text
-	b.Font = Enum.Font.GothamBold
-	b.TextSize = 12
-	b.TextColor3 = Color3.new(1,1,1)
-	b.BackgroundColor3 = color
-	b.BorderSizePixel = 0
-	Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
-	b.Parent = btnRow
-	return b
+----------------------------------------------------
+-- HELPERS
+----------------------------------------------------
+
+local function notify(txt)
+	StarterGui:SetCore("SendNotification", {
+		Title = "RSQ",
+		Text = txt,
+		Duration = 4
+	})
 end
 
-local exitBtn   = makeBtn("⟵ Exit", Color3.fromRGB(45,45,45))
-local getKeyBtn = makeBtn("🔗 Get key", Color3.fromRGB(60,60,60))
-local submitBtn = makeBtn("Submit", Color3.fromRGB(0,120,215))
-
-----------------------------------------------------
--- SPINNER
-----------------------------------------------------
-local spinner = Instance.new("ImageLabel", main)
-spinner.Size = UDim2.fromOffset(22,22)
-spinner.Position = UDim2.fromScale(0.5,0.5)
-spinner.AnchorPoint = Vector2.new(0.5,0.5)
-spinner.Image = "rbxassetid://8131544337"
-spinner.BackgroundTransparency = 1
-spinner.Visible = false
-
-local spinTween
-local function startSpin()
-	spinner.Visible = true
-	spinTween = TweenService:Create(
-		spinner,
-		TweenInfo.new(0.8,Enum.EasingStyle.Linear,Enum.EasingDirection.In,-1),
-		{Rotation = 360}
-	)
-	spinTween:Play()
-end
-
-local function stopSpin()
-	if spinTween then spinTween:Cancel() end
-	spinner.Visible = false
-	spinner.Rotation = 0
+local function verifyingAnim()
+	local dots = 0
+	return task.spawn(function()
+		while submit.Text:find("VERIFYING") do
+			dots = (dots % 3) + 1
+			submit.Text = "VERIFYING" .. string.rep(".", dots)
+			task.wait(0.4)
+		end
+	end)
 end
 
 ----------------------------------------------------
--- KEY VALIDATION
+-- FETCH & VALIDATE (FIXED + DEBUG)
 ----------------------------------------------------
+
+local function fetchKeys()
+	local raw = game:HttpGet(JSONBIN_URL)
+	local decoded = HttpService:JSONDecode(raw)
+
+	if not decoded or not decoded.record or not decoded.record.keys then
+		return nil
+	end
+
+	-- 🔍 DEBUG PRINT (YOU ASKED FOR THIS)
+	print("🔍 JSON KEYS DEBUG ↓")
+	print(HttpService:JSONEncode(decoded.record.keys))
+
+	return decoded.record.keys
+end
+
 local function validateKey(key)
-	local data = HttpService:JSONDecode(game:HttpGet(KEY_DB_URL))
-	local entry = data.record.keys[key]
+	local keys = fetchKeys()
+	if not keys then
+		return false, "Database error"
+	end
 
+	local entry = keys[key]
 	if not entry then
 		return false, "Invalid key"
 	end
 
-	if entry.userId ~= PLAYER.UserId then
+	if tonumber(entry.userId) ~= PLAYER.UserId then
 		return false, "Key not for this user"
 	end
 
-	if os.time() > entry.expires then
+	if tonumber(entry.expires) < os.time() then
 		return false, "Key expired"
 	end
 
-	return true
+	if entry.hwid and entry.hwid ~= HWID then
+		return false, "HWID mismatch"
+	end
+
+	return true, entry
 end
 
 ----------------------------------------------------
--- BUTTON LOGIC
+-- SUBMIT BUTTON
 ----------------------------------------------------
-submitBtn.MouseButton1Click:Connect(function()
-	local key = input.Text:gsub("%s+","")
+
+submit.MouseButton1Click:Connect(function()
+	local key = input.Text:gsub("%s+", "")
 	if key == "" then return end
 
-	submitBtn.Text = "Verifying…"
-	submitBtn.BackgroundColor3 = Color3.fromRGB(120,120,120)
-	startSpin()
+	submit.Text = "VERIFYING"
+	submit.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
 
-	task.wait(1)
+	local anim = verifyingAnim()
+	local ok, data = validateKey(key)
+	task.cancel(anim)
 
-	local ok, err = validateKey(key)
 	if not ok then
-		stopSpin()
-		submitBtn.Text = err
-		submitBtn.BackgroundColor3 = Color3.fromRGB(180,0,0)
+		submit.Text = "INVALID"
+		submit.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
 		task.wait(1.5)
-		submitBtn.Text = "Submit"
-		submitBtn.BackgroundColor3 = Color3.fromRGB(0,120,215)
+		submit.Text = "VERIFY"
+		submit.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
 		return
 	end
 
-	stopSpin()
-	submitBtn.Text = "KEY VALIDATED"
-	submitBtn.BackgroundColor3 = Color3.fromRGB(0,180,0)
+	-- ✅ SUCCESS
+	submit.Text = "ACCESS GRANTED"
+	submit.BackgroundColor3 = Color3.fromRGB(0, 180, 90)
+
+	notify(
+		("Key valid • %dh remaining"):
+		format(math.floor((data.expires - os.time()) / 3600))
+	)
+
 	task.wait(0.6)
-
 	gui:Destroy()
-	blur:Destroy()
-	loadstring(game:HttpGet(MAIN_SCRIPT_URL))()
-end)
 
-getKeyBtn.MouseButton1Click:Connect(function()
-	setclipboard(KEY_WEBSITE)
-end)
-
-exitBtn.MouseButton1Click:Connect(function()
-	gui:Destroy()
-	blur:Destroy()
+	loadstring(game:HttpGet(SCRIPT_URL))()
 end)
