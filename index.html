@@ -1,1 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Tracker V2 – Get Key</title>
+<style>
+body {
+  background:#0f0f0f;
+  color:#fff;
+  font-family:Arial;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+.box {
+  background:#1b1b1b;
+  padding:25px;
+  border-radius:10px;
+  width:360px;
+}
+input, button {
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+  border:none;
+  border-radius:6px;
+}
+button {
+  background:#0078ff;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+}
+.output {
+  margin-top:15px;
+  background:#000;
+  padding:10px;
+  border-radius:6px;
+  word-break:break-all;
+}
+</style>
+</head>
+<body>
 
+<div class="box">
+  <h3>🔑 Tracker V2 Key</h3>
+  <input id="username" placeholder="Roblox Username">
+  <button onclick="generate()">Get Key</button>
+  <div class="output" id="out">Waiting…</div>
+</div>
+
+<script>
+/* ================= CONFIG ================= */
+
+const GITHUB_TOKEN = "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"; // ← REQUIRED
+const OWNER = "RealScripts-q";
+const REPO = "YOUR_REPO_NAME";
+const FILE_PATH = "keys.json";
+
+const SECRET = "D7_x92!kLp_99_SecureTracker_V2";
+
+/* ================= HASH ================= */
+
+function hash(str){
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  }
+  return h.toString(16).toUpperCase();
+}
+
+/* ================= MAIN ================= */
+
+async function generate(){
+  const username = document.getElementById("username").value.trim();
+  if (!username) return;
+
+  const out = document.getElementById("out");
+  out.innerText = "Resolving Roblox user…";
+
+  /* --- Roblox username → UserId --- */
+  const rbx = await fetch("https://users.roblox.com/v1/usernames/users", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ usernames:[username] })
+  }).then(r => r.json());
+
+  if (!rbx.data || !rbx.data[0]) {
+    out.innerText = "User not found";
+    return;
+  }
+
+  const userId = rbx.data[0].id;
+  const key = "TV2-" + hash(userId + ":" + SECRET);
+  const validatedAt = Math.floor(Date.now() / 1000);
+
+  /* --- Fetch current keys.json --- */
+  const fileRes = await fetch(
+    `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`,
+    {
+      headers: {
+        Authorization: `token ${GITHUB_TOKEN}`
+      }
+    }
+  ).then(r => r.json());
+
+  const content = JSON.parse(atob(fileRes.content));
+  content.users[userId] = { key, validatedAt };
+
+  /* --- Write back to GitHub --- */
+  await fetch(
+    `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `token ${GITHUB_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: `Validate key for ${userId}`,
+        content: btoa(JSON.stringify(content, null, 2)),
+        sha: fileRes.sha
+      })
+    }
+  );
+
+  out.innerText = key;
+}
+</script>
+
+</body>
+</html>
