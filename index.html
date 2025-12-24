@@ -2,8 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Key System Verification</title>
-
+<title>Tracker V2 – Key System</title>
 <style>
 body {
   background:#0f0f0f;
@@ -14,18 +13,12 @@ body {
   align-items:center;
   height:100vh;
 }
-
 .box {
   background:#1b1b1b;
   padding:25px;
-  border-radius:10px;
+  border-radius:12px;
   width:380px;
 }
-
-h3 {
-  margin:0 0 10px;
-}
-
 input, button {
   width:100%;
   padding:10px;
@@ -33,29 +26,22 @@ input, button {
   border:none;
   border-radius:6px;
 }
-
-input {
-  background:#111;
-  color:white;
-}
-
 button {
   background:#0078ff;
   color:white;
   font-weight:bold;
   cursor:pointer;
 }
-
 button:disabled {
   background:#333;
   cursor:not-allowed;
 }
-
 .output {
   margin-top:15px;
   background:#000;
   padding:10px;
   border-radius:6px;
+  white-space:pre-line;
   font-size:13px;
 }
 </style>
@@ -63,7 +49,7 @@ button:disabled {
 <body>
 
 <div class="box">
-  <h3>🔐 Roblox Verification</h3>
+  <h3>🔑 Tracker V2 Key System</h3>
 
   <input id="userid" placeholder="Roblox UserId">
   <button onclick="receiveUser()">Receive user from database</button>
@@ -77,109 +63,91 @@ button:disabled {
 <script>
 /* ================= CONFIG ================= */
 
-const OWNER = "RealScripts-q";
-const REPO  = "KEY-JSONHandler";
-const FILE  = "keys.json";
-
-/* YES — YOU WILL OBFUSCATE THIS LATER */
-const GITHUB_TOKEN = "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";
+const BIN_ID  = "694c41a6ae596e708faee717";
+const API_KEY = "$2a$10$7MPZXICawr4gE5o3N/KXiOaEMdx9qUL/c1Ht4TEnfO8DYmK2Tqiae";
 
 /* ================= STATE ================= */
 
-let cachedSha = null;
-let cachedData = null;
-let currentUserId = null;
+let db = null;
+let uid = null;
 
-/* ================= HELPERS ================= */
+const out = t => document.getElementById("out").innerText = t;
 
-function log(msg){
-  document.getElementById("out").innerText = msg;
+/* ================= JSONBIN HELPERS ================= */
+
+async function loadDB() {
+  const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+    headers: { "X-Master-Key": API_KEY }
+  });
+  const j = await r.json();
+  db = j.record;
 }
 
-function sleep(ms){
-  return new Promise(r => setTimeout(r, ms));
-}
-
-function randomKey(){
-  return "TV2-" + crypto.randomUUID().replace(/-/g,"").slice(0,20).toUpperCase();
-}
-
-/* ================= FETCH JSON ================= */
-
-async function loadJSON(){
-  const res = await fetch(
-    `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE}`,
-    { headers:{ Authorization:`token ${GITHUB_TOKEN}` } }
-  );
-
-  const data = await res.json();
-  cachedSha = data.sha;
-  cachedData = JSON.parse(atob(data.content));
+async function saveDB() {
+  await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Master-Key": API_KEY
+    },
+    body: JSON.stringify(db, null, 2)
+  });
 }
 
 /* ================= RECEIVE USER ================= */
 
-async function receiveUser(){
-  const userId = document.getElementById("userid").value.trim();
-  if (!userId) return;
+async function receiveUser() {
+  uid = document.getElementById("userid").value.trim();
+  if (!uid) return;
 
-  currentUserId = userId;
-  log("Checking database…");
+  document.getElementById("captchaBtn").disabled = true;
+  document.getElementById("genBtn").disabled = true;
 
   while (true) {
-    await loadJSON();
+    await loadDB();
 
-    if (cachedData.users && cachedData.users[userId]) {
-      log("User found. CAPTCHA required.");
+    if (db.users && db.users[uid] && db.users[uid].status === "pending") {
+      out("✅ User found in database.\nCAPTCHA required.");
       document.getElementById("captchaBtn").disabled = false;
       break;
-    } else {
-      log("Couldn't find player in database\nVerifying Roblox user…");
-      await sleep(2500);
     }
+
+    out("Couldn't find player in database\nVerifying Roblox user…");
+    await new Promise(r => setTimeout(r, 2500));
   }
 }
 
 /* ================= FAKE CAPTCHA ================= */
 
-async function fakeCaptcha(){
-  log("Verifying CAPTCHA…");
-  document.getElementById("captchaBtn").disabled = true;
+async function fakeCaptcha() {
+  const btn = document.getElementById("captchaBtn");
+  btn.disabled = true;
+  out("🧠 Verifying CAPTCHA…");
 
-  await sleep(2000);
+  await new Promise(r => setTimeout(r, 2000));
 
-  log("CAPTCHA passed ✔");
+  out("✔ CAPTCHA verified");
   document.getElementById("genBtn").disabled = false;
 }
 
-/* ================= GENERATE KEY ================= */
+/* ================= KEY GENERATION ================= */
 
-async function generateKey(){
-  log("Generating 24h key…");
+async function generateKey() {
+  const key =
+    "TV2-" +
+    Math.random().toString(36).substring(2, 6).toUpperCase() +
+    "-" +
+    Math.random().toString(36).substring(2, 6).toUpperCase();
 
-  const key = randomKey();
-  const expires = Math.floor(Date.now()/1000) + 86400;
+  const expires = Math.floor(Date.now() / 1000) + 86400;
 
-  cachedData.users[currentUserId].key = key;
-  cachedData.users[currentUserId].expires = expires;
+  db.users[uid].status  = "verified";
+  db.users[uid].key     = key;
+  db.users[uid].expires = expires;
 
-  await fetch(
-    `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE}`,
-    {
-      method:"PUT",
-      headers:{
-        Authorization:`token ${GITHUB_TOKEN}`,
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({
-        message:`Generate key for ${currentUserId}`,
-        sha: cachedSha,
-        content: btoa(JSON.stringify(cachedData, null, 2))
-      })
-    }
-  );
+  await saveDB();
 
-  log("✅ KEY GENERATED:\n" + key);
+  out("🎉 KEY GENERATED (24h)\n\n" + key);
 }
 </script>
 
