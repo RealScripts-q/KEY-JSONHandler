@@ -53,37 +53,46 @@ button {
 <script>
 /* ================= CONFIG ================= */
 
-const GITHUB_TOKEN = "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"; // ← REQUIRED
+// ⬇⬇⬇ PASTE YOUR REAL TOKEN HERE ⬇⬇⬇
+const GITHUB_TOKEN = "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";
+
 const OWNER = "RealScripts-q";
 const REPO = "KEY-JSONHandler";
 const FILE_PATH = "keys.json";
 
-const SECRET = "D7_x92!kLp_99_SecureTracker_V2";
+// 7 day expiry
+const EXPIRY_SECONDS = 60 * 60 * 24 * 7;
+const SECRET = "TrackerV2_Private_Salt";
 
 /* ================= HASH ================= */
 
-function hash(str){
+function hash(str) {
   let h = 0;
   for (let i = 0; i < str.length; i++) {
-    h = (h * 31 + str.charCodeAt(i)) >>> 0;
+    h = (h << 5) - h + str.charCodeAt(i);
+    h |= 0;
   }
-  return h.toString(16).toUpperCase();
+  return Math.abs(h).toString(36).toUpperCase();
 }
 
 /* ================= MAIN ================= */
 
-async function generate(){
+async function generate() {
   const username = document.getElementById("username").value.trim();
-  if (!username) return;
-
   const out = document.getElementById("out");
+
+  if (!username) {
+    out.innerText = "Enter a username";
+    return;
+  }
+
   out.innerText = "Resolving Roblox user…";
 
-  /* --- Roblox username → UserId --- */
+  /* Roblox username → userId */
   const rbx = await fetch("https://users.roblox.com/v1/usernames/users", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ usernames:[username] })
+    body: JSON.stringify({ usernames: [username] })
   }).then(r => r.json());
 
   if (!rbx.data || !rbx.data[0]) {
@@ -92,34 +101,43 @@ async function generate(){
   }
 
   const userId = rbx.data[0].id;
-  const key = "TV2-" + hash(userId + ":" + SECRET);
-  const validatedAt = Math.floor(Date.now() / 1000);
 
-  /* --- Fetch current keys.json --- */
+  /* Generate key */
+  const key = "TV2-" + hash(userId + ":" + SECRET);
+  const expires = Math.floor(Date.now() / 1000) + EXPIRY_SECONDS;
+
+  /* Fetch keys.json */
   const fileRes = await fetch(
     `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`,
     {
       headers: {
-        Authorization: `token ${GITHUB_TOKEN}`
+        Authorization: `Bearer ${GITHUB_TOKEN}`,
+        Accept: "application/vnd.github+json"
       }
     }
   ).then(r => r.json());
 
-  const content = JSON.parse(atob(fileRes.content));
-  content.users[userId] = { key, validatedAt };
+  let data = {};
+  if (fileRes.content) {
+    data = JSON.parse(atob(fileRes.content));
+  }
 
-  /* --- Write back to GitHub --- */
+  /* Store key in loader-compatible format */
+  data[key] = { expires };
+
+  /* Write back to GitHub */
   await fetch(
     `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`,
     {
       method: "PUT",
       headers: {
-        Authorization: `token ${GITHUB_TOKEN}`,
+        Authorization: `Bearer ${GITHUB_TOKEN}`,
+        Accept: "application/vnd.github+json",
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        message: `Validate key for ${userId}`,
-        content: btoa(JSON.stringify(content, null, 2)),
+        message: `Add key for ${username}`,
+        content: btoa(JSON.stringify(data, null, 2)),
         sha: fileRes.sha
       })
     }
