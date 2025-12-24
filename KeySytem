@@ -4,161 +4,134 @@ local HttpService = game:GetService("HttpService")
 
 local PLAYER = Players.LocalPlayer
 
----------------------------------------------------------
+-------------------------------------------------
 -- CONFIG
----------------------------------------------------------
+-------------------------------------------------
 
 local SCRIPT_URL = "https://api.junkie-development.de/api/v1/luascripts/public/4e568fb1f75b086c3795b9f604343a7564bbf2f50dfddd8e68df52daaf437411/download"
 
-local function getKeysURL()
-	return "https://raw.githubusercontent.com/RealScripts-q/KEY-JSONHandler/main/keys.json?t=" .. os.time()
-end
+local GITHUB_API = "https://api.github.com/repos/RealScripts-q/KEY-JSONHandler/contents/keys.json"
+local GITHUB_TOKEN = "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" -- you will obfuscate later
 
----------------------------------------------------------
+-------------------------------------------------
 -- UI
----------------------------------------------------------
+-------------------------------------------------
 
-local keyGui = Instance.new("ScreenGui")
-keyGui.Name = "KeySystemHub"
-keyGui.ResetOnSpawn = false
-keyGui.IgnoreGuiInset = true
-keyGui.DisplayOrder = 1000000
-keyGui.Parent = PLAYER:WaitForChild("PlayerGui")
+local gui = Instance.new("ScreenGui", PLAYER.PlayerGui)
+gui.Name = "KeySystem"
+gui.ResetOnSpawn = false
 
-local main = Instance.new("Frame", keyGui)
-main.Size = UDim2.new(0, 420, 0, 170)
-main.Position = UDim2.new(0.5, -210, 0.5, -85)
-main.BackgroundColor3 = Color3.fromRGB(18,18,18)
-main.BorderSizePixel = 0
-Instance.new("UICorner", main).CornerRadius = UDim.new(0,14)
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 420, 0, 200)
+frame.Position = UDim2.new(0.5, -210, 0.5, -100)
+frame.BackgroundColor3 = Color3.fromRGB(18,18,18)
+frame.BorderSizePixel = 0
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,14)
 
-local stroke = Instance.new("UIStroke", main)
-stroke.Color = Color3.fromRGB(60,60,60)
-
-local title = Instance.new("TextLabel", main)
-title.Size = UDim2.new(1,-20,0,30)
-title.Position = UDim2.new(0,14,0,10)
-title.Text = "🔑 My Super Hub"
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1,0,0,35)
+title.Text = "🔑 Key System"
+title.TextColor3 = Color3.new(1,1,1)
+title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
 title.TextSize = 16
-title.TextColor3 = Color3.fromRGB(235,235,235)
-title.BackgroundTransparency = 1
-title.TextXAlignment = Enum.TextXAlignment.Left
 
-local subtitle = Instance.new("TextLabel", main)
-subtitle.Size = UDim2.new(1,-20,0,20)
-subtitle.Position = UDim2.new(0,14,0,38)
-subtitle.Text = "Get your key to continue"
-subtitle.Font = Enum.Font.Gotham
-subtitle.TextSize = 12
-subtitle.TextColor3 = Color3.fromRGB(150,150,150)
-subtitle.BackgroundTransparency = 1
-subtitle.TextXAlignment = Enum.TextXAlignment.Left
+local status = Instance.new("TextLabel", frame)
+status.Position = UDim2.new(0,15,0,45)
+status.Size = UDim2.new(1,-30,0,30)
+status.TextWrapped = true
+status.Text = "Welcome "..PLAYER.Name
+status.Font = Enum.Font.Gotham
+status.TextSize = 13
+status.TextColor3 = Color3.fromRGB(170,170,170)
+status.BackgroundTransparency = 1
 
-local input = Instance.new("TextBox", main)
-input.Size = UDim2.new(1,-28,0,38)
-input.Position = UDim2.new(0,14,0,68)
-input.PlaceholderText = "Enter Key"
-input.Font = Enum.Font.Gotham
-input.TextSize = 13
-input.TextColor3 = Color3.fromRGB(235,235,235)
-input.BackgroundColor3 = Color3.fromRGB(28,28,28)
-input.ClearTextOnFocus = false
-input.BorderSizePixel = 0
-Instance.new("UICorner", input).CornerRadius = UDim.new(0,10)
+local sendBtn = Instance.new("TextButton", frame)
+sendBtn.Position = UDim2.new(0,15,0,85)
+sendBtn.Size = UDim2.new(1,-30,0,35)
+sendBtn.Text = "Send To Database"
+sendBtn.Font = Enum.Font.GothamBold
+sendBtn.TextSize = 13
+sendBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+sendBtn.TextColor3 = Color3.new(1,1,1)
+sendBtn.BorderSizePixel = 0
+Instance.new("UICorner", sendBtn)
 
-local btnRow = Instance.new("Frame", main)
-btnRow.Size = UDim2.new(1,-28,0,36)
-btnRow.Position = UDim2.new(0,14,1,-46)
-btnRow.BackgroundTransparency = 1
+local verifyBtn = sendBtn:Clone()
+verifyBtn.Parent = frame
+verifyBtn.Position = UDim2.new(0,15,0,130)
+verifyBtn.Text = "Waiting for key..."
 
-local layout = Instance.new("UIListLayout", btnRow)
-layout.FillDirection = Enum.FillDirection.Horizontal
-layout.Padding = UDim.new(0,8)
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+-------------------------------------------------
+-- GITHUB FUNCTIONS
+-------------------------------------------------
 
-local function makeBtn(text,color)
-	local b = Instance.new("TextButton")
-	b.Size = UDim2.new(0,120,1,0)
-	b.Text = text
-	b.Font = Enum.Font.GothamBold
-	b.TextSize = 12
-	b.TextColor3 = Color3.new(1,1,1)
-	b.BackgroundColor3 = color
-	b.BorderSizePixel = 0
-	Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
-	b.Parent = btnRow
-	return b
+local function githubRequest(method, body)
+	return request({
+		Url = GITHUB_API,
+		Method = method,
+		Headers = {
+			["Authorization"] = "token "..GITHUB_TOKEN,
+			["Content-Type"] = "application/json"
+		},
+		Body = body and HttpService:JSONEncode(body)
+	})
 end
 
-local exitBtn   = makeBtn("⟵ Exit", Color3.fromRGB(45,45,45))
-local getKeyBtn = makeBtn("🔗 Get Key", Color3.fromRGB(60,60,60))
-local submitBtn = makeBtn("Submit", Color3.fromRGB(0,120,215))
+-------------------------------------------------
+-- SEND USER
+-------------------------------------------------
 
----------------------------------------------------------
--- LOGIC
----------------------------------------------------------
+sendBtn.MouseButton1Click:Connect(function()
+	status.Text = "Sending user to database..."
 
-local verifying = false
+	local res = githubRequest("GET")
+	local data = HttpService:JSONDecode(res.Body)
 
-local function setBtn(text,color)
-	submitBtn.Text = text
-	submitBtn.BackgroundColor3 = color
-end
+	local decoded = HttpService:JSONDecode(game:HttpGet(data.download_url))
 
-local function fetchKeys()
-	local raw = game:HttpGet(getKeysURL())
-	return HttpService:JSONDecode(raw)
-end
+	decoded.users = decoded.users or {}
+	decoded.users[tostring(PLAYER.UserId)] = {
+		username = PLAYER.Name,
+		registered = true,
+		key = nil,
+		expires = nil
+	}
 
-submitBtn.MouseButton1Click:Connect(function()
-	if verifying then return end
+	githubRequest("PUT", {
+		message = "Register user "..PLAYER.Name,
+		content = HttpService:Base64Encode(HttpService:JSONEncode(decoded)),
+		sha = data.sha
+	})
 
-	local enteredKey = input.Text:gsub("%s+","")
-	if enteredKey == "" then return end
+	status.Text = "User sent. Go to website & generate key."
+end)
 
-	verifying = true
-	setBtn("Verifying Roblox user…", Color3.fromRGB(120,120,120))
+-------------------------------------------------
+-- VERIFY LOOP
+-------------------------------------------------
 
-	task.spawn(function()
-		while verifying do
-			local data
-			local ok = pcall(function()
-				data = fetchKeys()
-			end)
+task.spawn(function()
+	while true do
+		task.wait(3)
 
-			if ok and data and data.users then
-				local uid = tostring(PLAYER.UserId)
-				local entry = data.users[uid]
+		local ok, data = pcall(function()
+			return HttpService:JSONDecode(game:HttpGet(
+				"https://raw.githubusercontent.com/RealScripts-q/KEY-JSONHandler/main/keys.json?t="..os.time()
+			))
+		end)
 
-				if entry then
-					if entry.key == enteredKey then
-						setBtn("ACCESS GRANTED", Color3.fromRGB(0,180,0))
-						task.wait(0.6)
-						keyGui:Destroy()
-						loadstring(game:HttpGet(SCRIPT_URL))()
-						return
-					else
-						setBtn("INVALID KEY", Color3.fromRGB(180,0,0))
-						task.wait(1.5)
-						setBtn("Submit", Color3.fromRGB(0,120,215))
-						verifying = false
-						return
-					end
-				else
-					setBtn("Couldn't find player in database\nVerifying Roblox user…", Color3.fromRGB(120,120,120))
-				end
+		if ok and data.users then
+			local entry = data.users[tostring(PLAYER.UserId)]
+			if entry and entry.key then
+				status.Text = "ACCESS GRANTED"
+				task.wait(0.5)
+				gui:Destroy()
+				loadstring(game:HttpGet(SCRIPT_URL))()
+				break
+			else
+				verifyBtn.Text = "Verifying Roblox user…"
 			end
-
-			task.wait(2)
 		end
-	end)
-end)
-
-exitBtn.MouseButton1Click:Connect(function()
-	keyGui:Destroy()
-end)
-
-getKeyBtn.MouseButton1Click:Connect(function()
-	setclipboard("https://realscripts-q.github.io/KEY-JSONHandler/")
+	end
 end)
