@@ -3,6 +3,8 @@
 ----------------------------------------------------
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
+local CoreGui = game:GetService("CoreGui")
+
 local player = Players.LocalPlayer
 
 ----------------------------------------------------
@@ -13,70 +15,110 @@ local SCRIPT_URL = "https://api.junkie-development.de/api/v1/luascripts/public/4
 local GET_KEY_SITE = "https://realscripts-q.github.io/KEY-JSONHandler/"
 
 ----------------------------------------------------
--- UI CREATION
+-- GUI ROOT (IMPORTANT FIX)
 ----------------------------------------------------
 local keyGui = Instance.new("ScreenGui")
 keyGui.Name = "KeySystemUI"
+keyGui.IgnoreGuiInset = true
 keyGui.ResetOnSpawn = false
-keyGui.Parent = player:WaitForChild("PlayerGui")
+keyGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 
-local frame = Instance.new("Frame", keyGui)
-frame.Size = UDim2.new(0, 360, 0, 200)
-frame.Position = UDim2.new(0.5, -180, 0.5, -100)
-frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+pcall(function()
+	keyGui.Parent = CoreGui
+end)
+
+----------------------------------------------------
+-- MAIN FRAME
+----------------------------------------------------
+local frame = Instance.new("Frame")
+frame.Parent = keyGui
+frame.Size = UDim2.fromOffset(360, 210)
+frame.Position = UDim2.fromScale(0.5, 0.5) - UDim2.fromOffset(180, 105)
+frame.BackgroundColor3 = Color3.fromRGB(18,18,18)
 frame.BorderSizePixel = 0
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+frame.ZIndex = 10
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 14)
 
-local title = Instance.new("TextLabel", frame)
+----------------------------------------------------
+-- TITLE
+----------------------------------------------------
+local title = Instance.new("TextLabel")
+title.Parent = frame
 title.Size = UDim2.new(1, -20, 0, 30)
-title.Position = UDim2.new(0, 10, 0, 10)
+title.Position = UDim2.fromOffset(10, 10)
 title.BackgroundTransparency = 1
 title.Text = "🔑 Key System"
-title.TextColor3 = Color3.new(1,1,1)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 16
-title.TextXAlignment = Left
+title.TextColor3 = Color3.new(1,1,1)
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.ZIndex = 11
 
-local input = Instance.new("TextBox", frame)
-input.Size = UDim2.new(1, -20, 0, 36)
-input.Position = UDim2.new(0, 10, 0, 55)
+----------------------------------------------------
+-- INPUT
+----------------------------------------------------
+local input = Instance.new("TextBox")
+input.Parent = frame
+input.Size = UDim2.new(1, -20, 0, 38)
+input.Position = UDim2.fromOffset(10, 50)
 input.PlaceholderText = "Enter key here"
 input.Text = ""
 input.ClearTextOnFocus = false
 input.Font = Enum.Font.Gotham
 input.TextSize = 14
 input.TextColor3 = Color3.new(1,1,1)
+input.PlaceholderColor3 = Color3.fromRGB(160,160,160)
 input.BackgroundColor3 = Color3.fromRGB(30,30,30)
+input.BorderSizePixel = 0
+input.ZIndex = 11
 Instance.new("UICorner", input).CornerRadius = UDim.new(0, 8)
 
-local submitBtn = Instance.new("TextButton", frame)
-submitBtn.Size = UDim2.new(1, -20, 0, 36)
-submitBtn.Position = UDim2.new(0, 10, 0, 100)
+----------------------------------------------------
+-- SUBMIT BUTTON
+----------------------------------------------------
+local submitBtn = Instance.new("TextButton")
+submitBtn.Parent = frame
+submitBtn.Size = UDim2.new(1, -20, 0, 38)
+submitBtn.Position = UDim2.fromOffset(10, 98)
 submitBtn.Text = "Submit"
 submitBtn.Font = Enum.Font.GothamBold
 submitBtn.TextSize = 14
 submitBtn.TextColor3 = Color3.new(1,1,1)
 submitBtn.BackgroundColor3 = Color3.fromRGB(0,120,215)
+submitBtn.BorderSizePixel = 0
+submitBtn.ZIndex = 11
 Instance.new("UICorner", submitBtn).CornerRadius = UDim.new(0, 8)
 
-local getKeyBtn = Instance.new("TextButton", frame)
-getKeyBtn.Size = UDim2.new(0.5, -15, 0, 28)
-getKeyBtn.Position = UDim2.new(0, 10, 1, -38)
+----------------------------------------------------
+-- GET KEY BUTTON
+----------------------------------------------------
+local getKeyBtn = Instance.new("TextButton")
+getKeyBtn.Parent = frame
+getKeyBtn.Size = UDim2.new(0.5, -15, 0, 30)
+getKeyBtn.Position = UDim2.fromOffset(10, 156)
 getKeyBtn.Text = "Get Key"
 getKeyBtn.Font = Enum.Font.Gotham
 getKeyBtn.TextSize = 12
 getKeyBtn.TextColor3 = Color3.new(1,1,1)
 getKeyBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+getKeyBtn.BorderSizePixel = 0
+getKeyBtn.ZIndex = 11
 Instance.new("UICorner", getKeyBtn).CornerRadius = UDim.new(0, 8)
 
-local exitBtn = Instance.new("TextButton", frame)
-exitBtn.Size = UDim2.new(0.5, -15, 0, 28)
-exitBtn.Position = UDim2.new(0.5, 5, 1, -38)
+----------------------------------------------------
+-- EXIT BUTTON
+----------------------------------------------------
+local exitBtn = Instance.new("TextButton")
+exitBtn.Parent = frame
+exitBtn.Size = UDim2.new(0.5, -15, 0, 30)
+exitBtn.Position = UDim2.fromOffset(185, 156)
 exitBtn.Text = "Exit"
 exitBtn.Font = Enum.Font.Gotham
 exitBtn.TextSize = 12
 exitBtn.TextColor3 = Color3.new(1,1,1)
 exitBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+exitBtn.BorderSizePixel = 0
+exitBtn.ZIndex = 11
 Instance.new("UICorner", exitBtn).CornerRadius = UDim.new(0, 8)
 
 ----------------------------------------------------
@@ -88,8 +130,7 @@ local function setButtonState(text, color)
 end
 
 local function fetchJSON(url)
-	local raw = game:HttpGet(url)
-	return HttpService:JSONDecode(raw)
+	return HttpService:JSONDecode(game:HttpGet(url))
 end
 
 ----------------------------------------------------
@@ -124,7 +165,7 @@ local function validateKey(inputKey)
 end
 
 ----------------------------------------------------
--- BUTTON ACTIONS
+-- BUTTON LOGIC
 ----------------------------------------------------
 submitBtn.MouseButton1Click:Connect(function()
 	local key = input.Text:gsub("%s+", "")
