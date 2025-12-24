@@ -51,7 +51,118 @@ button {
 </div>
 
 <script>
-function _0x598f(){const _0x2d0aaa=['Checking\x20existing\x20keys…','RealScripts-q','48178FBpRjp','TV2-','data','floor','https://api.github.com/repos/','/contents/','getElementById','Key\x20issued\x20for\x20user\x20','abs','innerText','charCodeAt','then','189528hrBXFv','out','16QcUTIY','KEY-JSONHandler','trim','Bearer\x20','Verifying\x20Roblox\x20user…','toString','PUT','Generating\x20key…','now','TrackerV2_Private_Salt','220608FOqqdb','application/json','4uwlLxm','content','stringify','ghp_PASTE_YOUR_TOKEN_HERE','342129whBJFZ','username','1190016YAbLTK','POST','619017TmJkoI','209095lRFMNA','application/vnd.github+json','json','parse'];_0x598f=function(){return _0x2d0aaa;};return _0x598f();}function _0x3ecf(_0x521fe9,_0x4b0de6){_0x521fe9=_0x521fe9-0xf9;const _0x598f60=_0x598f();let _0x3ecf65=_0x598f60[_0x521fe9];return _0x3ecf65;}const _0x20a628=_0x3ecf;(function(_0x270352,_0x5c4c5f){const _0x14d0b2=_0x3ecf,_0x2adb71=_0x270352();while(!![]){try{const _0x142ae1=parseInt(_0x14d0b2(0xfd))/0x1+parseInt(_0x14d0b2(0x109))/0x2+parseInt(_0x14d0b2(0x11b))/0x3*(-parseInt(_0x14d0b2(0x117))/0x4)+parseInt(_0x14d0b2(0x120))/0x5+parseInt(_0x14d0b2(0x115))/0x6+parseInt(_0x14d0b2(0x11f))/0x7*(parseInt(_0x14d0b2(0x10b))/0x8)+-parseInt(_0x14d0b2(0x11d))/0x9;if(_0x142ae1===_0x5c4c5f)break;else _0x2adb71['push'](_0x2adb71['shift']());}catch(_0x46ac04){_0x2adb71['push'](_0x2adb71['shift']());}}}(_0x598f,0x2523c));const GITHUB_TOKEN=_0x20a628(0x11a),OWNER=_0x20a628(0xfc),REPO=_0x20a628(0x10c),FILE_PATH='keys.json',EXPIRY_SECONDS=0x3c*0x3c*0x18*0x7,SECRET=_0x20a628(0x114);function hash(_0x2dc830){const _0xc54ea0=_0x20a628;let _0x1fa695=0x0;for(let _0x1f46f5=0x0;_0x1f46f5<_0x2dc830['length'];_0x1f46f5++){_0x1fa695=(_0x1fa695<<0x5)-_0x1fa695+_0x2dc830[_0xc54ea0(0x107)](_0x1f46f5),_0x1fa695|=0x0;}return Math[_0xc54ea0(0x105)](_0x1fa695)[_0xc54ea0(0x110)](0x24)['toUpperCase']();}async function generate(){const _0x4fd3ed=_0x20a628,_0x4ca21f=document[_0x4fd3ed(0x103)](_0x4fd3ed(0x10a)),_0x3745f0=document['getElementById'](_0x4fd3ed(0x11c))['value'][_0x4fd3ed(0x10d)]();if(!_0x3745f0){_0x4ca21f['innerText']='Enter\x20a\x20username';return;}_0x4ca21f[_0x4fd3ed(0x106)]=_0x4fd3ed(0x10f);const _0x2f43fa=await fetch('https://users.roblox.com/v1/usernames/users',{'method':_0x4fd3ed(0x11e),'headers':{'Content-Type':_0x4fd3ed(0x116)},'body':JSON[_0x4fd3ed(0x119)]({'usernames':[_0x3745f0]})})[_0x4fd3ed(0x108)](_0x5c3799=>_0x5c3799['json']());if(!_0x2f43fa[_0x4fd3ed(0xff)]||!_0x2f43fa[_0x4fd3ed(0xff)][0x0]){_0x4ca21f[_0x4fd3ed(0x106)]='Roblox\x20user\x20does\x20not\x20exist';return;}const _0x22223b=_0x2f43fa[_0x4fd3ed(0xff)][0x0]['id'];_0x4ca21f['innerText']=_0x4fd3ed(0xfb);const _0x5d669b=await fetch(_0x4fd3ed(0x101)+OWNER+'/'+REPO+_0x4fd3ed(0x102)+FILE_PATH,{'headers':{'Authorization':_0x4fd3ed(0x10e)+GITHUB_TOKEN,'Accept':'application/vnd.github+json'}})[_0x4fd3ed(0x108)](_0x6e84f9=>_0x6e84f9[_0x4fd3ed(0xf9)]());let _0x26ba3f={};_0x5d669b[_0x4fd3ed(0x118)]&&(_0x26ba3f=JSON[_0x4fd3ed(0xfa)](atob(_0x5d669b['content'])));if(_0x26ba3f[_0x22223b]){_0x4ca21f[_0x4fd3ed(0x106)]='Key\x20already\x20generated\x20for\x20this\x20user';return;}const _0x58acee=_0x4fd3ed(0xfe)+hash(_0x22223b+':'+SECRET),_0x6bfbb4=Math[_0x4fd3ed(0x100)](Date[_0x4fd3ed(0x113)]()/0x3e8)+EXPIRY_SECONDS;_0x26ba3f[_0x22223b]={'key':_0x58acee,'expires':_0x6bfbb4},_0x4ca21f[_0x4fd3ed(0x106)]=_0x4fd3ed(0x112),await fetch('https://api.github.com/repos/'+OWNER+'/'+REPO+_0x4fd3ed(0x102)+FILE_PATH,{'method':_0x4fd3ed(0x111),'headers':{'Authorization':_0x4fd3ed(0x10e)+GITHUB_TOKEN,'Accept':_0x4fd3ed(0x121),'Content-Type':_0x4fd3ed(0x116)},'body':JSON[_0x4fd3ed(0x119)]({'message':_0x4fd3ed(0x104)+_0x22223b,'content':btoa(JSON[_0x4fd3ed(0x119)](_0x26ba3f,null,0x2)),'sha':_0x5d669b['sha']})}),_0x4ca21f[_0x4fd3ed(0x106)]=_0x58acee;}
+/* ================= CONFIG ================= */
+
+const GITHUB_TOKEN = "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";
+const OWNER = "RealScripts-q";
+const REPO = "KEY-JSONHandler";
+const FILE_PATH = "keys.json";
+
+const EXPIRY_SECONDS = 60 * 60 * 24 * 7;
+const SECRET = "TrackerV2_Private_Salt";
+
+/* ================= UTILS ================= */
+
+function hash(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = (h << 5) - h + str.charCodeAt(i);
+    h |= 0;
+  }
+  return Math.abs(h).toString(36).toUpperCase();
+}
+
+/* ================= MAIN ================= */
+
+async function generate() {
+  const out = document.getElementById("out");
+  const username = document.getElementById("username").value.trim();
+
+  if (!username) {
+    out.innerText = "Enter a username";
+    return;
+  }
+
+  out.innerText = "Verifying Roblox user…";
+
+  let userId;
+
+  /* 🔎 VERIFY ROBLOX USER */
+  try {
+    const robloxRes = await fetch(
+      "https://users.roblox.com/v1/usernames/users",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ usernames: [username] })
+      }
+    ).then(r => r.json());
+
+    if (!robloxRes.data || !robloxRes.data[0]) {
+      out.innerText = "Couldn't find player in database";
+      return;
+    }
+
+    userId = robloxRes.data[0].id;
+
+  } catch (e) {
+    out.innerText = "Couldn't find player in database";
+    return;
+  }
+
+  /* 📂 FETCH keys.json */
+  out.innerText = "Checking existing keys…";
+
+  const fileRes = await fetch(
+    `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`,
+    {
+      headers: {
+        Authorization: `Bearer ${GITHUB_TOKEN}`,
+        Accept: "application/vnd.github+json"
+      }
+    }
+  ).then(r => r.json());
+
+  let data = {};
+  if (fileRes.content) {
+    data = JSON.parse(atob(fileRes.content));
+  }
+
+  /* 🚫 BLOCK MULTIPLE USE */
+  if (data[userId]) {
+    out.innerText = "Key already generated for this user";
+    return;
+  }
+
+  /* 🔑 GENERATE KEY */
+  const key = "TV2-" + hash(userId + ":" + SECRET);
+  const expires = Math.floor(Date.now() / 1000) + EXPIRY_SECONDS;
+
+  data[userId] = { key, expires };
+
+  /* 💾 WRITE TO GITHUB */
+  out.innerText = "Generating key…";
+
+  await fetch(
+    `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${GITHUB_TOKEN}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: `Key issued for user ${userId}`,
+        content: btoa(JSON.stringify(data, null, 2)),
+        sha: fileRes.sha
+      })
+    }
+  );
+
+  /* ✅ DONE */
+  out.innerText = key;
+}
 </script>
 
 </body>
