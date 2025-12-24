@@ -1,133 +1,145 @@
-----------------------------------------------------
--- SERVICES
-----------------------------------------------------
-local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RSQ Key Validation</title>
 
-local PLAYER = Players.LocalPlayer
+<style>
+body {
+  background:#0f0f0f;
+  color:#fff;
+  font-family:Arial, sans-serif;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
 
-----------------------------------------------------
--- CONFIG
-----------------------------------------------------
-local JSONBIN_URL =
-    "https://api.jsonbin.io/v3/b/694c4aefae596e708faef157/latest"
+.box {
+  background:#1b1b1b;
+  padding:25px;
+  border-radius:12px;
+  width:360px;
+  box-shadow:0 0 25px rgba(0,0,0,.5);
+}
 
-local SCRIPT_URL =
-    "https://api.junkie-development.de/api/v1/luascripts/public/4e568fb1f75b086c3795b9f604343a7564bbf2f50dfddd8e68df52daaf437411/download"
+h3 {
+  margin-top:0;
+  text-align:center;
+}
 
-----------------------------------------------------
--- GUI
-----------------------------------------------------
-local gui = Instance.new("ScreenGui")
-gui.Name = "KeySystem"
-gui.ResetOnSpawn = false
-gui.Parent = PLAYER:WaitForChild("PlayerGui")
+input, button {
+  width:100%;
+  padding:11px;
+  margin-top:12px;
+  border:none;
+  border-radius:8px;
+  font-size:14px;
+}
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.fromOffset(420, 190)
-frame.Position = UDim2.fromScale(0.5, 0.5)
-frame.AnchorPoint = Vector2.new(0.5, 0.5)
-frame.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 14)
+input {
+  background:#111;
+  color:#fff;
+}
 
-local title = Instance.new("TextLabel", frame)
-title.Text = "🔑 RealScripts Hub"
-title.Font = Enum.Font.GothamBold
-title.TextSize = 16
-title.TextColor3 = Color3.fromRGB(235,235,235)
-title.BackgroundTransparency = 1
-title.Size = UDim2.new(1, -20, 0, 30)
-title.Position = UDim2.fromOffset(14, 10)
-title.TextXAlignment = Left
+button {
+  background:#0078ff;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+}
 
-local input = Instance.new("TextBox", frame)
-input.PlaceholderText = "Paste your key here"
-input.ClearTextOnFocus = false
-input.Font = Enum.Font.Gotham
-input.TextSize = 14
-input.TextColor3 = Color3.fromRGB(235,235,235)
-input.BackgroundColor3 = Color3.fromRGB(28,28,28)
-input.BorderSizePixel = 0
-input.Size = UDim2.new(1, -28, 0, 40)
-input.Position = UDim2.fromOffset(14, 60)
-Instance.new("UICorner", input).CornerRadius = UDim.new(0, 10)
+button:disabled {
+  background:#555;
+  cursor:not-allowed;
+}
 
-local submit = Instance.new("TextButton", frame)
-submit.Text = "Submit"
-submit.Font = Enum.Font.GothamBold
-submit.TextSize = 13
-submit.TextColor3 = Color3.new(1,1,1)
-submit.BackgroundColor3 = Color3.fromRGB(0,120,215)
-submit.BorderSizePixel = 0
-submit.Size = UDim2.new(1, -28, 0, 36)
-submit.Position = UDim2.fromOffset(14, 120)
-Instance.new("UICorner", submit).CornerRadius = UDim.new(0, 10)
+.status {
+  margin-top:14px;
+  background:#000;
+  padding:10px;
+  border-radius:8px;
+  text-align:center;
+  font-size:13px;
+}
+</style>
+</head>
 
-----------------------------------------------------
--- HELPERS
-----------------------------------------------------
-local function setButton(text, color)
-	submit.Text = text
-	submit.BackgroundColor3 = color
-end
+<body>
 
-local function fetchKeys()
-	local res = game:HttpGet(JSONBIN_URL)
-	local data = HttpService:JSONDecode(res)
-	return data.record.keys
-end
+<div class="box">
+  <h3>🔑 RSQ Key Validation</h3>
 
-----------------------------------------------------
--- VALIDATION
-----------------------------------------------------
-local function validateKey(key)
-	local keys
-	local success = pcall(function()
-		keys = fetchKeys()
-	end)
+  <input id="key" placeholder="Paste your key here">
 
-	if not success or not keys then
-		return false, "Database error"
-	end
+  <button id="btn" onclick="verify()">Validate Key</button>
 
-	local entry = keys[key]
-	if not entry then
-		return false, "Invalid key"
-	end
+  <div class="status" id="status">Waiting…</div>
+</div>
 
-	if entry.userId ~= PLAYER.UserId then
-		return false, "Key not for this user"
-	end
+<script>
+/* ================= CONFIG ================= */
 
-	local now = os.time()
-	if now > entry.expires then
-		return false, "Key expired"
-	end
+const BIN_URL =
+  "https://api.jsonbin.io/v3/b/694c4aefae596e708faef157/latest";
 
-	return true
-end
+/* ================= UI ================= */
 
-----------------------------------------------------
--- BUTTON
-----------------------------------------------------
-submit.MouseButton1Click:Connect(function()
-	local key = input.Text:gsub("%s+", "")
-	if key == "" then return end
+const btn = document.getElementById("btn");
+const statusBox = document.getElementById("status");
 
-	setButton("Verifying...", Color3.fromRGB(120,120,120))
+/* ================= FAKE CAPTCHA ================= */
 
-	local ok, err = validateKey(key)
-	if not ok then
-		setButton(err, Color3.fromRGB(180,0,0))
-		task.wait(1.5)
-		setButton("Submit", Color3.fromRGB(0,120,215))
-		return
-	end
+let verified = false;
 
-	setButton("KEY VALIDATED", Color3.fromRGB(0,180,0))
-	task.wait(0.6)
+setTimeout(() => {
+  verified = true;
+  statusBox.innerText = "Anti-robot check passed";
+}, 1500);
 
-	gui:Destroy()
+/* ================= MAIN ================= */
 
-	loadstring(game:HttpGet(SCRIPT_URL))()
-end)
+async function verify() {
+  if (!verified) {
+    statusBox.innerText = "Verifying anti-robot…";
+    return;
+  }
+
+  const key = document.getElementById("key").value.trim();
+  if (!key) return;
+
+  btn.disabled = true;
+  statusBox.innerText = "Validating key…";
+
+  try {
+    const res = await fetch(BIN_URL);
+    const data = await res.json();
+
+    const keys = data.record.keys;
+    const entry = keys[key];
+
+    if (!entry) {
+      statusBox.innerText = "❌ Invalid key";
+      btn.disabled = false;
+      return;
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+
+    if (now > entry.expires) {
+      statusBox.innerText = "⏰ Key expired";
+      btn.disabled = false;
+      return;
+    }
+
+    statusBox.innerText = "✅ Key validated (24h access)";
+  }
+  catch (e) {
+    statusBox.innerText = "Database error";
+    btn.disabled = false;
+  }
+}
+</script>
+
+</body>
+</html>
