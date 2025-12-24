@@ -1,129 +1,133 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Key Validation</title>
+----------------------------------------------------
+-- SERVICES
+----------------------------------------------------
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
 
-<style>
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #0f0f0f;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-}
+local PLAYER = Players.LocalPlayer
 
-.box {
-  background: #161616;
-  padding: 25px;
-  width: 360px;
-  border-radius: 10px;
-  box-shadow: 0 0 25px rgba(0,0,0,0.6);
-}
+----------------------------------------------------
+-- CONFIG
+----------------------------------------------------
+local JSONBIN_URL =
+    "https://api.jsonbin.io/v3/b/694c4aefae596e708faef157/latest"
 
-h2 {
-  text-align: center;
-  margin-bottom: 20px;
-}
+local SCRIPT_URL =
+    "https://api.junkie-development.de/api/v1/luascripts/public/4e568fb1f75b086c3795b9f604343a7564bbf2f50dfddd8e68df52daaf437411/download"
 
-input {
-  width: 100%;
-  padding: 12px;
-  border-radius: 6px;
-  border: none;
-  outline: none;
-  background: #222;
-  color: #fff;
-  font-size: 14px;
-}
+----------------------------------------------------
+-- GUI
+----------------------------------------------------
+local gui = Instance.new("ScreenGui")
+gui.Name = "KeySystem"
+gui.ResetOnSpawn = false
+gui.Parent = PLAYER:WaitForChild("PlayerGui")
 
-button {
-  width: 100%;
-  margin-top: 12px;
-  padding: 12px;
-  border: none;
-  border-radius: 6px;
-  background: #0078ff;
-  color: white;
-  font-size: 15px;
-  cursor: pointer;
-}
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.fromOffset(420, 190)
+frame.Position = UDim2.fromScale(0.5, 0.5)
+frame.AnchorPoint = Vector2.new(0.5, 0.5)
+frame.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 14)
 
-button:disabled {
-  background: #444;
-  cursor: not-allowed;
-}
+local title = Instance.new("TextLabel", frame)
+title.Text = "🔑 RealScripts Hub"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.TextColor3 = Color3.fromRGB(235,235,235)
+title.BackgroundTransparency = 1
+title.Size = UDim2.new(1, -20, 0, 30)
+title.Position = UDim2.fromOffset(14, 10)
+title.TextXAlignment = Left
 
-.status {
-  margin-top: 14px;
-  text-align: center;
-  font-size: 14px;
-}
-</style>
-</head>
+local input = Instance.new("TextBox", frame)
+input.PlaceholderText = "Paste your key here"
+input.ClearTextOnFocus = false
+input.Font = Enum.Font.Gotham
+input.TextSize = 14
+input.TextColor3 = Color3.fromRGB(235,235,235)
+input.BackgroundColor3 = Color3.fromRGB(28,28,28)
+input.BorderSizePixel = 0
+input.Size = UDim2.new(1, -28, 0, 40)
+input.Position = UDim2.fromOffset(14, 60)
+Instance.new("UICorner", input).CornerRadius = UDim.new(0, 10)
 
-<body>
+local submit = Instance.new("TextButton", frame)
+submit.Text = "Submit"
+submit.Font = Enum.Font.GothamBold
+submit.TextSize = 13
+submit.TextColor3 = Color3.new(1,1,1)
+submit.BackgroundColor3 = Color3.fromRGB(0,120,215)
+submit.BorderSizePixel = 0
+submit.Size = UDim2.new(1, -28, 0, 36)
+submit.Position = UDim2.fromOffset(14, 120)
+Instance.new("UICorner", submit).CornerRadius = UDim.new(0, 10)
 
-<div class="box">
-  <h2>Key System</h2>
+----------------------------------------------------
+-- HELPERS
+----------------------------------------------------
+local function setButton(text, color)
+	submit.Text = text
+	submit.BackgroundColor3 = color
+end
 
-  <input id="keyInput" placeholder="Enter your key" />
-  <button id="validateBtn">Validate Key</button>
+local function fetchKeys()
+	local res = game:HttpGet(JSONBIN_URL)
+	local data = HttpService:JSONDecode(res)
+	return data.record.keys
+end
 
-  <div id="status" class="status"></div>
-</div>
+----------------------------------------------------
+-- VALIDATION
+----------------------------------------------------
+local function validateKey(key)
+	local keys
+	local success = pcall(function()
+		keys = fetchKeys()
+	end)
 
-<script>
-const BIN_URL = "https://api.jsonbin.io/v3/b/694c4aefae596e708faef157/latest";
+	if not success or not keys then
+		return false, "Database error"
+	end
 
-const keyInput = document.getElementById("keyInput");
-const statusEl = document.getElementById("status");
-const btn = document.getElementById("validateBtn");
+	local entry = keys[key]
+	if not entry then
+		return false, "Invalid key"
+	end
 
-function setStatus(text, color) {
-  statusEl.textContent = text;
-  statusEl.style.color = color;
-}
+	if entry.userId ~= PLAYER.UserId then
+		return false, "Key not for this user"
+	end
 
-btn.onclick = async () => {
-  const key = keyInput.value.trim();
-  if (!key) return;
+	local now = os.time()
+	if now > entry.expires then
+		return false, "Key expired"
+	end
 
-  btn.disabled = true;
-  setStatus("Validating…", "#aaa");
+	return true
+end
 
-  try {
-    const res = await fetch(BIN_URL);
-    const data = await res.json();
+----------------------------------------------------
+-- BUTTON
+----------------------------------------------------
+submit.MouseButton1Click:Connect(function()
+	local key = input.Text:gsub("%s+", "")
+	if key == "" then return end
 
-    const keys = data.record.keys;
+	setButton("Verifying...", Color3.fromRGB(120,120,120))
 
-    if (!keys || !keys[key]) {
-      setStatus("Invalid key", "#ff4c4c");
-      btn.disabled = false;
-      return;
-    }
+	local ok, err = validateKey(key)
+	if not ok then
+		setButton(err, Color3.fromRGB(180,0,0))
+		task.wait(1.5)
+		setButton("Submit", Color3.fromRGB(0,120,215))
+		return
+	end
 
-    // OPTIONAL EXPIRY CHECK
-    const info = keys[key];
-    if (info.expires && Date.now()/1000 > info.expires) {
-      setStatus("Key expired", "#ff4c4c");
-      btn.disabled = false;
-      return;
-    }
+	setButton("KEY VALIDATED", Color3.fromRGB(0,180,0))
+	task.wait(0.6)
 
-    setStatus("Key validated", "#4cff4c");
+	gui:Destroy()
 
-  } catch (e) {
-    setStatus("Verification failed", "#ff4c4c");
-  }
-
-  btn.disabled = false;
-};
-</script>
-
-</body>
-</html>
+	loadstring(game:HttpGet(SCRIPT_URL))()
+end)
