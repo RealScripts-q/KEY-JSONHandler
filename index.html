@@ -72,24 +72,29 @@ button:disabled {
 
 <script>
 const BIN_ID = "694c4aefae596e708faef157";
-const API_KEY = "PASTE_JSONBIN_KEY";
+const API_KEY = "PASTE_JSONBIN_KEY"; // REQUIRED
 const KEY_TIME = 86400;
 
 const status = document.getElementById("status");
 const timerEl = document.getElementById("timer");
 const btn = document.getElementById("gen");
+const uidInput = document.getElementById("userid");
 
 function randomKey() {
   return "RSQ-" + crypto.randomUUID().slice(0,8).toUpperCase();
 }
 
-function startTimer(expiry) {
+function clearLocal() {
+  localStorage.removeItem("rsqKey");
+  timerEl.textContent = "";
+  btn.disabled = false;
+}
+
+function startTimer(expires) {
   function tick() {
-    const left = expiry - Math.floor(Date.now()/1000);
+    const left = expires - Math.floor(Date.now()/1000);
     if (left <= 0) {
-      localStorage.clear();
-      timerEl.textContent = "";
-      btn.disabled = false;
+      clearLocal();
       status.textContent = "⏳ You may generate a new key";
       return;
     }
@@ -103,18 +108,48 @@ function startTimer(expiry) {
   setInterval(tick, 1000);
 }
 
-(async () => {
+/* 🔄 CHECK STORAGE ON LOAD */
+(() => {
   const saved = JSON.parse(localStorage.getItem("rsqKey"));
-  if (saved && saved.expires > Date.now()/1000) {
+  if (!saved) return;
+
+  const currentUid = uidInput.value.trim();
+  if (saved.userId !== currentUid) {
+    clearLocal();
+    return;
+  }
+
+  if (saved.expires > Math.floor(Date.now()/1000)) {
     status.textContent = "✅ Existing key detected";
     startTimer(saved.expires);
+  } else {
+    clearLocal();
   }
 })();
 
+/* 🔄 RESET STORAGE IF USER CHANGES ID */
+uidInput.addEventListener("input", () => {
+  const saved = JSON.parse(localStorage.getItem("rsqKey"));
+  if (!saved) return;
+
+  if (saved.userId !== uidInput.value.trim()) {
+    clearLocal();
+    status.textContent = "";
+  }
+});
+
+/* 🔑 GENERATE KEY */
 btn.onclick = async () => {
-  const uid = document.getElementById("userid").value.trim();
+  const uid = uidInput.value.trim();
   if (!/^\d+$/.test(uid)) {
     status.textContent = "❌ Invalid UserId";
+    return;
+  }
+
+  const saved = JSON.parse(localStorage.getItem("rsqKey"));
+  if (saved && saved.userId === uid && saved.expires > Math.floor(Date.now()/1000)) {
+    status.textContent = "⏳ Key already active";
+    startTimer(saved.expires);
     return;
   }
 
@@ -128,6 +163,8 @@ btn.onclick = async () => {
   try {
     const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
     const data = await res.json();
+
+    if (!data.record) data.record = {};
     if (!data.record.keys) data.record.keys = {};
 
     data.record.keys[key] = {
@@ -142,16 +179,21 @@ btn.onclick = async () => {
         "Content-Type": "application/json",
         "X-Master-Key": API_KEY
       },
-      body: JSON.stringify({ keys: data.record.keys })
+      body: JSON.stringify({ record: data.record })
     });
 
-    localStorage.setItem("rsqKey", JSON.stringify({ key, expires }));
-    navigator.clipboard.writeText(key);
+    localStorage.setItem("rsqKey", JSON.stringify({
+      userId: uid,
+      key,
+      expires
+    }));
 
+    navigator.clipboard.writeText(key);
     status.textContent = "✅ Key generated & copied";
     startTimer(expires);
 
-  } catch {
+  } catch (err) {
+    console.error(err);
     status.textContent = "❌ Error saving key";
     btn.disabled = false;
   }
