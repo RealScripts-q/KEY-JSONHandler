@@ -15,13 +15,6 @@ local SCRIPT_URL = "https://api.junkie-development.de/api/v1/luascripts/public/4
 local WEBSITE = "https://realscripts-q.github.io/KEY-JSONHandler/"
 
 ----------------------------------------------------
--- KEY GENERATION
-----------------------------------------------------
-local function generateKey()
-	return "RSQ-" .. player.UserId .. "-" .. string.upper(string.sub(HttpService:GenerateGUID(false),1,6))
-end
-
-----------------------------------------------------
 -- GUI
 ----------------------------------------------------
 local gui = Instance.new("ScreenGui", CoreGui)
@@ -29,43 +22,66 @@ gui.IgnoreGuiInset = true
 gui.ResetOnSpawn = false
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.fromOffset(360,200)
-frame.Position = UDim2.fromScale(0.5,0.5) - UDim2.fromOffset(180,100)
+frame.Size = UDim2.fromOffset(360,220)
+frame.Position = UDim2.fromScale(0.5,0.5) - UDim2.fromOffset(180,110)
 frame.BackgroundColor3 = Color3.fromRGB(18,18,18)
 frame.BorderSizePixel = 0
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0,14)
 
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1,0,0,30)
+title.BackgroundTransparency = 1
+title.Text = "🔑 Key System"
+title.TextColor3 = Color3.new(1,1,1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+
 local input = Instance.new("TextBox", frame)
 input.Size = UDim2.new(1,-20,0,38)
-input.Position = UDim2.fromOffset(10,50)
+input.Position = UDim2.fromOffset(10,40)
 input.PlaceholderText = "Paste key here"
 input.BackgroundColor3 = Color3.fromRGB(30,30,30)
 input.TextColor3 = Color3.new(1,1,1)
 input.BorderSizePixel = 0
 Instance.new("UICorner", input)
 
+local status = Instance.new("TextLabel", frame)
+status.Size = UDim2.new(1,-20,0,20)
+status.Position = UDim2.fromOffset(10,82)
+status.BackgroundTransparency = 1
+status.Text = ""
+status.TextColor3 = Color3.fromRGB(160,160,160)
+status.Font = Enum.Font.Gotham
+status.TextSize = 12
+
 local genBtn = Instance.new("TextButton", frame)
 genBtn.Size = UDim2.new(1,-20,0,36)
-genBtn.Position = UDim2.fromOffset(10,95)
+genBtn.Position = UDim2.fromOffset(10,110)
 genBtn.Text = "Generate Key"
 genBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
 Instance.new("UICorner", genBtn)
 
 local submit = Instance.new("TextButton", frame)
 submit.Size = UDim2.new(1,-20,0,36)
-submit.Position = UDim2.fromOffset(10,140)
+submit.Position = UDim2.fromOffset(10,155)
 submit.Text = "Submit Key"
 submit.BackgroundColor3 = Color3.fromRGB(0,120,215)
 Instance.new("UICorner", submit)
 
 ----------------------------------------------------
--- BUTTONS
+-- KEY GENERATION
+----------------------------------------------------
+local function generateKey()
+	return "RSQ-" .. player.UserId .. "-" .. string.sub(HttpService:GenerateGUID(false),1,6):upper()
+end
+
+----------------------------------------------------
+-- BUTTON LOGIC
 ----------------------------------------------------
 genBtn.MouseButton1Click:Connect(function()
 	local key = generateKey()
 	setclipboard(key)
-	setclipboard(WEBSITE)
-	genBtn.Text = "Copied! Open Website"
+	status.Text = "Key copied. Paste it on the website."
 end)
 
 ----------------------------------------------------
@@ -78,23 +94,36 @@ local function validateKey(key)
 	if not entry then
 		return false
 	end
-
 	if entry.userId ~= player.UserId then
 		return false
 	end
-
 	if os.time() > entry.expires then
 		return false
 	end
-
 	return true
 end
 
 submit.MouseButton1Click:Connect(function()
-	if validateKey(input.Text) then
+	status.Text = "⏳ Validating…"
+	submit.BackgroundColor3 = Color3.fromRGB(120,120,120)
+
+	task.wait(0.6)
+
+	local ok = false
+	pcall(function()
+		ok = validateKey(input.Text)
+	end)
+
+	if ok then
+		status.Text = "✅ Key validated"
+		submit.BackgroundColor3 = Color3.fromRGB(0,180,0)
+		task.wait(0.8)
 		gui:Destroy()
 		loadstring(game:HttpGet(SCRIPT_URL))()
 	else
-		submit.Text = "Invalid / Expired"
+		status.Text = "❌ Invalid or expired key"
+		submit.BackgroundColor3 = Color3.fromRGB(180,0,0)
+		task.wait(1.5)
+		submit.BackgroundColor3 = Color3.fromRGB(0,120,215)
 	end
 end)
