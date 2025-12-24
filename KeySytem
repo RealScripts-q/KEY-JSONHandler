@@ -1,140 +1,133 @@
+----------------------------------------------------
 -- SERVICES
+----------------------------------------------------
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
-local CoreGui = game:GetService("CoreGui")
 
 local PLAYER = Players.LocalPlayer
 
 ----------------------------------------------------
 -- CONFIG
 ----------------------------------------------------
-
-local DATABASE_URL =
-"https://api.jsonbin.io/v3/b/694c4aefae596e708faef157/latest"
+local JSONBIN_URL =
+    "https://api.jsonbin.io/v3/b/694c4aefae596e708faef157/latest"
 
 local SCRIPT_URL =
-"https://api.junkie-development.de/api/v1/luascripts/public/4e568fb1f75b086c3795b9f604343a7564bbf2f50dfddd8e68df52daaf437411/download"
+    "https://api.junkie-development.de/api/v1/luascripts/public/4e568fb1f75b086c3795b9f604343a7564bbf2f50dfddd8e68df52daaf437411/download"
 
 ----------------------------------------------------
 -- GUI
 ----------------------------------------------------
-
 local gui = Instance.new("ScreenGui")
 gui.Name = "KeySystem"
-gui.IgnoreGuiInset = true
 gui.ResetOnSpawn = false
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-pcall(function() gui.Parent = CoreGui end)
+gui.Parent = PLAYER:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 420, 0, 200)
-frame.Position = UDim2.new(0.5, -210, 0.5, -100)
-frame.BackgroundColor3 = Color3.fromRGB(18,18,18)
-frame.BorderSizePixel = 0
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0,14)
+frame.Size = UDim2.fromOffset(420, 190)
+frame.Position = UDim2.fromScale(0.5, 0.5)
+frame.AnchorPoint = Vector2.new(0.5, 0.5)
+frame.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 14)
 
 local title = Instance.new("TextLabel", frame)
-title.Text = "🔑 My Super Hub"
-title.Size = UDim2.new(1,0,0,40)
-title.BackgroundTransparency = 1
-title.TextColor3 = Color3.fromRGB(235,235,235)
+title.Text = "🔑 RealScripts Hub"
 title.Font = Enum.Font.GothamBold
 title.TextSize = 16
+title.TextColor3 = Color3.fromRGB(235,235,235)
+title.BackgroundTransparency = 1
+title.Size = UDim2.new(1, -20, 0, 30)
+title.Position = UDim2.fromOffset(14, 10)
+title.TextXAlignment = Left
 
 local input = Instance.new("TextBox", frame)
-input.PlaceholderText = "Enter Key"
-input.Size = UDim2.new(1,-40,0,38)
-input.Position = UDim2.new(0,20,0,60)
-input.BackgroundColor3 = Color3.fromRGB(28,28,28)
-input.TextColor3 = Color3.new(1,1,1)
+input.PlaceholderText = "Paste your key here"
+input.ClearTextOnFocus = false
 input.Font = Enum.Font.Gotham
-input.TextSize = 13
+input.TextSize = 14
+input.TextColor3 = Color3.fromRGB(235,235,235)
+input.BackgroundColor3 = Color3.fromRGB(28,28,28)
 input.BorderSizePixel = 0
-Instance.new("UICorner", input).CornerRadius = UDim.new(0,10)
+input.Size = UDim2.new(1, -28, 0, 40)
+input.Position = UDim2.fromOffset(14, 60)
+Instance.new("UICorner", input).CornerRadius = UDim.new(0, 10)
 
-local status = Instance.new("TextLabel", frame)
-status.Size = UDim2.new(1,0,0,20)
-status.Position = UDim2.new(0,0,0,105)
-status.BackgroundTransparency = 1
-status.TextColor3 = Color3.fromRGB(150,150,150)
-status.Font = Enum.Font.Gotham
-status.TextSize = 12
-status.Text = ""
-
-local function makeBtn(txt, x)
-	local b = Instance.new("TextButton", frame)
-	b.Size = UDim2.new(0,120,0,36)
-	b.Position = UDim2.new(0,x,0,135)
-	b.Text = txt
-	b.Font = Enum.Font.GothamBold
-	b.TextSize = 12
-	b.TextColor3 = Color3.new(1,1,1)
-	b.BackgroundColor3 = Color3.fromRGB(0,120,215)
-	b.BorderSizePixel = 0
-	Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
-	return b
-end
-
-local genBtn = makeBtn("Generate Key", 20)
-local submitBtn = makeBtn("Submit", 160)
-local exitBtn = makeBtn("Exit", 300)
-exitBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+local submit = Instance.new("TextButton", frame)
+submit.Text = "Submit"
+submit.Font = Enum.Font.GothamBold
+submit.TextSize = 13
+submit.TextColor3 = Color3.new(1,1,1)
+submit.BackgroundColor3 = Color3.fromRGB(0,120,215)
+submit.BorderSizePixel = 0
+submit.Size = UDim2.new(1, -28, 0, 36)
+submit.Position = UDim2.fromOffset(14, 120)
+Instance.new("UICorner", submit).CornerRadius = UDim.new(0, 10)
 
 ----------------------------------------------------
 -- HELPERS
 ----------------------------------------------------
-
-local function fetchDB()
-	local raw = game:HttpGet(DATABASE_URL)
-	local decoded = HttpService:JSONDecode(raw)
-	return decoded.record
+local function setButton(text, color)
+	submit.Text = text
+	submit.BackgroundColor3 = color
 end
 
-local function generateKey()
-	return "TV2-" .. PLAYER.UserId .. "-" .. math.random(100000,999999)
+local function fetchKeys()
+	local res = game:HttpGet(JSONBIN_URL)
+	local data = HttpService:JSONDecode(res)
+	return data.record.keys
 end
 
 ----------------------------------------------------
--- BUTTONS
+-- VALIDATION
 ----------------------------------------------------
+local function validateKey(key)
+	local keys
+	local success = pcall(function()
+		keys = fetchKeys()
+	end)
 
-genBtn.MouseButton1Click:Connect(function()
-	local key = generateKey()
-	input.Text = key
-	status.Text = "Key generated & copied"
-	pcall(function() setclipboard(key) end)
-end)
+	if not success or not keys then
+		return false, "Database error"
+	end
 
-submitBtn.MouseButton1Click:Connect(function()
-	local key = input.Text:gsub("%s+","")
+	local entry = keys[key]
+	if not entry then
+		return false, "Invalid key"
+	end
+
+	if entry.userId ~= PLAYER.UserId then
+		return false, "Key not for this user"
+	end
+
+	local now = os.time()
+	if now > entry.expires then
+		return false, "Key expired"
+	end
+
+	return true
+end
+
+----------------------------------------------------
+-- BUTTON
+----------------------------------------------------
+submit.MouseButton1Click:Connect(function()
+	local key = input.Text:gsub("%s+", "")
 	if key == "" then return end
 
-	status.Text = "Validating…"
+	setButton("Verifying...", Color3.fromRGB(120,120,120))
 
-	local ok, db = pcall(fetchDB)
-	if not ok or not db or not db.users then
-		status.Text = "Database error"
+	local ok, err = validateKey(key)
+	if not ok then
+		setButton(err, Color3.fromRGB(180,0,0))
+		task.wait(1.5)
+		setButton("Submit", Color3.fromRGB(0,120,215))
 		return
 	end
 
-	local entry = db.users[tostring(PLAYER.UserId)]
-	if not entry then
-		status.Text = "Invalid key"
-		return
-	end
-
-	if entry.key ~= key then
-		status.Text = "Invalid key"
-		return
-	end
-
-	status.Text = "Key validated"
+	setButton("KEY VALIDATED", Color3.fromRGB(0,180,0))
 	task.wait(0.6)
 
 	gui:Destroy()
-	loadstring(game:HttpGet(SCRIPT_URL))()
-end)
 
-exitBtn.MouseButton1Click:Connect(function()
-	gui:Destroy()
+	loadstring(game:HttpGet(SCRIPT_URL))()
 end)
