@@ -1,129 +1,140 @@
-----------------------------------------------------
 -- SERVICES
-----------------------------------------------------
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
 
-local player = Players.LocalPlayer
+local PLAYER = Players.LocalPlayer
 
 ----------------------------------------------------
 -- CONFIG
 ----------------------------------------------------
-local DATABASE_URL = "https://api.jsonbin.io/v3/b/694c41a6ae596e708faee717/latest"
-local SCRIPT_URL = "https://api.junkie-development.de/api/v1/luascripts/public/4e568fb1f75b086c3795b9f604343a7564bbf2f50dfddd8e68df52daaf437411/download"
-local WEBSITE = "https://realscripts-q.github.io/KEY-JSONHandler/"
+
+local DATABASE_URL =
+"https://api.jsonbin.io/v3/b/694c4aefae596e708faef157/latest"
+
+local SCRIPT_URL =
+"https://api.junkie-development.de/api/v1/luascripts/public/4e568fb1f75b086c3795b9f604343a7564bbf2f50dfddd8e68df52daaf437411/download"
 
 ----------------------------------------------------
 -- GUI
 ----------------------------------------------------
-local gui = Instance.new("ScreenGui", CoreGui)
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "KeySystem"
 gui.IgnoreGuiInset = true
 gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+pcall(function() gui.Parent = CoreGui end)
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.fromOffset(360,220)
-frame.Position = UDim2.fromScale(0.5,0.5) - UDim2.fromOffset(180,110)
+frame.Size = UDim2.new(0, 420, 0, 200)
+frame.Position = UDim2.new(0.5, -210, 0.5, -100)
 frame.BackgroundColor3 = Color3.fromRGB(18,18,18)
 frame.BorderSizePixel = 0
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0,14)
 
 local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1,0,0,30)
+title.Text = "🔑 My Super Hub"
+title.Size = UDim2.new(1,0,0,40)
 title.BackgroundTransparency = 1
-title.Text = "🔑 Key System"
-title.TextColor3 = Color3.new(1,1,1)
+title.TextColor3 = Color3.fromRGB(235,235,235)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 16
 
 local input = Instance.new("TextBox", frame)
-input.Size = UDim2.new(1,-20,0,38)
-input.Position = UDim2.fromOffset(10,40)
-input.PlaceholderText = "Paste key here"
-input.BackgroundColor3 = Color3.fromRGB(30,30,30)
+input.PlaceholderText = "Enter Key"
+input.Size = UDim2.new(1,-40,0,38)
+input.Position = UDim2.new(0,20,0,60)
+input.BackgroundColor3 = Color3.fromRGB(28,28,28)
 input.TextColor3 = Color3.new(1,1,1)
+input.Font = Enum.Font.Gotham
+input.TextSize = 13
 input.BorderSizePixel = 0
-Instance.new("UICorner", input)
+Instance.new("UICorner", input).CornerRadius = UDim.new(0,10)
 
 local status = Instance.new("TextLabel", frame)
-status.Size = UDim2.new(1,-20,0,20)
-status.Position = UDim2.fromOffset(10,82)
+status.Size = UDim2.new(1,0,0,20)
+status.Position = UDim2.new(0,0,0,105)
 status.BackgroundTransparency = 1
-status.Text = ""
-status.TextColor3 = Color3.fromRGB(160,160,160)
+status.TextColor3 = Color3.fromRGB(150,150,150)
 status.Font = Enum.Font.Gotham
 status.TextSize = 12
+status.Text = ""
 
-local genBtn = Instance.new("TextButton", frame)
-genBtn.Size = UDim2.new(1,-20,0,36)
-genBtn.Position = UDim2.fromOffset(10,110)
-genBtn.Text = "Generate Key"
-genBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
-Instance.new("UICorner", genBtn)
+local function makeBtn(txt, x)
+	local b = Instance.new("TextButton", frame)
+	b.Size = UDim2.new(0,120,0,36)
+	b.Position = UDim2.new(0,x,0,135)
+	b.Text = txt
+	b.Font = Enum.Font.GothamBold
+	b.TextSize = 12
+	b.TextColor3 = Color3.new(1,1,1)
+	b.BackgroundColor3 = Color3.fromRGB(0,120,215)
+	b.BorderSizePixel = 0
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
+	return b
+end
 
-local submit = Instance.new("TextButton", frame)
-submit.Size = UDim2.new(1,-20,0,36)
-submit.Position = UDim2.fromOffset(10,155)
-submit.Text = "Submit Key"
-submit.BackgroundColor3 = Color3.fromRGB(0,120,215)
-Instance.new("UICorner", submit)
+local genBtn = makeBtn("Generate Key", 20)
+local submitBtn = makeBtn("Submit", 160)
+local exitBtn = makeBtn("Exit", 300)
+exitBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
 
 ----------------------------------------------------
--- KEY GENERATION
+-- HELPERS
 ----------------------------------------------------
+
+local function fetchDB()
+	local raw = game:HttpGet(DATABASE_URL)
+	local decoded = HttpService:JSONDecode(raw)
+	return decoded.record
+end
+
 local function generateKey()
-	return "RSQ-" .. player.UserId .. "-" .. string.sub(HttpService:GenerateGUID(false),1,6):upper()
+	return "TV2-" .. PLAYER.UserId .. "-" .. math.random(100000,999999)
 end
 
 ----------------------------------------------------
--- BUTTON LOGIC
+-- BUTTONS
 ----------------------------------------------------
+
 genBtn.MouseButton1Click:Connect(function()
 	local key = generateKey()
-	setclipboard(key)
-	status.Text = "Key copied. Paste it on the website."
+	input.Text = key
+	status.Text = "Key generated & copied"
+	pcall(function() setclipboard(key) end)
 end)
 
-----------------------------------------------------
--- VALIDATION
-----------------------------------------------------
-local function validateKey(key)
-	local data = HttpService:JSONDecode(game:HttpGet(DATABASE_URL))
-	local entry = data.record[key]
+submitBtn.MouseButton1Click:Connect(function()
+	local key = input.Text:gsub("%s+","")
+	if key == "" then return end
 
+	status.Text = "Validating…"
+
+	local ok, db = pcall(fetchDB)
+	if not ok or not db or not db.users then
+		status.Text = "Database error"
+		return
+	end
+
+	local entry = db.users[tostring(PLAYER.UserId)]
 	if not entry then
-		return false
+		status.Text = "Invalid key"
+		return
 	end
-	if entry.userId ~= player.UserId then
-		return false
-	end
-	if os.time() > entry.expires then
-		return false
-	end
-	return true
-end
 
-submit.MouseButton1Click:Connect(function()
-	status.Text = "⏳ Validating…"
-	submit.BackgroundColor3 = Color3.fromRGB(120,120,120)
+	if entry.key ~= key then
+		status.Text = "Invalid key"
+		return
+	end
 
+	status.Text = "Key validated"
 	task.wait(0.6)
 
-	local ok = false
-	pcall(function()
-		ok = validateKey(input.Text)
-	end)
+	gui:Destroy()
+	loadstring(game:HttpGet(SCRIPT_URL))()
+end)
 
-	if ok then
-		status.Text = "✅ Key validated"
-		submit.BackgroundColor3 = Color3.fromRGB(0,180,0)
-		task.wait(0.8)
-		gui:Destroy()
-		loadstring(game:HttpGet(SCRIPT_URL))()
-	else
-		status.Text = "❌ Invalid or expired key"
-		submit.BackgroundColor3 = Color3.fromRGB(180,0,0)
-		task.wait(1.5)
-		submit.BackgroundColor3 = Color3.fromRGB(0,120,215)
-	end
+exitBtn.MouseButton1Click:Connect(function()
+	gui:Destroy()
 end)
