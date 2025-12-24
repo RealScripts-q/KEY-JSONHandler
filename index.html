@@ -1,51 +1,148 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Key Validator</title>
+<meta charset="UTF-8">
+<title>Tracker V2 – Get Key</title>
+
 <style>
-body{background:#0f0f0f;color:white;font-family:Arial;display:flex;justify-content:center;align-items:center;height:100vh}
-.box{background:#1b1b1b;padding:20px;border-radius:10px;width:340px}
-input,button{width:100%;padding:10px;margin-top:10px;border:none;border-radius:6px}
-button{background:#0078ff;color:white;font-weight:bold}
+body{
+  background:#0f0f0f;
+  color:#fff;
+  font-family:Arial;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+.box{
+  background:#1b1b1b;
+  padding:25px;
+  border-radius:12px;
+  width:360px;
+}
+input,button{
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+  border:none;
+  border-radius:6px;
+}
+button{
+  background:#0078ff;
+  color:#fff;
+  font-weight:bold;
+  cursor:pointer;
+}
+.output{
+  margin-top:15px;
+  background:#000;
+  padding:10px;
+  border-radius:6px;
+  min-height:40px;
+}
+.disabled{
+  opacity:.6;
+  pointer-events:none;
+}
 </style>
 </head>
-<body>
 
+<body>
 <div class="box">
-<h3>🔑 Validate Key</h3>
-<input id="key" placeholder="Paste key">
-<button onclick="validate()">Validate</button>
-<div id="out"></div>
+  <h3>🔑 Tracker V2 Key System</h3>
+
+  <input id="user" placeholder="Roblox Username">
+  <button id="btn" onclick="start()">Verify & Generate</button>
+
+  <div class="output" id="out">Waiting…</div>
 </div>
 
 <script>
-const BIN_ID = "694c41a6ae596e708faee717";
-const API_KEY = "$2a$10$7MPZXICawr4gE5o3N/KXiOaEMdx9qUL/c1Ht4TEnfO8DYmK2Tqiae";
+/* ================= CONFIG ================= */
 
-async function validate(){
-	const key = document.getElementById("key").value.trim();
-	if(!key) return;
+const BIN_ID = "694c4aefae596e708faef157";
+const MASTER_KEY = "$2a$10$7MPZXICawr4gE5o3N/KXiOaEMdx9qUL/c1Ht4TEnfO8DYmK2Tqiae";
+const BIN_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 
-	const uid = key.split("-")[1];
-	const data = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`).then(r=>r.json());
+/* ================= UI ================= */
 
-	data.record[key] = {
-		userId: Number(uid),
-		expires: Math.floor(Date.now()/1000) + 86400
-	};
+const out = document.getElementById("out");
+const btn = document.getElementById("btn");
 
-	await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{
-		method:"PUT",
-		headers:{
-			"Content-Type":"application/json",
-			"X-Master-Key":API_KEY
-		},
-		body:JSON.stringify(data.record)
-	});
+function set(msg){
+  out.innerText = msg;
+}
 
-	document.getElementById("out").innerText = "✅ Key validated (24h)";
+/* ================= UTILS ================= */
+
+function generateKey(uid){
+  return `TV2-${uid}-${Math.floor(100000+Math.random()*900000)}`;
+}
+
+async function sleep(ms){
+  return new Promise(r=>setTimeout(r,ms));
+}
+
+/* ================= MAIN ================= */
+
+async function start(){
+  const name = document.getElementById("user").value.trim();
+  if(!name) return;
+
+  btn.classList.add("disabled");
+  set("Verifying Roblox user…");
+
+  /* ---- Roblox username lookup ---- */
+  const rbx = await fetch("https://users.roblox.com/v1/usernames/users",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({ usernames:[name] })
+  }).then(r=>r.json());
+
+  if(!rbx.data || !rbx.data[0]){
+    set("Couldn't find player in database");
+    btn.classList.remove("disabled");
+    return;
+  }
+
+  const userId = rbx.data[0].id;
+
+  /* ---- fake captcha delay ---- */
+  set("Verifying human…");
+  await sleep(2000);
+
+  set("Generating key…");
+
+  /* ---- get current bin ---- */
+  const bin = await fetch(`${BIN_URL}/latest`,{
+    headers:{ "X-Master-Key": MASTER_KEY }
+  }).then(r=>r.json());
+
+  const data = bin.record || {};
+  data.users = data.users || {};
+
+  const key = generateKey(userId);
+
+  data.users[userId] = {
+    key: key,
+    validatedAt: Math.floor(Date.now()/1000)
+  };
+
+  /* ---- write back ---- */
+  await fetch(BIN_URL,{
+    method:"PUT",
+    headers:{
+      "Content-Type":"application/json",
+      "X-Master-Key": MASTER_KEY
+    },
+    body:JSON.stringify(data)
+  });
+
+  set("Key validated:\n" + key);
+  navigator.clipboard.writeText(key).catch(()=>{});
+
+  btn.classList.remove("disabled");
 }
 </script>
-
 </body>
 </html>
