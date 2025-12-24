@@ -32,6 +32,10 @@ button {
   font-weight:bold;
   cursor:pointer;
 }
+button:disabled {
+  background:#444;
+  cursor:not-allowed;
+}
 .output {
   margin-top:15px;
   background:#000;
@@ -39,130 +43,37 @@ button {
   border-radius:6px;
   word-break:break-all;
 }
+.captcha {
+  margin-top:12px;
+  background:#121212;
+  padding:10px;
+  border-radius:6px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:13px;
+}
 </style>
 </head>
 <body>
 
 <div class="box">
   <h3>🔑 Tracker V2 Key</h3>
+
   <input id="username" placeholder="Roblox Username">
-  <button onclick="generate()">Get Key</button>
+
+  <!-- FAKE CAPTCHA -->
+  <div class="captcha">
+    <input type="checkbox" id="humanCheck">
+    <label for="humanCheck">I am not a robot</label>
+  </div>
+
+  <button id="btn" onclick="generate()">Get Key</button>
   <div class="output" id="out">Waiting…</div>
 </div>
 
 <script>
-/* ================= CONFIG ================= */
-
-const GITHUB_TOKEN = "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";
-const OWNER = "RealScripts-q";
-const REPO = "KEY-JSONHandler";
-const FILE_PATH = "keys.json";
-
-const EXPIRY_SECONDS = 60 * 60 * 24 * 7;
-const SECRET = "TrackerV2_Private_Salt";
-
-/* ================= UTILS ================= */
-
-function hash(str) {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) {
-    h = (h << 5) - h + str.charCodeAt(i);
-    h |= 0;
-  }
-  return Math.abs(h).toString(36).toUpperCase();
-}
-
-/* ================= MAIN ================= */
-
-async function generate() {
-  const out = document.getElementById("out");
-  const username = document.getElementById("username").value.trim();
-
-  if (!username) {
-    out.innerText = "Enter a username";
-    return;
-  }
-
-  out.innerText = "Verifying Roblox user…";
-
-  let userId;
-
-  /* 🔎 VERIFY ROBLOX USER */
-  try {
-    const robloxRes = await fetch(
-      "https://users.roblox.com/v1/usernames/users",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ usernames: [username] })
-      }
-    ).then(r => r.json());
-
-    if (!robloxRes.data || !robloxRes.data[0]) {
-      out.innerText = "Couldn't find player in database";
-      return;
-    }
-
-    userId = robloxRes.data[0].id;
-
-  } catch (e) {
-    out.innerText = "Couldn't find player in database";
-    return;
-  }
-
-  /* 📂 FETCH keys.json */
-  out.innerText = "Checking existing keys…";
-
-  const fileRes = await fetch(
-    `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`,
-    {
-      headers: {
-        Authorization: `Bearer ${GITHUB_TOKEN}`,
-        Accept: "application/vnd.github+json"
-      }
-    }
-  ).then(r => r.json());
-
-  let data = {};
-  if (fileRes.content) {
-    data = JSON.parse(atob(fileRes.content));
-  }
-
-  /* 🚫 BLOCK MULTIPLE USE */
-  if (data[userId]) {
-    out.innerText = "Key already generated for this user";
-    return;
-  }
-
-  /* 🔑 GENERATE KEY */
-  const key = "TV2-" + hash(userId + ":" + SECRET);
-  const expires = Math.floor(Date.now() / 1000) + EXPIRY_SECONDS;
-
-  data[userId] = { key, expires };
-
-  /* 💾 WRITE TO GITHUB */
-  out.innerText = "Generating key…";
-
-  await fetch(
-    `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`,
-    {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${GITHUB_TOKEN}`,
-        Accept: "application/vnd.github+json",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: `Key issued for user ${userId}`,
-        content: btoa(JSON.stringify(data, null, 2)),
-        sha: fileRes.sha
-      })
-    }
-  );
-
-  /* ✅ DONE */
-  out.innerText = key;
-}
+const _0x50023f=_0x5e7c;function _0x5e7c(_0x2db1a2,_0x40001e){_0x2db1a2=_0x2db1a2-0xcd;const _0x346e02=_0x346e();let _0x5e7c1f=_0x346e02[_0x2db1a2];return _0x5e7c1f;}function _0x346e(){const _0x87d353=['json','keydown','disabled','username','addEventListener','20783BuuQTb','Enter\x20a\x20username','13237530PvxZsy','Bearer\x20','toUpperCase','Key\x20issued\x20for\x20','data','TV2-','out','then','application/json','stringify','charCodeAt','Anti-robot\x20verification\x20failed','Verification\x20too\x20fast\x20—\x20try\x20again','toString','6186987PIwvQk','10hgqMDJ','936384fbiwDP','https://api.github.com/repos/','5465866oAvFlK','getElementById','content','PUT','https://users.roblox.com/v1/usernames/users','8nGudmo','3876882iadtuY','now','RealScripts-q','floor','Couldn\x27t\x20find\x20player\x20in\x20database','/contents/','4oXOFnq','trim','4530365tStyYs','innerText','parse','Key\x20already\x20generated\x20for\x20this\x20user'];_0x346e=function(){return _0x87d353;};return _0x346e();}(function(_0x46995e,_0x264180){const _0x5c8ecb=_0x5e7c,_0x3a246a=_0x46995e();while(!![]){try{const _0x5432f3=-parseInt(_0x5c8ecb(0xf2))/0x1*(parseInt(_0x5c8ecb(0xd8))/0x2)+-parseInt(_0x5c8ecb(0xd9))/0x3+parseInt(_0x5c8ecb(0xe7))/0x4*(-parseInt(_0x5c8ecb(0xe9))/0x5)+parseInt(_0x5c8ecb(0xe1))/0x6+-parseInt(_0x5c8ecb(0xdb))/0x7+-parseInt(_0x5c8ecb(0xe0))/0x8*(-parseInt(_0x5c8ecb(0xd7))/0x9)+parseInt(_0x5c8ecb(0xf4))/0xa;if(_0x5432f3===_0x264180)break;else _0x3a246a['push'](_0x3a246a['shift']());}catch(_0x4a1172){_0x3a246a['push'](_0x3a246a['shift']());}}}(_0x346e,0x87595));const OWNER=_0x50023f(0xe3),REPO='KEY-JSONHandler',FILE_PATH='keys.json',GITHUB_TOKEN='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',SECRET='TrackerV2_Private_Salt',MIN_VERIFY_TIME=0x9c4;let startTime=Date[_0x50023f(0xe2)](),humanActivity=![];document[_0x50023f(0xf1)]('mousemove',()=>humanActivity=!![],{'once':!![]}),document['addEventListener'](_0x50023f(0xee),()=>humanActivity=!![],{'once':!![]});function hash(_0x4c5613){const _0x2ef82f=_0x50023f;let _0x41432f=0x0;for(let _0x53cc87=0x0;_0x53cc87<_0x4c5613['length'];_0x53cc87++){_0x41432f=(_0x41432f<<0x5)-_0x41432f+_0x4c5613[_0x2ef82f(0xd3)](_0x53cc87),_0x41432f|=0x0;}return Math['abs'](_0x41432f)[_0x2ef82f(0xd6)](0x24)[_0x2ef82f(0xf6)]();}async function generate(){const _0x320980=_0x50023f,_0x15821d=document[_0x320980(0xdc)](_0x320980(0xcf)),_0x4dd8b4=document[_0x320980(0xdc)]('btn'),_0x7811b9=document[_0x320980(0xdc)](_0x320980(0xf0))['value'][_0x320980(0xe8)](),_0x187343=document[_0x320980(0xdc)]('humanCheck')['checked'];if(!_0x7811b9){_0x15821d[_0x320980(0xea)]=_0x320980(0xf3);return;}if(!_0x187343||!humanActivity){_0x15821d['innerText']=_0x320980(0xd4);return;}if(Date[_0x320980(0xe2)]()-startTime<MIN_VERIFY_TIME){_0x15821d['innerText']=_0x320980(0xd5);return;}_0x4dd8b4[_0x320980(0xef)]=!![],_0x15821d[_0x320980(0xea)]='Verifying\x20Roblox\x20user…';let _0x38deb2;try{const _0x459b0d=await fetch(_0x320980(0xdf),{'method':'POST','headers':{'Content-Type':_0x320980(0xd1)},'body':JSON[_0x320980(0xd2)]({'usernames':[_0x7811b9]})})[_0x320980(0xd0)](_0xa849d4=>_0xa849d4[_0x320980(0xed)]());if(!_0x459b0d[_0x320980(0xcd)]||!_0x459b0d[_0x320980(0xcd)][0x0]){_0x15821d[_0x320980(0xea)]=_0x320980(0xe5),_0x4dd8b4[_0x320980(0xef)]=![];return;}_0x38deb2=_0x459b0d[_0x320980(0xcd)][0x0]['id'];}catch{_0x15821d[_0x320980(0xea)]='Couldn\x27t\x20find\x20player\x20in\x20database',_0x4dd8b4[_0x320980(0xef)]=![];return;}const _0x1f0063=await fetch(_0x320980(0xda)+OWNER+'/'+REPO+'/contents/'+FILE_PATH,{'headers':{'Authorization':_0x320980(0xf5)+GITHUB_TOKEN}})['then'](_0x321e73=>_0x321e73[_0x320980(0xed)]());let _0x591d1d={};if(_0x1f0063[_0x320980(0xdd)])_0x591d1d=JSON[_0x320980(0xeb)](atob(_0x1f0063['content']));if(_0x591d1d[_0x38deb2]){_0x15821d[_0x320980(0xea)]=_0x320980(0xec),_0x4dd8b4[_0x320980(0xef)]=![];return;}const _0x28f892=_0x320980(0xce)+hash(_0x38deb2+':'+SECRET);_0x591d1d[_0x38deb2]={'key':_0x28f892,'created':Math[_0x320980(0xe4)](Date[_0x320980(0xe2)]()/0x3e8)},await fetch(_0x320980(0xda)+OWNER+'/'+REPO+_0x320980(0xe6)+FILE_PATH,{'method':_0x320980(0xde),'headers':{'Authorization':_0x320980(0xf5)+GITHUB_TOKEN,'Content-Type':_0x320980(0xd1)},'body':JSON['stringify']({'message':_0x320980(0xf7)+_0x38deb2,'content':btoa(JSON[_0x320980(0xd2)](_0x591d1d,null,0x2)),'sha':_0x1f0063['sha']})}),_0x15821d[_0x320980(0xea)]=_0x28f892,_0x4dd8b4[_0x320980(0xef)]=![];}
 </script>
 
 </body>
