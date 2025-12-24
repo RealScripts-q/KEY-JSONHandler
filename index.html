@@ -44,7 +44,6 @@ button {
 }
 button:disabled {
   opacity: .5;
-  cursor: not-allowed;
 }
 .status {
   margin-top: 12px;
@@ -61,7 +60,7 @@ button:disabled {
 <body>
 <div class="card">
   <h1>🔑 RSQ Key System</h1>
-  <p>One key per 24 hours</p>
+  <p>One key per user (24h)</p>
 
   <input id="userid" placeholder="Roblox UserId">
   <button id="gen">Generate Key</button>
@@ -72,7 +71,7 @@ button:disabled {
 
 <script>
 const BIN_ID = "694c4aefae596e708faef157";
-const API_KEY = "PASTE_JSONBIN_KEY"; // REQUIRED
+const API_KEY = "PASTE_JSONBIN_KEY";
 const KEY_TIME = 86400;
 
 const status = document.getElementById("status");
@@ -84,17 +83,12 @@ function randomKey() {
   return "RSQ-" + crypto.randomUUID().slice(0,8).toUpperCase();
 }
 
-function clearLocal() {
-  localStorage.removeItem("rsqKey");
-  timerEl.textContent = "";
-  btn.disabled = false;
-}
-
 function startTimer(expires) {
   function tick() {
     const left = expires - Math.floor(Date.now()/1000);
     if (left <= 0) {
-      clearLocal();
+      timerEl.textContent = "";
+      btn.disabled = false;
       status.textContent = "⏳ You may generate a new key";
       return;
     }
@@ -108,37 +102,22 @@ function startTimer(expires) {
   setInterval(tick, 1000);
 }
 
-/* 🔄 CHECK STORAGE ON LOAD */
-(() => {
-  const saved = JSON.parse(localStorage.getItem("rsqKey"));
-  if (!saved) return;
+async function fetchKeys() {
+  const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
+  const data = await res.json();
+  return data.record?.keys || {};
+}
 
-  const currentUid = uidInput.value.trim();
-  if (saved.userId !== currentUid) {
-    clearLocal();
-    return;
+function findUserKey(keys, userId) {
+  const now = Math.floor(Date.now()/1000);
+  for (const [key, info] of Object.entries(keys)) {
+    if (info.userId === Number(userId) && info.expires > now) {
+      return { key, info };
+    }
   }
+  return null;
+}
 
-  if (saved.expires > Math.floor(Date.now()/1000)) {
-    status.textContent = "✅ Existing key detected";
-    startTimer(saved.expires);
-  } else {
-    clearLocal();
-  }
-})();
-
-/* 🔄 RESET STORAGE IF USER CHANGES ID */
-uidInput.addEventListener("input", () => {
-  const saved = JSON.parse(localStorage.getItem("rsqKey"));
-  if (!saved) return;
-
-  if (saved.userId !== uidInput.value.trim()) {
-    clearLocal();
-    status.textContent = "";
-  }
-});
-
-/* 🔑 GENERATE KEY */
 btn.onclick = async () => {
   const uid = uidInput.value.trim();
   if (!/^\d+$/.test(uid)) {
@@ -146,28 +125,27 @@ btn.onclick = async () => {
     return;
   }
 
-  const saved = JSON.parse(localStorage.getItem("rsqKey"));
-  if (saved && saved.userId === uid && saved.expires > Math.floor(Date.now()/1000)) {
-    status.textContent = "⏳ Key already active";
-    startTimer(saved.expires);
-    return;
-  }
-
   btn.disabled = true;
-  status.textContent = "⏳ Generating key…";
-
-  const now = Math.floor(Date.now()/1000);
-  const key = randomKey();
-  const expires = now + KEY_TIME;
+  status.textContent = "🔍 Checking database…";
 
   try {
-    const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
-    const data = await res.json();
+    const keys = await fetchKeys();
 
-    if (!data.record) data.record = {};
-    if (!data.record.keys) data.record.keys = {};
+    /* 🔒 HARD USER LOCK (DATABASE CHECK) */
+    const existing = findUserKey(keys, uid);
+    if (existing) {
+      status.textContent = "⛔ User already has an active key";
+      startTimer(existing.info.expires);
+      return;
+    }
 
-    data.record.keys[key] = {
+    status.textContent = "⏳ Generating key…";
+
+    const now = Math.floor(Date.now()/1000);
+    const key = randomKey();
+    const expires = now + KEY_TIME;
+
+    keys[key] = {
       userId: Number(uid),
       created: now,
       expires
@@ -179,14 +157,8 @@ btn.onclick = async () => {
         "Content-Type": "application/json",
         "X-Master-Key": API_KEY
       },
-      body: JSON.stringify({ record: data.record })
+      body: JSON.stringify({ record: { keys } })
     });
-
-    localStorage.setItem("rsqKey", JSON.stringify({
-      userId: uid,
-      key,
-      expires
-    }));
 
     navigator.clipboard.writeText(key);
     status.textContent = "✅ Key generated & copied";
@@ -194,7 +166,7 @@ btn.onclick = async () => {
 
   } catch (err) {
     console.error(err);
-    status.textContent = "❌ Error saving key";
+    status.textContent = "❌ Database error";
     btn.disabled = false;
   }
 };
