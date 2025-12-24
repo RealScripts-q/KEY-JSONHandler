@@ -3,44 +3,58 @@
 ----------------------------------------------------
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
+local CoreGui = game:GetService("CoreGui")
 
 local PLAYER = Players.LocalPlayer
+
+----------------------------------------------------
+-- WAIT FOR PLAYER
+----------------------------------------------------
+repeat task.wait() until PLAYER and PLAYER.Character
 
 ----------------------------------------------------
 -- CONFIG
 ----------------------------------------------------
 local JSONBIN_URL =
-    "https://api.jsonbin.io/v3/b/694c4aefae596e708faef157/latest"
+  "https://api.jsonbin.io/v3/b/694c4aefae596e708faef157/latest"
 
 local SCRIPT_URL =
-    "https://api.junkie-development.de/api/v1/luascripts/public/4e568fb1f75b086c3795b9f604343a7564bbf2f50dfddd8e68df52daaf437411/download"
+  "https://api.junkie-development.de/api/v1/luascripts/public/4e568fb1f75b086c3795b9f604343a7564bbf2f50dfddd8e68df52daaf437411/download"
 
 ----------------------------------------------------
 -- GUI
 ----------------------------------------------------
 local gui = Instance.new("ScreenGui")
-gui.Name = "KeySystem"
+gui.Name = "RSQ_KeySystem"
+gui.IgnoreGuiInset = true
 gui.ResetOnSpawn = false
-gui.Parent = PLAYER:WaitForChild("PlayerGui")
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+gui.Parent = CoreGui -- 🔥 FIX
 
-local frame = Instance.new("Frame", gui)
+local frame = Instance.new("Frame")
+frame.Parent = gui
 frame.Size = UDim2.fromOffset(420, 190)
 frame.Position = UDim2.fromScale(0.5, 0.5)
 frame.AnchorPoint = Vector2.new(0.5, 0.5)
-frame.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+frame.BackgroundColor3 = Color3.fromRGB(18,18,18)
+frame.BorderSizePixel = 0
+frame.ZIndex = 10
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 14)
 
-local title = Instance.new("TextLabel", frame)
+local title = Instance.new("TextLabel")
+title.Parent = frame
 title.Text = "🔑 RealScripts Hub"
 title.Font = Enum.Font.GothamBold
 title.TextSize = 16
 title.TextColor3 = Color3.fromRGB(235,235,235)
 title.BackgroundTransparency = 1
 title.Size = UDim2.new(1, -20, 0, 30)
-title.Position = UDim2.fromOffset(14, 10)
+title.Position = UDim2.fromOffset(14, 12)
 title.TextXAlignment = Left
+title.ZIndex = 11
 
-local input = Instance.new("TextBox", frame)
+local input = Instance.new("TextBox")
+input.Parent = frame
 input.PlaceholderText = "Paste your key here"
 input.ClearTextOnFocus = false
 input.Font = Enum.Font.Gotham
@@ -50,9 +64,11 @@ input.BackgroundColor3 = Color3.fromRGB(28,28,28)
 input.BorderSizePixel = 0
 input.Size = UDim2.new(1, -28, 0, 40)
 input.Position = UDim2.fromOffset(14, 60)
+input.ZIndex = 11
 Instance.new("UICorner", input).CornerRadius = UDim.new(0, 10)
 
-local submit = Instance.new("TextButton", frame)
+local submit = Instance.new("TextButton")
+submit.Parent = frame
 submit.Text = "Submit"
 submit.Font = Enum.Font.GothamBold
 submit.TextSize = 13
@@ -61,6 +77,7 @@ submit.BackgroundColor3 = Color3.fromRGB(0,120,215)
 submit.BorderSizePixel = 0
 submit.Size = UDim2.new(1, -28, 0, 36)
 submit.Position = UDim2.fromOffset(14, 120)
+submit.ZIndex = 11
 Instance.new("UICorner", submit).CornerRadius = UDim.new(0, 10)
 
 ----------------------------------------------------
@@ -82,11 +99,11 @@ end
 ----------------------------------------------------
 local function validateKey(key)
 	local keys
-	local success = pcall(function()
+	local ok = pcall(function()
 		keys = fetchKeys()
 	end)
 
-	if not success or not keys then
+	if not ok or not keys then
 		return false, "Database error"
 	end
 
@@ -99,8 +116,7 @@ local function validateKey(key)
 		return false, "Key not for this user"
 	end
 
-	local now = os.time()
-	if now > entry.expires then
+	if os.time() > entry.expires then
 		return false, "Key expired"
 	end
 
@@ -116,9 +132,9 @@ submit.MouseButton1Click:Connect(function()
 
 	setButton("Verifying...", Color3.fromRGB(120,120,120))
 
-	local ok, err = validateKey(key)
+	local ok, msg = validateKey(key)
 	if not ok then
-		setButton(err, Color3.fromRGB(180,0,0))
+		setButton(msg, Color3.fromRGB(180,0,0))
 		task.wait(1.5)
 		setButton("Submit", Color3.fromRGB(0,120,215))
 		return
