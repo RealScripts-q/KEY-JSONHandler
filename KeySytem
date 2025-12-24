@@ -1,11 +1,10 @@
 ----------------------------------------------------
--- 🔑 RSQ KEY SYSTEM (JSONBIN HTML-COMPATIBLE)
+-- 🔑 RSQ KEY SYSTEM (FINAL WORKING VERSION)
 ----------------------------------------------------
 
 -- SERVICES
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
-local TweenService = game:GetService("TweenService")
 local StarterGui = game:GetService("StarterGui")
 
 local PLAYER = Players.LocalPlayer
@@ -14,17 +13,19 @@ local PLAYER = Players.LocalPlayer
 -- CONFIG
 ----------------------------------------------------
 
--- THIS MUST MATCH WHERE YOUR HTML SAVES KEYS
+-- PUBLIC READ URL (NO MASTER KEY NEEDED)
 local JSONBIN_URL =
-  "https://api.jsonbin.io/v3/b/694c4aefae596e708faef157/latest"
+	"https://api.jsonbin.io/v3/b/694c4aefae596e708faef157/latest"
 
+-- SCRIPT TO EXECUTE AFTER SUCCESS
 local SCRIPT_URL =
-  "https://api.junkie-development.de/api/v1/luascripts/public/4e568fb1f75b086c3795b9f604343a7564bbf2f50dfddd8e68df52daaf437411/download"
+	"https://api.junkie-development.de/api/v1/luascripts/public/4e568fb1f75b086c3795b9f604343a7564bbf2f50dfddd8e68df52daaf437411/download"
 
+-- HWID FILE
 local HWID_FILE = "rsq_hwid.txt"
 
 ----------------------------------------------------
--- HWID
+-- HWID (SAFE FOR ALL EXECUTORS)
 ----------------------------------------------------
 
 local function getHWID()
@@ -44,20 +45,19 @@ end
 local HWID = getHWID()
 
 ----------------------------------------------------
--- GUI (UNCHANGED)
+-- GUI
 ----------------------------------------------------
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "RSQ_KeyHUD"
 gui.IgnoreGuiInset = true
 gui.ResetOnSpawn = false
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 gui.Parent = PLAYER:WaitForChild("PlayerGui")
 
 local main = Instance.new("Frame", gui)
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.Position = UDim2.fromScale(0.5, 0.5)
-main.Size = UDim2.fromOffset(420, 170)
+main.Size = UDim2.fromOffset(420, 180)
 main.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 main.BorderSizePixel = 0
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 18)
@@ -95,50 +95,48 @@ submit.BorderSizePixel = 0
 Instance.new("UICorner", submit).CornerRadius = UDim.new(0, 14)
 
 ----------------------------------------------------
--- HELPERS
+-- NOTIFICATION
 ----------------------------------------------------
 
-local function notify(txt)
+local function notify(text)
 	StarterGui:SetCore("SendNotification", {
 		Title = "RSQ",
-		Text = txt,
+		Text = text,
 		Duration = 4
 	})
 end
 
 ----------------------------------------------------
--- FETCH KEYS (HTML-COMPATIBLE)
+-- FETCH KEYS FROM JSONBIN
 ----------------------------------------------------
 
 local function fetchKeys()
 	local raw
-	local ok, err = pcall(function()
+	local success, err = pcall(function()
 		raw = game:HttpGet(JSONBIN_URL)
 	end)
 
-	if not ok then
-		warn("HTTP ERROR:", err)
+	if not success then
+		warn("❌ HTTP ERROR:", err)
 		return nil
 	end
 
 	local decoded = HttpService:JSONDecode(raw)
 
-	if not decoded
-		or not decoded.record
-		or not decoded.record.keys then
-		warn("INVALID JSON STRUCTURE")
+	if not decoded or not decoded.record or not decoded.record.keys then
+		warn("❌ INVALID JSON STRUCTURE")
 		return nil
 	end
 
-	-- DEBUG
-	print("🔍 KEYS FROM JSONBIN ↓")
+	-- DEBUG OUTPUT (YOU ASKED FOR THIS)
+	print("🔍 FETCHED KEYS ↓")
 	print(HttpService:JSONEncode(decoded.record.keys))
 
 	return decoded.record.keys
 end
 
 ----------------------------------------------------
--- VALIDATE
+-- VALIDATE KEY
 ----------------------------------------------------
 
 local function validateKey(key)
@@ -153,22 +151,23 @@ local function validateKey(key)
 	end
 
 	if tonumber(entry.userId) ~= PLAYER.UserId then
-		return false, "Wrong user"
+		return false, "Key not for this user"
 	end
 
 	if tonumber(entry.expires) < os.time() then
-		return false, "Expired"
+		return false, "Key expired"
 	end
 
+	-- HWID CHECK (OPTIONAL)
 	if entry.hwid and entry.hwid ~= HWID then
 		return false, "HWID mismatch"
 	end
 
-	return true, entry
+	return true
 end
 
 ----------------------------------------------------
--- SUBMIT
+-- SUBMIT BUTTON
 ----------------------------------------------------
 
 submit.MouseButton1Click:Connect(function()
@@ -177,12 +176,13 @@ submit.MouseButton1Click:Connect(function()
 
 	submit.Text = "VERIFYING..."
 
-	local ok, data = validateKey(key)
+	local valid, reason = validateKey(key)
 
-	if not ok then
+	if not valid then
 		submit.Text = "INVALID"
 		submit.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
-		task.wait(1.2)
+		notify(reason)
+		task.wait(1.5)
 		submit.Text = "VERIFY"
 		submit.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
 		return
@@ -190,8 +190,7 @@ submit.MouseButton1Click:Connect(function()
 
 	submit.Text = "ACCESS GRANTED"
 	submit.BackgroundColor3 = Color3.fromRGB(0, 180, 90)
-
-	notify("Key valid")
+	notify("Key accepted")
 
 	task.wait(0.6)
 	gui:Destroy()
