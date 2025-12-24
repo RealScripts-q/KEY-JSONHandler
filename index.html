@@ -2,144 +2,141 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>RSQ Key Validation</title>
+<title>RSQ Key System</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body {
-  background:#0f0f0f;
-  color:#fff;
-  font-family:Arial, sans-serif;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
+  margin: 0;
+  background: radial-gradient(circle at top, #111, #050505);
+  font-family: Inter, system-ui;
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
 }
 
-.box {
-  background:#1b1b1b;
-  padding:25px;
-  border-radius:12px;
-  width:360px;
-  box-shadow:0 0 25px rgba(0,0,0,.5);
+.card {
+  width: 360px;
+  background: rgba(20,20,20,.9);
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 0 40px rgba(0,120,255,.25);
 }
 
-h3 {
-  margin-top:0;
-  text-align:center;
+h1 {
+  margin: 0;
+  font-size: 18px;
 }
 
-input, button {
-  width:100%;
-  padding:11px;
-  margin-top:12px;
-  border:none;
-  border-radius:8px;
-  font-size:14px;
+p {
+  font-size: 13px;
+  color: #aaa;
 }
 
 input {
-  background:#111;
-  color:#fff;
+  width: 100%;
+  padding: 12px;
+  margin-top: 12px;
+  background: #111;
+  border-radius: 10px;
+  border: 1px solid #222;
+  color: #fff;
+  font-size: 14px;
 }
 
 button {
-  background:#0078ff;
-  color:white;
-  font-weight:bold;
-  cursor:pointer;
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px;
+  background: linear-gradient(135deg,#007aff,#00c6ff);
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
 }
 
 button:disabled {
-  background:#555;
-  cursor:not-allowed;
+  opacity: .6;
+  cursor: not-allowed;
 }
 
 .status {
-  margin-top:14px;
-  background:#000;
-  padding:10px;
-  border-radius:8px;
-  text-align:center;
-  font-size:13px;
+  margin-top: 12px;
+  font-size: 13px;
 }
 </style>
 </head>
 
 <body>
+<div class="card">
+  <h1>🔑 RSQ Key System</h1>
+  <p>Enter your Roblox UserId to generate a 24h key</p>
 
-<div class="box">
-  <h3>🔑 RSQ Key Validation</h3>
+  <input id="userid" placeholder="Roblox UserId">
+  <button id="generate">Generate Key</button>
 
-  <input id="key" placeholder="Paste your key here">
-
-  <button id="btn" onclick="verify()">Validate Key</button>
-
-  <div class="status" id="status">Waiting…</div>
+  <div class="status" id="status"></div>
 </div>
 
 <script>
-/* ================= CONFIG ================= */
+const BIN_ID = "694c4aefae596e708faef157";
+const API_KEY = "PASTE_YOUR_JSONBIN_API_KEY_HERE";
 
-const BIN_URL =
-  "https://api.jsonbin.io/v3/b/694c4aefae596e708faef157/latest";
+const status = document.getElementById("status");
+const btn = document.getElementById("generate");
 
-/* ================= UI ================= */
+function randomKey() {
+  return "RSQ-" +
+    crypto.randomUUID().slice(0,8).toUpperCase() +
+    "-" +
+    crypto.randomUUID().slice(0,4).toUpperCase();
+}
 
-const btn = document.getElementById("btn");
-const statusBox = document.getElementById("status");
-
-/* ================= FAKE CAPTCHA ================= */
-
-let verified = false;
-
-setTimeout(() => {
-  verified = true;
-  statusBox.innerText = "Anti-robot check passed";
-}, 1500);
-
-/* ================= MAIN ================= */
-
-async function verify() {
-  if (!verified) {
-    statusBox.innerText = "Verifying anti-robot…";
+btn.onclick = async () => {
+  const userId = document.getElementById("userid").value.trim();
+  if (!/^\d+$/.test(userId)) {
+    status.textContent = "❌ Invalid UserId";
     return;
   }
 
-  const key = document.getElementById("key").value.trim();
-  if (!key) return;
-
   btn.disabled = true;
-  statusBox.innerText = "Validating key…";
+  status.textContent = "⏳ Generating key…";
+
+  const now = Math.floor(Date.now() / 1000);
+  const key = randomKey();
 
   try {
-    const res = await fetch(BIN_URL);
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
     const data = await res.json();
 
-    const keys = data.record.keys;
-    const entry = keys[key];
+    if (!data.record.keys) data.record.keys = {};
 
-    if (!entry) {
-      statusBox.innerText = "❌ Invalid key";
-      btn.disabled = false;
-      return;
-    }
+    data.record.keys[key] = {
+      userId: Number(userId),
+      created: now,
+      expires: now + 86400
+    };
 
-    const now = Math.floor(Date.now() / 1000);
+    await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Master-Key": API_KEY
+      },
+      body: JSON.stringify({ keys: data.record.keys })
+    });
 
-    if (now > entry.expires) {
-      statusBox.innerText = "⏰ Key expired";
-      btn.disabled = false;
-      return;
-    }
-
-    statusBox.innerText = "✅ Key validated (24h access)";
+    navigator.clipboard.writeText(key);
+    status.textContent = "✅ Key generated & copied!";
+  } catch (e) {
+    status.textContent = "❌ Failed to save key";
   }
-  catch (e) {
-    statusBox.innerText = "Database error";
-    btn.disabled = false;
-  }
-}
+
+  btn.disabled = false;
+};
 </script>
-
 </body>
 </html>
