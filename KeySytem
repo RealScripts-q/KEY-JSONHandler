@@ -2,86 +2,106 @@
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 
+-- PLAYER
 local PLAYER = Players.LocalPlayer
 
--- CONFIG
-local KEYS_URL = "https://raw.githubusercontent.com/RealScripts-q/KEY-JSONHandler/main/keys.json"
-local SCRIPT_URL = "https://raw.githubusercontent.com/RealScripts-q/KEY-JSONHandler/refs/heads/main/TrackDataSecrete.lua"
+---------------------------------------------------------
+-- 🔑 MODERN HUB KEY UI
+---------------------------------------------------------
 
-----------------------------------------------------
--- HELPERS
-----------------------------------------------------
+local keyGui = Instance.new("ScreenGui")
+keyGui.Name = "KeySystemHub"
+keyGui.IgnoreGuiInset = true
+keyGui.DisplayOrder = 1000000
+keyGui.ResetOnSpawn = false
+keyGui.Parent = PLAYER:WaitForChild("PlayerGui")
 
-local function setButtonState(text, color)
-	submitBtn.Text = text
-	submitBtn.BackgroundColor3 = color
+local main = Instance.new("Frame")
+main.Parent = keyGui
+main.Size = UDim2.new(0, 420, 0, 170)
+main.Position = UDim2.new(0.5, -210, 0.5, -85)
+main.BackgroundColor3 = Color3.fromRGB(18,18,18)
+main.BorderSizePixel = 0
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 14)
+
+local stroke = Instance.new("UIStroke")
+stroke.Parent = main
+stroke.Color = Color3.fromRGB(60,60,60)
+stroke.Thickness = 1
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Parent = main
+title.Size = UDim2.new(1, -20, 0, 30)
+title.Position = UDim2.new(0, 14, 0, 10)
+title.Text = "🔑 My Super Hub"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.TextColor3 = Color3.fromRGB(235,235,235)
+title.BackgroundTransparency = 1
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Subtitle
+local subtitle = Instance.new("TextLabel")
+subtitle.Parent = main
+subtitle.Size = UDim2.new(1, -20, 0, 20)
+subtitle.Position = UDim2.new(0, 14, 0, 38)
+subtitle.Text = "hi, im urdev"
+subtitle.Font = Enum.Font.Gotham
+subtitle.TextSize = 12
+subtitle.TextColor3 = Color3.fromRGB(150,150,150)
+subtitle.BackgroundTransparency = 1
+subtitle.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Input
+local input = Instance.new("TextBox")
+input.Parent = main
+input.Size = UDim2.new(1, -28, 0, 38)
+input.Position = UDim2.new(0, 14, 0, 68)
+input.PlaceholderText = "Enter Key"
+input.Text = ""
+input.ClearTextOnFocus = false
+input.Font = Enum.Font.Gotham
+input.TextSize = 13
+input.TextColor3 = Color3.fromRGB(235,235,235)
+input.BackgroundColor3 = Color3.fromRGB(28,28,28)
+input.BorderSizePixel = 0
+Instance.new("UICorner", input).CornerRadius = UDim.new(0, 10)
+
+-- Buttons container
+local btnRow = Instance.new("Frame")
+btnRow.Parent = main
+btnRow.Size = UDim2.new(1, -28, 0, 36)
+btnRow.Position = UDim2.new(0, 14, 1, -46)
+btnRow.BackgroundTransparency = 1
+
+local layout = Instance.new("UIListLayout")
+layout.Parent = btnRow
+layout.FillDirection = Enum.FillDirection.Horizontal
+layout.Padding = UDim.new(0, 8)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+local function makeBtn(text, color)
+	local b = Instance.new("TextButton")
+	b.Size = UDim2.new(0, 120, 1, 0)
+	b.Text = text
+	b.Font = Enum.Font.GothamBold
+	b.TextSize = 12
+	b.TextColor3 = Color3.new(1,1,1)
+	b.BackgroundColor3 = color
+	b.BorderSizePixel = 0
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0, 10)
+	b.Parent = btnRow
+	return b
 end
 
-local function fetchJSON(url)
-	local res = game:HttpGet(url)
-	return HttpService:JSONDecode(res)
-end
+local exitBtn   = makeBtn("⟵ Exit", Color3.fromRGB(45,45,45))
+local getKeyBtn = makeBtn("🔗 Get key", Color3.fromRGB(60,60,60))
+local submitBtn = makeBtn("Submit", Color3.fromRGB(0,120,215))
 
-----------------------------------------------------
--- KEY VALIDATION
-----------------------------------------------------
-
-local function validateKey(inputKey)
-	-- Download keys.json
-	local data
-	local success, err = pcall(function()
-		data = fetchJSON(KEYS_URL)
-	end)
-
-	if not success or not data or not data.users then
-		return false, "Database error"
-	end
-
-	local uid = tostring(PLAYER.UserId)
-	local entry = data.users[uid]
-
-	if not entry then
-		return false, "Couldn't find player in database"
-	end
-
-	if entry.key ~= inputKey then
-		return false, "Invalid key"
-	end
-
-	return true
-end
-
-----------------------------------------------------
--- BUTTON ACTIONS
-----------------------------------------------------
-
-submitBtn.MouseButton1Click:Connect(function()
-	local key = input.Text:gsub("%s+", "")
-	if key == "" then return end
-
-	setButtonState("Verifying…", Color3.fromRGB(120,120,120))
-
-	local ok, msg = validateKey(key)
-	if not ok then
-		setButtonState("INVALID KEY", Color3.fromRGB(180,0,0))
-		task.wait(1.5)
-		setButtonState("Submit", Color3.fromRGB(0,120,215))
-		return
-	end
-
-	-- SUCCESS
-	setButtonState("ACCESS GRANTED", Color3.fromRGB(0,180,0))
-	task.wait(0.6)
-
-	keyGui:Destroy()
-
-	-- 🔥 EXECUTE MAIN SCRIPT
-	loadstring(game:HttpGet(SCRIPT_URL))()
-end)
-
-----------------------------------------------------
--- OPTIONAL BUTTONS
-----------------------------------------------------
+---------------------------------------------------------
+-- BASIC BUTTON TEST (CONFIRM UI WORKS)
+---------------------------------------------------------
 
 exitBtn.MouseButton1Click:Connect(function()
 	keyGui:Destroy()
@@ -89,4 +109,8 @@ end)
 
 getKeyBtn.MouseButton1Click:Connect(function()
 	setclipboard("https://realscripts-q.github.io/KEY-JSONHandler/")
+end)
+
+submitBtn.MouseButton1Click:Connect(function()
+	submitBtn.Text = "UI WORKS ✅"
 end)
