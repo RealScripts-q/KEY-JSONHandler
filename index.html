@@ -1,153 +1,49 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Tracker V2 – Key System</title>
+<title>Key Validator</title>
 <style>
-body {
-  background:#0f0f0f;
-  color:#fff;
-  font-family:Arial;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-}
-.box {
-  background:#1b1b1b;
-  padding:25px;
-  border-radius:12px;
-  width:380px;
-}
-input, button {
-  width:100%;
-  padding:10px;
-  margin-top:10px;
-  border:none;
-  border-radius:6px;
-}
-button {
-  background:#0078ff;
-  color:white;
-  font-weight:bold;
-  cursor:pointer;
-}
-button:disabled {
-  background:#333;
-  cursor:not-allowed;
-}
-.output {
-  margin-top:15px;
-  background:#000;
-  padding:10px;
-  border-radius:6px;
-  white-space:pre-line;
-  font-size:13px;
-}
+body{background:#0f0f0f;color:white;font-family:Arial;display:flex;justify-content:center;align-items:center;height:100vh}
+.box{background:#1b1b1b;padding:20px;border-radius:10px;width:340px}
+input,button{width:100%;padding:10px;margin-top:10px;border:none;border-radius:6px}
+button{background:#0078ff;color:white;font-weight:bold}
 </style>
 </head>
 <body>
 
 <div class="box">
-  <h3>🔑 Tracker V2 Key System</h3>
-
-  <input id="userid" placeholder="Roblox UserId">
-  <button onclick="receiveUser()">Receive user from database</button>
-
-  <button id="captchaBtn" disabled onclick="fakeCaptcha()">Verify CAPTCHA</button>
-  <button id="genBtn" disabled onclick="generateKey()">Generate 24h Key</button>
-
-  <div class="output" id="out">Waiting…</div>
+<h3>🔑 Validate Key</h3>
+<input id="key" placeholder="Paste key">
+<button onclick="validate()">Validate</button>
+<div id="out"></div>
 </div>
 
 <script>
-/* ================= CONFIG ================= */
-
-const BIN_ID  = "694c41a6ae596e708faee717";
+const BIN_ID = "694c41a6ae596e708faee717";
 const API_KEY = "$2a$10$7MPZXICawr4gE5o3N/KXiOaEMdx9qUL/c1Ht4TEnfO8DYmK2Tqiae";
 
-/* ================= STATE ================= */
+async function validate(){
+	const key = document.getElementById("key").value.trim();
+	if(!key) return;
 
-let db = null;
-let uid = null;
+	const uid = key.split("-")[1];
+	const data = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`).then(r=>r.json());
 
-const out = t => document.getElementById("out").innerText = t;
+	data.record[key] = {
+		userId: Number(uid),
+		expires: Math.floor(Date.now()/1000) + 86400
+	};
 
-/* ================= JSONBIN HELPERS ================= */
+	await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{
+		method:"PUT",
+		headers:{
+			"Content-Type":"application/json",
+			"X-Master-Key":API_KEY
+		},
+		body:JSON.stringify(data.record)
+	});
 
-async function loadDB() {
-  const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-    headers: { "X-Master-Key": API_KEY }
-  });
-  const j = await r.json();
-  db = j.record;
-}
-
-async function saveDB() {
-  await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Master-Key": API_KEY
-    },
-    body: JSON.stringify(db, null, 2)
-  });
-}
-
-/* ================= RECEIVE USER ================= */
-
-async function receiveUser() {
-  uid = document.getElementById("userid").value.trim();
-  if (!uid) return;
-
-  document.getElementById("captchaBtn").disabled = true;
-  document.getElementById("genBtn").disabled = true;
-
-  while (true) {
-    await loadDB();
-
-    if (db.users && db.users[uid] && db.users[uid].status === "pending") {
-      out("✅ User found in database.\nCAPTCHA required.");
-      document.getElementById("captchaBtn").disabled = false;
-      break;
-    }
-
-    out("Couldn't find player in database\nVerifying Roblox user…");
-    await new Promise(r => setTimeout(r, 2500));
-  }
-}
-
-/* ================= FAKE CAPTCHA ================= */
-
-async function fakeCaptcha() {
-  const btn = document.getElementById("captchaBtn");
-  btn.disabled = true;
-  out("🧠 Verifying CAPTCHA…");
-
-  await new Promise(r => setTimeout(r, 2000));
-
-  out("✔ CAPTCHA verified");
-  document.getElementById("genBtn").disabled = false;
-}
-
-/* ================= KEY GENERATION ================= */
-
-async function generateKey() {
-  const key =
-    "TV2-" +
-    Math.random().toString(36).substring(2, 6).toUpperCase() +
-    "-" +
-    Math.random().toString(36).substring(2, 6).toUpperCase();
-
-  const expires = Math.floor(Date.now() / 1000) + 86400;
-
-  db.users[uid].status  = "verified";
-  db.users[uid].key     = key;
-  db.users[uid].expires = expires;
-
-  await saveDB();
-
-  out("🎉 KEY GENERATED (24h)\n\n" + key);
+	document.getElementById("out").innerText = "✅ Key validated (24h)";
 }
 </script>
 
