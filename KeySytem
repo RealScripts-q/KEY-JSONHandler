@@ -1,5 +1,5 @@
 ----------------------------------------------------
--- 🔑 RSQ KEY SYSTEM (FORTNITE HUD + DEBUG)
+-- 🔑 RSQ KEY SYSTEM (JSONBIN HTML-COMPATIBLE)
 ----------------------------------------------------
 
 -- SERVICES
@@ -14,6 +14,7 @@ local PLAYER = Players.LocalPlayer
 -- CONFIG
 ----------------------------------------------------
 
+-- THIS MUST MATCH WHERE YOUR HTML SAVES KEYS
 local JSONBIN_URL =
   "https://api.jsonbin.io/v3/b/694c4aefae596e708faef157/latest"
 
@@ -23,7 +24,7 @@ local SCRIPT_URL =
 local HWID_FILE = "rsq_hwid.txt"
 
 ----------------------------------------------------
--- HWID (Executor-safe)
+-- HWID
 ----------------------------------------------------
 
 local function getHWID()
@@ -43,7 +44,7 @@ end
 local HWID = getHWID()
 
 ----------------------------------------------------
--- GUI
+-- GUI (UNCHANGED)
 ----------------------------------------------------
 
 local gui = Instance.new("ScreenGui")
@@ -56,15 +57,10 @@ gui.Parent = PLAYER:WaitForChild("PlayerGui")
 local main = Instance.new("Frame", gui)
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.Position = UDim2.fromScale(0.5, 0.5)
-main.Size = UDim2.fromScale(0, 0)
+main.Size = UDim2.fromOffset(420, 170)
 main.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 main.BorderSizePixel = 0
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 18)
-
-local stroke = Instance.new("UIStroke", main)
-stroke.Color = Color3.fromRGB(0, 150, 255)
-stroke.Thickness = 1.6
-stroke.Transparency = 0.25
 
 local title = Instance.new("TextLabel", main)
 title.Size = UDim2.new(1, 0, 0, 36)
@@ -79,7 +75,6 @@ local input = Instance.new("TextBox", main)
 input.Size = UDim2.new(1, -40, 0, 42)
 input.Position = UDim2.fromOffset(20, 60)
 input.PlaceholderText = "Enter your key"
-input.Text = ""
 input.ClearTextOnFocus = false
 input.Font = Enum.Font.Gotham
 input.TextSize = 14
@@ -100,16 +95,6 @@ submit.BorderSizePixel = 0
 Instance.new("UICorner", submit).CornerRadius = UDim.new(0, 14)
 
 ----------------------------------------------------
--- ANIMATE IN
-----------------------------------------------------
-
-TweenService:Create(
-	main,
-	TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-	{ Size = UDim2.fromOffset(420, 170) }
-):Play()
-
-----------------------------------------------------
 -- HELPERS
 ----------------------------------------------------
 
@@ -121,35 +106,40 @@ local function notify(txt)
 	})
 end
 
-local function verifyingAnim()
-	local dots = 0
-	return task.spawn(function()
-		while submit.Text:find("VERIFYING") do
-			dots = (dots % 3) + 1
-			submit.Text = "VERIFYING" .. string.rep(".", dots)
-			task.wait(0.4)
-		end
-	end)
-end
-
 ----------------------------------------------------
--- FETCH & VALIDATE (FIXED + DEBUG)
+-- FETCH KEYS (HTML-COMPATIBLE)
 ----------------------------------------------------
 
 local function fetchKeys()
-	local raw = game:HttpGet(JSONBIN_URL)
-	local decoded = HttpService:JSONDecode(raw)
+	local raw
+	local ok, err = pcall(function()
+		raw = game:HttpGet(JSONBIN_URL)
+	end)
 
-	if not decoded or not decoded.record or not decoded.record.keys then
+	if not ok then
+		warn("HTTP ERROR:", err)
 		return nil
 	end
 
-	-- 🔍 DEBUG PRINT (YOU ASKED FOR THIS)
-	print("🔍 JSON KEYS DEBUG ↓")
+	local decoded = HttpService:JSONDecode(raw)
+
+	if not decoded
+		or not decoded.record
+		or not decoded.record.keys then
+		warn("INVALID JSON STRUCTURE")
+		return nil
+	end
+
+	-- DEBUG
+	print("🔍 KEYS FROM JSONBIN ↓")
 	print(HttpService:JSONEncode(decoded.record.keys))
 
 	return decoded.record.keys
 end
+
+----------------------------------------------------
+-- VALIDATE
+----------------------------------------------------
 
 local function validateKey(key)
 	local keys = fetchKeys()
@@ -163,11 +153,11 @@ local function validateKey(key)
 	end
 
 	if tonumber(entry.userId) ~= PLAYER.UserId then
-		return false, "Key not for this user"
+		return false, "Wrong user"
 	end
 
 	if tonumber(entry.expires) < os.time() then
-		return false, "Key expired"
+		return false, "Expired"
 	end
 
 	if entry.hwid and entry.hwid ~= HWID then
@@ -178,37 +168,30 @@ local function validateKey(key)
 end
 
 ----------------------------------------------------
--- SUBMIT BUTTON
+-- SUBMIT
 ----------------------------------------------------
 
 submit.MouseButton1Click:Connect(function()
 	local key = input.Text:gsub("%s+", "")
 	if key == "" then return end
 
-	submit.Text = "VERIFYING"
-	submit.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
+	submit.Text = "VERIFYING..."
 
-	local anim = verifyingAnim()
 	local ok, data = validateKey(key)
-	task.cancel(anim)
 
 	if not ok then
 		submit.Text = "INVALID"
 		submit.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
-		task.wait(1.5)
+		task.wait(1.2)
 		submit.Text = "VERIFY"
 		submit.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
 		return
 	end
 
-	-- ✅ SUCCESS
 	submit.Text = "ACCESS GRANTED"
 	submit.BackgroundColor3 = Color3.fromRGB(0, 180, 90)
 
-	notify(
-		("Key valid • %dh remaining"):
-		format(math.floor((data.expires - os.time()) / 3600))
-	)
+	notify("Key valid")
 
 	task.wait(0.6)
 	gui:Destroy()
