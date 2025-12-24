@@ -20,10 +20,11 @@ body {
   background: #121212;
   border-radius: 18px;
   padding: 20px;
-  box-shadow: 0 0 35px rgba(0,120,255,.3);
+  box-shadow: 0 0 35px rgba(0,120,255,.35);
 }
 h1 { font-size: 18px; margin: 0; }
 p { font-size: 13px; color: #aaa; }
+
 input, button {
   width: 100%;
   padding: 12px;
@@ -31,24 +32,30 @@ input, button {
   border-radius: 10px;
   border: none;
 }
+
 input {
   background: #0b0b0b;
   color: #fff;
   border: 1px solid #222;
 }
+
 button {
   background: linear-gradient(135deg,#007aff,#00c6ff);
   color: #fff;
   font-weight: bold;
   cursor: pointer;
 }
+
 button:disabled {
   opacity: .5;
+  cursor: not-allowed;
 }
+
 .status {
   margin-top: 12px;
   font-size: 13px;
 }
+
 .timer {
   margin-top: 8px;
   font-size: 13px;
@@ -60,113 +67,116 @@ button:disabled {
 <body>
 <div class="card">
   <h1>🔑 RSQ Key System</h1>
-  <p>One key per user (24h)</p>
+  <p>One key per UserId every 24 hours</p>
 
   <input id="userid" placeholder="Roblox UserId">
-  <button id="gen">Generate Key</button>
+  <button id="gen">Generate / Recover Key</button>
 
   <div class="status" id="status"></div>
   <div class="timer" id="timer"></div>
 </div>
 
 <script>
-const BIN_ID = "694c4aefae596e708faef157";
-const API_KEY = "PASTE_JSONBIN_KEY";
-const KEY_TIME = 86400;
+/* ================= CONFIG ================= */
 
+const BIN_ID = "694c4aefae596e708faef157";
+const MASTER_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu"; // 🔒 DO NOT SHARE
+const KEY_LIFETIME = 86400;
+
+/* ================= ELEMENTS ================= */
+
+const btn = document.getElementById("gen");
 const status = document.getElementById("status");
 const timerEl = document.getElementById("timer");
-const btn = document.getElementById("gen");
-const uidInput = document.getElementById("userid");
+
+/* ================= HELPERS ================= */
 
 function randomKey() {
-  return "RSQ-" + crypto.randomUUID().slice(0,8).toUpperCase();
+  return "RSQ-" + crypto.randomUUID().slice(0, 8).toUpperCase();
 }
 
-function startTimer(expires) {
+function now() {
+  return Math.floor(Date.now() / 1000);
+}
+
+function startTimer(expiry) {
   function tick() {
-    const left = expires - Math.floor(Date.now()/1000);
+    const left = expiry - now();
     if (left <= 0) {
       timerEl.textContent = "";
       btn.disabled = false;
-      status.textContent = "⏳ You may generate a new key";
+      status.textContent = "⏳ Key expired. You may generate a new one.";
       return;
     }
-    const h = Math.floor(left/3600);
-    const m = Math.floor((left%3600)/60);
-    const s = left%60;
+    const h = Math.floor(left / 3600);
+    const m = Math.floor((left % 3600) / 60);
+    const s = left % 60;
     timerEl.textContent = `⏱ ${h}h ${m}m ${s}s remaining`;
-    btn.disabled = true;
   }
   tick();
   setInterval(tick, 1000);
 }
 
-async function fetchKeys() {
-  const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
-  const data = await res.json();
-  return data.record?.keys || {};
-}
-
-function findUserKey(keys, userId) {
-  const now = Math.floor(Date.now()/1000);
-  for (const [key, info] of Object.entries(keys)) {
-    if (info.userId === Number(userId) && info.expires > now) {
-      return { key, info };
-    }
-  }
-  return null;
-}
+/* ================= MAIN ================= */
 
 btn.onclick = async () => {
-  const uid = uidInput.value.trim();
+  const uid = document.getElementById("userid").value.trim();
+
   if (!/^\d+$/.test(uid)) {
-    status.textContent = "❌ Invalid UserId";
+    status.textContent = "❌ Invalid Roblox UserId";
     return;
   }
 
   btn.disabled = true;
-  status.textContent = "🔍 Checking database…";
+  status.textContent = "🔍 Checking existing key…";
 
   try {
-    const keys = await fetchKeys();
+    /* --- READ BIN --- */
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
+    const json = await res.json();
 
-    /* 🔒 HARD USER LOCK (DATABASE CHECK) */
-    const existing = findUserKey(keys, uid);
-    if (existing) {
-      status.textContent = "⛔ User already has an active key";
-      startTimer(existing.info.expires);
-      return;
+    if (!json.record.keys) json.record.keys = {};
+
+    const keys = json.record.keys;
+
+    /* --- CHECK EXISTING KEY FOR USER --- */
+    for (const k in keys) {
+      const entry = keys[k];
+      if (entry.userId === Number(uid) && entry.expires > now()) {
+        navigator.clipboard.writeText(k);
+        status.textContent = "✅ Existing key copied to clipboard";
+        startTimer(entry.expires);
+        return;
+      }
     }
 
-    status.textContent = "⏳ Generating key…";
-
-    const now = Math.floor(Date.now()/1000);
+    /* --- CREATE NEW KEY --- */
     const key = randomKey();
-    const expires = now + KEY_TIME;
+    const expires = now() + KEY_LIFETIME;
 
     keys[key] = {
       userId: Number(uid),
-      created: now,
+      created: now(),
       expires
     };
 
+    /* --- WRITE BACK --- */
     await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        "X-Master-Key": API_KEY
+        "X-Master-Key": MASTER_KEY
       },
-      body: JSON.stringify({ record: { keys } })
+      body: JSON.stringify({ keys })
     });
 
     navigator.clipboard.writeText(key);
-    status.textContent = "✅ Key generated & copied";
+    status.textContent = "✅ New key generated & copied";
     startTimer(expires);
 
-  } catch (err) {
-    console.error(err);
-    status.textContent = "❌ Database error";
+  } catch (e) {
+    console.error(e);
+    status.textContent = "❌ Failed to save key";
     btn.disabled = false;
   }
 };
