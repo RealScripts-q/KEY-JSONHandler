@@ -2,20 +2,51 @@
 -- SERVICES
 ----------------------------------------------------
 local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
 
 local PLAYER = Players.LocalPlayer
-repeat task.wait() until PLAYER
+
+----------------------------------------------------
+-- CONFIG
+----------------------------------------------------
+local KEY_DB_URL = "https://api.jsonbin.io/v3/b/694c4aefae596e708faef157/latest"
+local SCRIPT_URL = "https://api.junkie-development.de/api/v1/luascripts/public/4e568fb1f75b086c3795b9f604343a7564bbf2f50dfddd8e68df52daaf437411/download"
+
+----------------------------------------------------
+-- BLUR (Fortnite polish)
+----------------------------------------------------
+local blur = Instance.new("BlurEffect")
+blur.Size = 18
+blur.Parent = Lighting
 
 ----------------------------------------------------
 -- SCREEN GUI
 ----------------------------------------------------
 local gui = Instance.new("ScreenGui")
-gui.Name = "MySuperHubUI"
+gui.Name = "MySuperHub"
 gui.IgnoreGuiInset = true
 gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 gui.Parent = CoreGui
+
+----------------------------------------------------
+-- SCALE (PC + MOBILE)
+----------------------------------------------------
+local scale = Instance.new("UIScale")
+scale.Parent = gui
+
+local function updateScale()
+	if UserInputService.TouchEnabled then
+		scale.Scale = 0.9
+	else
+		scale.Scale = 1
+	end
+end
+updateScale()
 
 ----------------------------------------------------
 -- MAIN CARD
@@ -25,20 +56,27 @@ main.Parent = gui
 main.Size = UDim2.fromOffset(420, 170)
 main.Position = UDim2.fromScale(0.5, 0.5)
 main.AnchorPoint = Vector2.new(0.5, 0.5)
-main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+main.BackgroundColor3 = Color3.fromRGB(18,18,18)
 main.BorderSizePixel = 0
 main.ZIndex = 1
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 16)
 
+-- Glow
+local stroke = Instance.new("UIStroke")
+stroke.Parent = main
+stroke.Color = Color3.fromRGB(0,120,255)
+stroke.Thickness = 1
+stroke.Transparency = 0.5
+
 ----------------------------------------------------
--- TOP BAR
+-- TITLE
 ----------------------------------------------------
 local title = Instance.new("TextLabel")
 title.Parent = main
 title.Size = UDim2.new(1, -24, 0, 26)
 title.Position = UDim2.fromOffset(12, 10)
 title.BackgroundTransparency = 1
-title.Text = "🔑  My Super Hub"
+title.Text = "🔑 My Super Hub"
 title.Font = Enum.Font.GothamBold
 title.TextSize = 15
 title.TextColor3 = Color3.fromRGB(235,235,235)
@@ -89,12 +127,8 @@ layout.Parent = btnRow
 layout.FillDirection = Enum.FillDirection.Horizontal
 layout.Padding = UDim.new(0, 8)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Right
-layout.VerticalAlignment = Enum.VerticalAlignment.Center
 
-----------------------------------------------------
--- BUTTON FACTORY
-----------------------------------------------------
-local function makeButton(text, color)
+local function makeBtn(text, color)
 	local b = Instance.new("TextButton")
 	b.Size = UDim2.fromOffset(110, 34)
 	b.BackgroundColor3 = color
@@ -103,22 +137,102 @@ local function makeButton(text, color)
 	b.TextSize = 12
 	b.TextColor3 = Color3.new(1,1,1)
 	b.BorderSizePixel = 0
-	b.AutoButtonColor = true
 	b.ZIndex = 3
 	Instance.new("UICorner", b).CornerRadius = UDim.new(0, 10)
 	b.Parent = btnRow
 	return b
 end
 
-local exitBtn   = makeButton("⟵ Exit", Color3.fromRGB(45,45,45))
-local getKeyBtn = makeButton("🔗 Get key", Color3.fromRGB(60,60,60))
-local submitBtn = makeButton("Submit", Color3.fromRGB(0,120,215))
+local exitBtn   = makeBtn("⟵ Exit", Color3.fromRGB(45,45,45))
+local getKeyBtn = makeBtn("🔗 Get key", Color3.fromRGB(60,60,60))
+local submitBtn = makeBtn("Submit", Color3.fromRGB(0,120,215))
 
 ----------------------------------------------------
--- BASIC ACTIONS (SAFE)
+-- LOADING SPINNER
 ----------------------------------------------------
+local spinner = Instance.new("ImageLabel")
+spinner.Parent = main
+spinner.Size = UDim2.fromOffset(22,22)
+spinner.Position = UDim2.fromScale(0.5,0.5)
+spinner.AnchorPoint = Vector2.new(0.5,0.5)
+spinner.Image = "rbxassetid://8131544337"
+spinner.BackgroundTransparency = 1
+spinner.Visible = false
+spinner.ZIndex = 5
+
+----------------------------------------------------
+-- HELPERS
+----------------------------------------------------
+local function setState(text, color)
+	submitBtn.Text = text
+	submitBtn.BackgroundColor3 = color
+end
+
+local function spin()
+	spinner.Visible = true
+	TweenService:Create(
+		spinner,
+		TweenInfo.new(0.8, Enum.EasingStyle.Linear, Enum.EasingDirection.In, -1),
+		{Rotation = 360}
+	):Play()
+end
+
+----------------------------------------------------
+-- KEY VALIDATION
+----------------------------------------------------
+local function validateKey(key)
+	local data = HttpService:JSONDecode(game:HttpGet(KEY_DB_URL))
+	local keys = data.record.keys
+	local entry = keys[key]
+
+	if not entry then
+		return false, "Invalid key"
+	end
+
+	if entry.userId ~= PLAYER.UserId then
+		return false, "Key not for this user"
+	end
+
+	if os.time() > entry.expires then
+		return false, "Key expired"
+	end
+
+	return true
+end
+
+----------------------------------------------------
+-- BUTTON ACTIONS
+----------------------------------------------------
+submitBtn.MouseButton1Click:Connect(function()
+	local key = input.Text:gsub("%s+", "")
+	if key == "" then return end
+
+	setState("Verifying…", Color3.fromRGB(120,120,120))
+	spin()
+
+	task.wait(1)
+
+	local ok, err = validateKey(key)
+	if not ok then
+		spinner.Visible = false
+		setState(err, Color3.fromRGB(180,0,0))
+		task.wait(1.5)
+		setState("Submit", Color3.fromRGB(0,120,215))
+		return
+	end
+
+	setState("KEY VALIDATED", Color3.fromRGB(0,180,0))
+	task.wait(0.6)
+
+	gui:Destroy()
+	blur:Destroy()
+
+	loadstring(game:HttpGet(SCRIPT_URL))()
+end)
+
 exitBtn.MouseButton1Click:Connect(function()
 	gui:Destroy()
+	blur:Destroy()
 end)
 
 getKeyBtn.MouseButton1Click:Connect(function()
