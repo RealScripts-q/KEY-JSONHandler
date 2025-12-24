@@ -7,65 +7,53 @@
 
 <style>
 body {
-  margin: 0;
   background: radial-gradient(circle at top, #111, #050505);
-  font-family: Inter, system-ui;
+  font-family: system-ui;
   color: #fff;
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
 }
-
 .card {
   width: 360px;
-  background: rgba(20,20,20,.9);
+  background: #121212;
   border-radius: 18px;
   padding: 20px;
-  box-shadow: 0 0 40px rgba(0,120,255,.25);
+  box-shadow: 0 0 35px rgba(0,120,255,.3);
 }
-
-h1 {
-  margin: 0;
-  font-size: 18px;
-}
-
-p {
-  font-size: 13px;
-  color: #aaa;
-}
-
-input {
+h1 { font-size: 18px; margin: 0; }
+p { font-size: 13px; color: #aaa; }
+input, button {
   width: 100%;
   padding: 12px;
   margin-top: 12px;
-  background: #111;
   border-radius: 10px;
-  border: 1px solid #222;
-  color: #fff;
-  font-size: 14px;
-}
-
-button {
-  width: 100%;
-  margin-top: 14px;
-  padding: 12px;
-  background: linear-gradient(135deg,#007aff,#00c6ff);
   border: none;
-  border-radius: 12px;
-  font-weight: 700;
+}
+input {
+  background: #0b0b0b;
   color: #fff;
+  border: 1px solid #222;
+}
+button {
+  background: linear-gradient(135deg,#007aff,#00c6ff);
+  color: #fff;
+  font-weight: bold;
   cursor: pointer;
 }
-
 button:disabled {
-  opacity: .6;
+  opacity: .5;
   cursor: not-allowed;
 }
-
 .status {
   margin-top: 12px;
   font-size: 13px;
+}
+.timer {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #00c6ff;
 }
 </style>
 </head>
@@ -73,31 +61,59 @@ button:disabled {
 <body>
 <div class="card">
   <h1>🔑 RSQ Key System</h1>
-  <p>Enter your Roblox UserId to generate a 24h key</p>
+  <p>One key per 24 hours</p>
 
   <input id="userid" placeholder="Roblox UserId">
-  <button id="generate">Generate Key</button>
+  <button id="gen">Generate Key</button>
 
   <div class="status" id="status"></div>
+  <div class="timer" id="timer"></div>
 </div>
 
 <script>
 const BIN_ID = "694c4aefae596e708faef157";
-const API_KEY = "PASTE_YOUR_JSONBIN_API_KEY_HERE";
+const API_KEY = "PASTE_JSONBIN_KEY";
+const KEY_TIME = 86400;
 
 const status = document.getElementById("status");
-const btn = document.getElementById("generate");
+const timerEl = document.getElementById("timer");
+const btn = document.getElementById("gen");
 
 function randomKey() {
-  return "RSQ-" +
-    crypto.randomUUID().slice(0,8).toUpperCase() +
-    "-" +
-    crypto.randomUUID().slice(0,4).toUpperCase();
+  return "RSQ-" + crypto.randomUUID().slice(0,8).toUpperCase();
 }
 
+function startTimer(expiry) {
+  function tick() {
+    const left = expiry - Math.floor(Date.now()/1000);
+    if (left <= 0) {
+      localStorage.clear();
+      timerEl.textContent = "";
+      btn.disabled = false;
+      status.textContent = "⏳ You may generate a new key";
+      return;
+    }
+    const h = Math.floor(left/3600);
+    const m = Math.floor((left%3600)/60);
+    const s = left%60;
+    timerEl.textContent = `⏱ ${h}h ${m}m ${s}s remaining`;
+    btn.disabled = true;
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+
+(async () => {
+  const saved = JSON.parse(localStorage.getItem("rsqKey"));
+  if (saved && saved.expires > Date.now()/1000) {
+    status.textContent = "✅ Existing key detected";
+    startTimer(saved.expires);
+  }
+})();
+
 btn.onclick = async () => {
-  const userId = document.getElementById("userid").value.trim();
-  if (!/^\d+$/.test(userId)) {
+  const uid = document.getElementById("userid").value.trim();
+  if (!/^\d+$/.test(uid)) {
     status.textContent = "❌ Invalid UserId";
     return;
   }
@@ -105,19 +121,19 @@ btn.onclick = async () => {
   btn.disabled = true;
   status.textContent = "⏳ Generating key…";
 
-  const now = Math.floor(Date.now() / 1000);
+  const now = Math.floor(Date.now()/1000);
   const key = randomKey();
+  const expires = now + KEY_TIME;
 
   try {
     const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
     const data = await res.json();
-
     if (!data.record.keys) data.record.keys = {};
 
     data.record.keys[key] = {
-      userId: Number(userId),
+      userId: Number(uid),
       created: now,
-      expires: now + 86400
+      expires
     };
 
     await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
@@ -129,13 +145,16 @@ btn.onclick = async () => {
       body: JSON.stringify({ keys: data.record.keys })
     });
 
+    localStorage.setItem("rsqKey", JSON.stringify({ key, expires }));
     navigator.clipboard.writeText(key);
-    status.textContent = "✅ Key generated & copied!";
-  } catch (e) {
-    status.textContent = "❌ Failed to save key";
-  }
 
-  btn.disabled = false;
+    status.textContent = "✅ Key generated & copied";
+    startTimer(expires);
+
+  } catch {
+    status.textContent = "❌ Error saving key";
+    btn.disabled = false;
+  }
 };
 </script>
 </body>
