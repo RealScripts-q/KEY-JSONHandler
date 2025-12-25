@@ -7,12 +7,9 @@
 
 <style>
 body {
-  margin:0;
   background:#070707;
   font-family:system-ui;
   color:#fff;
-}
-.center {
   display:flex;
   justify-content:center;
   align-items:center;
@@ -25,7 +22,9 @@ body {
   padding:20px;
   box-shadow:0 0 40px rgba(0,120,255,.25);
 }
-.hidden { display:none; }
+h1 { font-size:18px; margin:0; }
+p { font-size:13px; color:#aaa; }
+
 input,button {
   width:100%;
   padding:12px;
@@ -44,78 +43,254 @@ button {
   font-weight:bold;
   cursor:pointer;
 }
-button.admin {
-  background:linear-gradient(135deg,#8e2de2,#4a00e0);
+button.secondary {
+  background:linear-gradient(135deg,#ff6a00,#ff9500);
 }
 button.danger {
-  background:linear-gradient(135deg,#ff3b30,#ff9500);
+  background:linear-gradient(135deg,#ff3b3b,#ff0000);
 }
-.admin-screen {
-  position:fixed;
-  inset:0;
-  background:#050505;
-  padding:20px;
+
+.hidden { display:none; }
+
+.status { margin-top:10px; font-size:13px; }
+.timer { margin-top:8px; font-size:13px; color:#00c6ff; }
+.cooldown { margin-top:6px; font-size:12px; color:#ff9500; }
+
+.admin {
+  margin-top:14px;
+  padding-top:10px;
+  border-top:1px solid #222;
 }
-.admin-top {
-  display:flex;
-  justify-content:space-between;
-  font-size:13px;
-  color:#aaa;
-}
-.key-log {
+.log {
   background:#0b0b0b;
-  border-radius:12px;
-  padding:12px;
-  margin-top:10px;
-}
-.key-log button {
-  width:auto;
-  padding:6px 10px;
-  margin-right:6px;
+  padding:8px;
+  border-radius:8px;
   font-size:12px;
+  margin-top:6px;
 }
 </style>
 </head>
 
 <body>
+<div class="card">
 
-<div class="center" id="userUI">
-  <div class="card">
-    <h3>🔑 RSQ Key System</h3>
+<h1>🔑 RSQ Key System</h1>
+<p>Normal users: enter UserId • Admins: use Master Key</p>
 
-    <input id="userid" placeholder="Roblox UserId">
-    <button id="gen">Get / Recover Key</button>
+<!-- USER -->
+<input id="userid" placeholder="Roblox UserId">
+<button id="gen">Generate / Recover Key</button>
 
-    <button id="reqBtn">🧾 Use Request ID</button>
-    <input id="reqInput" class="hidden" placeholder="Request ID">
+<!-- REQUEST ID -->
+<input id="requestId" class="hidden" placeholder="Paste Request ID from Roblox">
 
-    <button id="masterBtn" class="admin">👑 Admin Master Key</button>
-    <input id="masterInput" class="hidden" placeholder="Admin Master Key">
+<!-- RESET -->
+<button id="renewBtn" class="secondary hidden">🔄 Force / Renew Key</button>
+<input id="resetToken" class="hidden" placeholder="Paste Reset Token">
 
-    <button id="adminPanelBtn" class="admin hidden">🛠 Open Admin Panel</button>
+<!-- ADMIN -->
+<div class="admin hidden" id="adminPanel">
+  <h1>👑 Admin Panel</h1>
+  <input id="adminKey" placeholder="Paste Admin Master Key">
+  <button id="adminLogin">Unlock Admin</button>
 
-    <div id="status"></div>
-  </div>
-</div>
-
-<!-- ================= ADMIN PANEL ================= -->
-
-<div class="admin-screen hidden" id="adminUI">
-  <div class="admin-top">
-    <div>🧾 Request ID: <span id="reqLabel"></span></div>
-    <button onclick="location.reload()">Exit</button>
-  </div>
-
-  <h2>🛠 Admin Panel</h2>
-
-  <input id="infUser" placeholder="UserId for Infinite Key">
-  <button class="admin" onclick="genInfKey()">♾ Generate INF Key</button>
+  <button id="refreshLogs" class="secondary hidden">📜 Refresh Logs</button>
+  <button id="genInf" class="secondary hidden">♾ Generate INF Key</button>
 
   <div id="logs"></div>
 </div>
 
+<div class="status" id="status"></div>
+<div class="timer" id="timer"></div>
+<div class="cooldown" id="cooldown"></div>
+
+</div>
+
 <script>
-const _0x4c2021=_0x456e;(function(_0x5a4d97,_0x252e24){const _0x54bfc0=_0x456e,_0x3c2179=_0x5a4d97();while(!![]){try{const _0x403747=-parseInt(_0x54bfc0(0x17f))/0x1+parseInt(_0x54bfc0(0x17c))/0x2+-parseInt(_0x54bfc0(0x177))/0x3+-parseInt(_0x54bfc0(0x198))/0x4*(parseInt(_0x54bfc0(0x189))/0x5)+-parseInt(_0x54bfc0(0x17d))/0x6+parseInt(_0x54bfc0(0x192))/0x7+parseInt(_0x54bfc0(0x184))/0x8;if(_0x403747===_0x252e24)break;else _0x3c2179['push'](_0x3c2179['shift']());}catch(_0x122577){_0x3c2179['push'](_0x3c2179['shift']());}}}(_0x209b,0x62299));const BIN_ID=_0x4c2021(0x17a),JSONBIN_MASTER_KEY='$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu',ADMIN_MASTER_KEY=_0x4c2021(0x19c);function _0x456e(_0x4fd58e,_0x208525){_0x4fd58e=_0x4fd58e-0x176;const _0x209b73=_0x209b();let _0x456e41=_0x209b73[_0x4fd58e];return _0x456e41;}let adminAuthed=![],requestId='';async function getKeys(){const _0x42087a=_0x4c2021,_0x1fbc60=await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID+_0x42087a(0x18b));return(await _0x1fbc60[_0x42087a(0x190)]())[_0x42087a(0x18c)][_0x42087a(0x18d)]||{};}async function saveKeys(_0x26c22c){const _0x40cc11=_0x4c2021;await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID,{'method':_0x40cc11(0x185),'headers':{'Content-Type':_0x40cc11(0x176),'X-Master-Key':JSONBIN_MASTER_KEY},'body':JSON['stringify']({'keys':_0x26c22c})});}reqBtn[_0x4c2021(0x188)]=()=>reqInput[_0x4c2021(0x194)][_0x4c2021(0x17b)](_0x4c2021(0x18e)),masterBtn['onclick']=()=>masterInput[_0x4c2021(0x194)][_0x4c2021(0x17b)](_0x4c2021(0x18e)),masterInput[_0x4c2021(0x18f)]=()=>{const _0x46b9c2=_0x4c2021;masterInput[_0x46b9c2(0x19a)]===ADMIN_MASTER_KEY&&reqInput[_0x46b9c2(0x19a)]['trim']()!==''?(adminAuthed=!![],requestId=reqInput[_0x46b9c2(0x19a)]['trim'](),adminPanelBtn['classList'][_0x46b9c2(0x180)](_0x46b9c2(0x18e)),status[_0x46b9c2(0x196)]=_0x46b9c2(0x195)):status[_0x46b9c2(0x196)]='❌\x20Admin\x20auth\x20failed';},adminPanelBtn[_0x4c2021(0x188)]=async()=>{const _0xdc2afb=_0x4c2021;userUI[_0xdc2afb(0x194)][_0xdc2afb(0x197)](_0xdc2afb(0x18e)),adminUI[_0xdc2afb(0x194)][_0xdc2afb(0x180)](_0xdc2afb(0x18e)),reqLabel[_0xdc2afb(0x196)]=requestId,loadLogs();};async function loadLogs(){const _0x321661=_0x4c2021,_0x539350=await getKeys();logs[_0x321661(0x186)]='';for(const _0x5dabb1 in _0x539350){const _0x39a73a=_0x539350[_0x5dabb1];logs[_0x321661(0x186)]+=_0x321661(0x199)+_0x5dabb1+_0x321661(0x182)+_0x39a73a[_0x321661(0x179)]+'<br>\x0a\x20\x20\x20\x20\x20\x20\x20\x20⏱\x20'+(_0x39a73a['expires']===Infinity?_0x321661(0x17e):new Date(_0x39a73a['expires']*0x3e8))+_0x321661(0x181)+_0x5dabb1+'\x27)\x22>🔁\x20Renew</button>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<button\x20class=\x22danger\x22\x20onclick=\x22deleteKey(\x27'+_0x5dabb1+'\x27)\x22>🗑\x20Delete</button>\x0a\x20\x20\x20\x20\x20\x20</div>';}}async function renewKey(_0x11a692){const _0xeace2e=_0x4c2021,_0x1dc4a2=await getKeys();if(!_0x1dc4a2[_0x11a692])return;_0x1dc4a2[_0x11a692]['expires']=Math[_0xeace2e(0x19b)](Date[_0xeace2e(0x193)]()/0x3e8)+0x15180,await saveKeys(_0x1dc4a2),loadLogs();}async function deleteKey(_0x22b799){const _0xc4c15c=await getKeys();delete _0xc4c15c[_0x22b799],await saveKeys(_0xc4c15c),loadLogs();}function _0x209b(){const _0x5b94e1=['/latest','record','keys','hidden','onchange','json','test','4074560Xesqfw','now','classList','👑\x20Admin\x20authenticated','textContent','add','426228nLgaDk','\x0a\x20\x20\x20\x20\x20\x20<div\x20class=\x22key-log\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20🔑\x20<b>','value','floor','PlsSubScribeToRynoxScripts','application/json','2226309lHnnBz','Invalid\x20UserId','userId','694c4aefae596e708faef157','toggle','1065850lfvvCo','407238IyekBA','INF','583371tMseHy','remove','\x0a\x20\x20\x20\x20\x20\x20\x20\x20<br><br>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<button\x20onclick=\x22renewKey(\x27','</b><br>\x0a\x20\x20\x20\x20\x20\x20\x20\x20👤\x20','slice','8853144ynTbaw','PUT','innerHTML','randomUUID','onclick','20uFoTyR','toUpperCase'];_0x209b=function(){return _0x5b94e1;};return _0x209b();}async function genInfKey(){const _0x572373=_0x4c2021,_0x557977=infUser[_0x572373(0x19a)]['trim']();if(!/^\d+$/[_0x572373(0x191)](_0x557977))return alert(_0x572373(0x178));const _0x247583=await getKeys(),_0x12322d='RSQ-INF-'+crypto[_0x572373(0x187)]()[_0x572373(0x183)](0x0,0x6)[_0x572373(0x18a)]();_0x247583[_0x12322d]={'userId':Number(_0x557977),'created':Date[_0x572373(0x193)]()/0x3e8,'expires':Infinity,'inf':!![]},await saveKeys(_0x247583),loadLogs();}
+/* ================= CONFIG ================= */
+const BIN_ID = "694c4aefae596e708faef157";
+const JSONBIN_MASTER_KEY = "PUT_JSONBIN_MASTER_KEY_HERE"; // storage key
+const ADMIN_MASTER_KEY = "RSQ-ADMIN-ONLY-KEY";            // your admin key
+
+const KEY_LIFE = 86400;
+const RESET_COOLDOWN = 21600;
+
+/* ================= STATE ================= */
+let keyInterval, cooldownInterval;
+let isAdmin = false;
+
+/* ================= HELPERS ================= */
+const now = () => Math.floor(Date.now()/1000);
+const makeKey = () => "RSQ-" + crypto.randomUUID().slice(0,8).toUpperCase();
+
+function startKeyTimer(exp) {
+  clearInterval(keyInterval);
+  if (exp === "INF") {
+    timer.textContent = "♾ Key expires: NEVER";
+    return;
+  }
+  keyInterval = setInterval(() => {
+    const r = exp - now();
+    if (r <= 0) {
+      timer.textContent = "⛔ Key expired";
+      clearInterval(keyInterval);
+      return;
+    }
+    timer.textContent =
+      `⏱ ${Math.floor(r/3600)}h ${Math.floor(r%3600/60)}m ${r%60}s`;
+  }, 1000);
+}
+
+/* ================= JSONBIN ================= */
+async function getKeys() {
+  const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
+  return (await r.json()).record.keys || {};
+}
+
+async function saveKeys(keys) {
+  await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+    method:"PUT",
+    headers:{
+      "Content-Type":"application/json",
+      "X-Master-Key": JSONBIN_MASTER_KEY
+    },
+    body:JSON.stringify({ keys })
+  });
+}
+
+/* ================= USER FLOW ================= */
+gen.onclick = async () => {
+  const id = userid.value.trim();
+  if (!/^\d+$/.test(id))
+    return status.textContent = "❌ Invalid UserId";
+
+  const keys = await getKeys();
+  for (const k in keys) {
+    const d = keys[k];
+    if (d.userId == id && (d.inf || d.expires > now())) {
+      navigator.clipboard.writeText(k);
+      status.textContent = "✅ Existing key copied";
+      startKeyTimer(d.inf ? "INF" : d.expires);
+      renewBtn.classList.remove("hidden");
+      return;
+    }
+  }
+
+  const key = makeKey();
+  keys[key] = {
+    userId:Number(id),
+    created:now(),
+    expires:now()+KEY_LIFE,
+    lastReset:0,
+    resetToken:crypto.randomUUID().slice(0,6).toUpperCase()
+  };
+
+  await saveKeys(keys);
+  navigator.clipboard.writeText(key);
+  status.textContent = "✅ New key generated & copied";
+  startKeyTimer(keys[key].expires);
+  renewBtn.classList.remove("hidden");
+};
+
+/* ================= RESET ================= */
+renewBtn.onclick = () => {
+  resetToken.classList.toggle("hidden");
+  status.textContent = "🔐 Paste reset token from Roblox";
+};
+
+resetToken.onchange = async () => {
+  const token = resetToken.value.trim().toUpperCase();
+  const id = userid.value.trim();
+  if (!token || !id) return;
+
+  const keys = await getKeys();
+  for (const k in keys) {
+    const d = keys[k];
+    if (d.userId == id && d.resetToken === token) {
+      if (d.lastReset && now() - d.lastReset < RESET_COOLDOWN)
+        return status.textContent = "⏳ Reset cooldown active";
+
+      delete keys[k];
+      const nk = makeKey();
+      keys[nk] = {
+        userId:d.userId,
+        created:now(),
+        expires:now()+KEY_LIFE,
+        lastReset:now(),
+        resetToken:crypto.randomUUID().slice(0,6).toUpperCase()
+      };
+
+      await saveKeys(keys);
+      navigator.clipboard.writeText(nk);
+      status.textContent = "✅ Key reset successfully";
+      startKeyTimer(keys[nk].expires);
+      resetToken.value="";
+      resetToken.classList.add("hidden");
+      return;
+    }
+  }
+  status.textContent = "❌ Invalid reset key";
+};
+
+/* ================= ADMIN ================= */
+adminLogin.onclick = () => {
+  if (adminKey.value !== ADMIN_MASTER_KEY)
+    return status.textContent = "❌ Invalid admin key";
+
+  isAdmin = true;
+  status.textContent = "👑 Welcome Admin";
+  refreshLogs.classList.remove("hidden");
+  genInf.classList.remove("hidden");
+};
+
+refreshLogs.onclick = async () => {
+  logs.innerHTML = "";
+  const keys = await getKeys();
+  for (const k in keys) {
+    const d = keys[k];
+    const div = document.createElement("div");
+    div.className = "log";
+    div.innerHTML =
+      `<b>${k}</b><br>
+       UID: ${d.userId}<br>
+       Expires: ${d.inf ? "NEVER" : new Date(d.expires*1000).toLocaleString()}
+       <br>
+       <button onclick="adminRenew('${k}')">🔁</button>
+       <button onclick="adminDelete('${k}')" class="danger">🗑</button>`;
+    logs.appendChild(div);
+  }
+};
+
+window.adminRenew = async (k) => {
+  const keys = await getKeys();
+  if (!keys[k]) return;
+  keys[k].expires = now() + KEY_LIFE;
+  await saveKeys(keys);
+  refreshLogs.click();
+};
+
+window.adminDelete = async (k) => {
+  const keys = await getKeys();
+  delete keys[k];
+  await saveKeys(keys);
+  refreshLogs.click();
+};
+
+genInf.onclick = async () => {
+  const id = userid.value.trim();
+  if (!/^\d+$/.test(id)) return;
+
+  const keys = await getKeys();
+  const key = makeKey();
+  keys[key] = {
+    userId:Number(id),
+    created:now(),
+    inf:true
+  };
+  await saveKeys(keys);
+  navigator.clipboard.writeText(key);
+  status.textContent = "♾ INF key generated";
+};
 </script>
 </body>
 </html>
