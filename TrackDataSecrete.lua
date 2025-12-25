@@ -1,12 +1,366 @@
---[[
- .____                  ________ ___.    _____                           __                
- |    |    __ _______   \_____  \\_ |___/ ____\_ __  ______ ____ _____ _/  |_  ___________ 
- |    |   |  |  \__  \   /   |   \| __ \   __\  |  \/  ___// ___\\__  \\   __\/  _ \_  __ \
- |    |___|  |  // __ \_/    |    \ \_\ \  | |  |  /\___ \\  \___ / __ \|  | (  <_> )  | \/
- |_______ \____/(____  /\_______  /___  /__| |____//____  >\___  >____  /__|  \____/|__|   
-         \/          \/         \/    \/                \/     \/     \/                   
-          \_Welcome to LuaObfuscator.com   (Alpha 0.10.9) ~  Much Love, Ferib 
+-- Services
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 
-]]--
+-- 🛡️ SECURITY CONFIGURATION
+local SECRET_SALT = "D7_x92!kLp_99_SecureTracker_V2" 
 
-local v0=game:GetService("HttpService");local v1=game:GetService("Players");local v2=game:GetService("TeleportService");local v3=game:GetService("ReplicatedStorage");local v4=game:GetService("UserInputService");local v5="D7_x92!kLp_99_SecureTracker_V2";local v6=v1.LocalPlayer;local v7="TrackedData";local v8=v7   .. "/PlayerData.json" ;local v9=v7   .. "/mostcreditearnedsessonid.json" ;local v10=v7   .. "/StaffData.json" ;local v11=149312 -(359 + 953) ;local v12=v3:WaitForChild("WithdrawRequestEvent");local v13=35402542 -(915 + 82) ;local v14={Analytics=true,Administrator=true,Developer=true,Owner=true};local v15,v16,v17,v18=0 -0 ,0 + 0 ,0 -0 ,1187 -(1069 + 118) ;local v19=0 -0 ;local v20="";local v21,v22,v23=0 -0 ,0 + 0 ,"";local v24,v25=0 -0 ,0 + 0 ;local v26,v27=791 -(368 + 423) ,0 -0 ;local v28=false;local v29=18 -(10 + 8) ;local function v30(v126) local v127=0 -0 ;local v128;local v129;while true do if (v127==(443 -(416 + 26))) then for v218=3 -2 , #v129 do v128=((v128 * (14 + 17)) + string.byte(v129,v218))%((3 -1)^32) ;end return tostring(v128);end if (v127==(438 -(145 + 293))) then v128=430 -(44 + 386) ;v129=v126   .. v5 ;v127=1487 -(998 + 488) ;end end end local function v31(v130,v131) if  not writefile then return;end local v132=v0:JSONEncode(v131);local v133=v30(v132);local v134={Payload=v132,Signature=v133};writefile(v130,v0:JSONEncode(v134));end local function v32(v135) if ( not isfile or  not isfile(v135)) then return nil;end local v136,v137=pcall(function() return v0:JSONDecode(readfile(v135));end);if (v136 and v137.Payload and v137.Signature) then if (v30(v137.Payload)==v137.Signature) then return v0:JSONDecode(v137.Payload);end end return nil;end local v33=Instance.new("ScreenGui",v6.PlayerGui);v33.Name="AdvancedTracker_V2_Updated";v33.DisplayOrder=317692 + 682307 ;v33.IgnoreGuiInset=true;local v37=Instance.new("Frame",v33);v37.Size=UDim2.new(0 + 0 ,1052 -(201 + 571) ,1138 -(116 + 1022) ,410);v37.Position=UDim2.new(1, -300,0.5 -0 , -205);v37.BackgroundColor3=Color3.fromRGB(9 + 6 ,54 -39 ,53 -38 );v37.BackgroundTransparency=859.2 -(814 + 45) ;v37.ZIndex=24 -14 ;v37.ClipsDescendants=true;Instance.new("UICorner",v37);local v44=Instance.new("Frame",v37);v44.Size=UDim2.new(1 + 0 ,0 + 0 ,886 -(261 + 624) ,0 -0 );v44.BackgroundColor3=Color3.fromRGB(1110 -(1020 + 60) ,1423 -(630 + 793) ,0 -0 );v44.BackgroundTransparency=0.05;v44.ZIndex=236 -186 ;v44.Visible=false;Instance.new("UICorner",v44);local v50=Instance.new("TextLabel",v44);v50.Size=UDim2.new(1 + 0 ,0 -0 ,1747 -(760 + 987) ,1993 -(1789 + 124) );v50.Position=UDim2.new(766 -(745 + 21) ,0 + 0 ,0.1 -0 ,0);v50.BackgroundTransparency=3 -2 ;v50.Text="FORCE OVERWRITE RESET?\nThis wipes JSON files\nand re-zeros all stats.";v50.TextColor3=Color3.new(1 + 0 ,1 + 0 ,1);v50.Font=Enum.Font.GothamBold;v50.TextSize=1068 -(87 + 968) ;v50.ZIndex=51;local v60=Instance.new("TextButton",v44);v60.Size=UDim2.new(0 -0 ,200 + 20 ,0 -0 ,1458 -(447 + 966) );v60.Position=UDim2.new(0.5 -0 , -(1927 -(1703 + 114)),701.5 -(376 + 325) , -(16 -6));v60.BackgroundColor3=Color3.fromRGB(676 -456 ,0 + 0 ,0 -0 );v60.Text="CONFIRM HARD OVERWRITE";v60.TextColor3=Color3.new(15 -(9 + 5) ,377 -(85 + 291) ,1266 -(243 + 1022) );v60.Font=Enum.Font.GothamBold;v60.ZIndex=51;Instance.new("UICorner",v60);local v68=Instance.new("TextButton",v44);v68.Size=UDim2.new(0,837 -617 ,0 + 0 ,1215 -(1123 + 57) );v68.Position=UDim2.new(0.5, -(90 + 20),0.5,299 -(163 + 91) );v68.BackgroundColor3=Color3.fromRGB(1980 -(1869 + 61) ,14 + 36 ,176 -126 );v68.Text="CANCEL";v68.TextColor3=Color3.new(1 -0 ,1 + 0 ,1 -0 );v68.Font=Enum.Font.GothamBold;v68.ZIndex=48 + 3 ;Instance.new("UICorner",v68);local v76=Instance.new("Frame",v37);v76.Size=UDim2.new(1475 -(1329 + 145) ,971 -(140 + 831) ,0,1880 -(1409 + 441) );v76.BackgroundColor3=Color3.fromRGB(748 -(15 + 703) ,14 + 16 ,468 -(262 + 176) );v76.ZIndex=11;local function v80(v138,v139,v140) local v141=Instance.new("TextButton",v76);v141.Size=UDim2.new(1721 -(345 + 1376) ,25,688 -(198 + 490) ,25);v141.Position=v140;v141.BackgroundColor3=v139;v141.Text=v138;v141.TextColor3=Color3.new(4 -3 ,2 -1 ,1207 -(696 + 510) );v141.Font=Enum.Font.GothamBold;v141.ZIndex=28 -14 ;Instance.new("UICorner",v141);return v141;end local v81=v80("X",Color3.fromRGB(1412 -(1091 + 171) ,0 + 0 ,0 -0 ),UDim2.new(1, -(99 -69),0,2));local v82=v80("-",Color3.fromRGB(100,474 -(123 + 251) ,496 -396 ),UDim2.new(1, -60,698 -(208 + 490) ,1 + 1 ));local v83=Instance.new("TextButton",v33);v83.Size=UDim2.new(0 + 0 ,916 -(660 + 176) ,0,4 + 26 );v83.Position=UDim2.new(203 -(14 + 188) , -(775 -(534 + 141)),0.5 + 0 ,0);v83.Visible=false;v83.Text="OPEN STATS";v83.BackgroundColor3=Color3.fromRGB(0,120,191 + 24 );v83.TextColor3=Color3.new(1,1 + 0 ,1 -0 );v83.Font=Enum.Font.GothamBold;Instance.new("UICorner",v83);local v91=Instance.new("ScrollingFrame",v37);v91.Size=UDim2.new(1 -0 ,0 -0 ,1 + 0 , -30);v91.Position=UDim2.new(0 + 0 ,0,396 -(115 + 281) ,69 -39 );v91.BackgroundTransparency=1 + 0 ;v91.BorderSizePixel=0;v91.ScrollBarThickness=9 -5 ;v91.ZIndex=11;local v98=Instance.new("UIListLayout",v91);v98.Padding=UDim.new(0 -0 ,872 -(550 + 317) );v98.SortOrder=Enum.SortOrder.LayoutOrder;local function v102(v150,v151,v152,v153) local v154=Instance.new("TextLabel",v91);v154.Name=v150;v154.Size=UDim2.new(1 -0 , -(35 -10),0 -0 ,303 -(134 + 151) );v154.BackgroundTransparency=1666 -(970 + 695) ;v154.TextColor3=v151 or Color3.new(1 -0 ,1991 -(582 + 1408) ,1) ;v154.TextXAlignment=Enum.TextXAlignment.Left;v154.Font=Enum.Font.GothamBold;v154.TextSize=v152 or (37 -26) ;v154.LayoutOrder=v153 or 0 ;v154.ZIndex=14 -2 ;return v154;end local function v103(v166,v167,v168,v169) local v170=0;local v171;while true do if (v170==(3 -2)) then v171.Text=v167;v171.TextColor3=Color3.new(1,1825 -(1195 + 629) ,1 -0 );v171.Font=Enum.Font.GothamBold;v171.TextSize=251 -(187 + 54) ;v170=782 -(162 + 618) ;end if (v170==(0 + 0)) then v171=Instance.new("TextButton",v91);v171.Name=v166;v171.Size=UDim2.new(1 + 0 , -(74 -39),0 -0 ,3 + 23 );v171.BackgroundColor3=v168;v170=1;end if (v170==2) then v171.LayoutOrder=v169 or (1736 -(1373 + 263)) ;v171.ZIndex=1013 -(451 + 549) ;Instance.new("UICorner",v171).CornerRadius=UDim.new(0,2 + 2 );return v171;end end end local v104=v102("Timer",nil,12,1 -0 );local v105=v102("Credits",Color3.fromRGB(255,361 -146 ,1384 -(746 + 638) ),12,1 + 1 );local v106=v102("BestEarned",Color3.fromRGB(0,255,227 -77 ),352 -(218 + 123) ,3);v102("Div1",Color3.fromRGB(100,100,1681 -(1535 + 46) ),9 + 0 ,10).Text="--- FINANCIAL HISTORY ---";local v108=v102("WD",Color3.fromRGB(13 + 72 ,255,687 -(306 + 254) ),1 + 10 ,11);local v109=v102("SP",Color3.fromRGB(500 -245 ,1547 -(899 + 568) ,53 + 27 ),11,12);local v110=v102("WS",Color3.fromRGB(483 -283 ,200,803 -(268 + 335) ),300 -(60 + 230) ,585 -(426 + 146) );v102("Div2",Color3.fromRGB(100,12 + 88 ,1556 -(282 + 1174) ),820 -(569 + 242) ,20).Text="--- STAFF TRACKING ---";local v112=v102("SJ",Color3.fromRGB(734 -479 ,6 + 94 ,1124 -(706 + 318) ),11,1272 -(721 + 530) );local v113=v102("PS",Color3.fromRGB(1526 -(945 + 326) ,374 -224 ,150),10 + 1 ,22);v102("Div3",Color3.fromRGB(800 -(271 + 429) ,92 + 8 ,1600 -(1408 + 92) ),9,1116 -(461 + 625) ).Text="--- SESSION INFO ---";local v115=v102("TotalTimer",Color3.fromRGB(1468 -(993 + 295) ,180,10 + 170 ),11,1202 -(418 + 753) );local v116=v102("JobID",Color3.fromRGB(150,150,58 + 92 ),1 + 8 ,10 + 22 );local v117=v103("TPBest","TP TO BEST CREDIT SESSION",Color3.fromRGB(0 + 0 ,649 -(406 + 123) ,1984 -(1749 + 20) ),40);local v118=v103("TPStaff","TP TO PEAK STAFF SESSION",Color3.fromRGB(140,0,52 + 163 ),41);local v119=v103("Reset","FORCE WIPE ALL DATA",Color3.fromRGB(1502 -(1249 + 73) ,0 + 0 ,0),1187 -(466 + 679) );local function v120(v172) local v173,v174=pcall(function() return v172:GetRoleInGroup(v13);end);return (v173 and v14[v174]) or false ;end local function v121() local v175=v32(v8);if v175 then v16,v17=v175.TotalTime or (0 -0) ,v175.MostCreditsEarned or (0 -0) ;if (v175.SessionProgress and v175.SessionProgress[game.JobId]) then v29=v175.SessionProgress[game.JobId];end end local v176=v32(v9);if v176 then v20=v176.SessionID or "" ;end local v177=v32(v10);if v177 then local v194=1900 -(106 + 1794) ;while true do if (v194==(0 + 0)) then v21,v22,v23=v177.TotalJoins or (0 + 0) ,v177.MaxStaff or (0 -0) ,v177.PeakID or "" ;v25,v27=v177.AllTimeWithdrawn or (0 -0) ,v177.AllTimeSpent or 0 ;break;end end end end local function v122(v178) local v179=114 -(4 + 110) ;local v180;while true do if (v179==(585 -(57 + 527))) then v180.SessionProgress=v180.SessionProgress or {} ;v180.SessionProgress[game.JobId]=v178;v179=1429 -(41 + 1386) ;end if (v179==2) then v31(v8,v180);v31(v9,{SessionID=v20});v179=106 -(17 + 86) ;end if (v179==(0 + 0)) then v180=v32(v8) or {} ;v180.TotalTime,v180.MostCreditsEarned=v16,v17;v179=1;end if (v179==(6 -3)) then v31(v10,{TotalJoins=v21,MaxStaff=v22,PeakID=v23,AllTimeWithdrawn=v25,AllTimeSpent=v27});break;end end end v117.MouseButton1Click:Connect(function() if ((v20~="") and (v20~=game.JobId)) then v2:TeleportToPlaceInstance(game.PlaceId,v20,v6);end end);v118.MouseButton1Click:Connect(function() if ((v23~="") and (v23~=game.JobId)) then v2:TeleportToPlaceInstance(game.PlaceId,v23,v6);end end);v119.MouseButton1Click:Connect(function() v44.Visible=true;end);v68.MouseButton1Click:Connect(function() v44.Visible=false;end);v60.MouseButton1Click:Connect(function() local v183=0;while true do if (v183==(5 -3)) then if writefile then v31(v8,{TotalTime=166 -(122 + 44) ,MostCreditsEarned=0,SessionProgress={}});v31(v9,{SessionID=""});v31(v10,{TotalJoins=0 -0 ,MaxStaff=0 -0 ,PeakID="",AllTimeWithdrawn=0 + 0 ,AllTimeSpent=0});end if isfile then pcall(function() delfile(v8);end);pcall(function() delfile(v9);end);pcall(function() delfile(v10);end);end v183=1 + 2 ;end if ((5 -2)==v183) then v60.Text="OVERWRITING...";task.wait(66 -(30 + 35) );v183=3 + 1 ;end if (v183==(1258 -(1043 + 214))) then v25,v27=0 -0 ,0;v20,v23="","";v183=1214 -(323 + 889) ;end if (v183==(10 -6)) then v2:Teleport(game.PlaceId,v6);break;end if (v183==0) then v15,v16,v17=580 -(361 + 219) ,320 -(53 + 267) ,0 + 0 ;v21,v22=413 -(15 + 398) ,982 -(18 + 964) ;v183=3 -2 ;end end end);local v123,v124,v125;v76.InputBegan:Connect(function(v184) if (v184.UserInputType==Enum.UserInputType.MouseButton1) then local v195=0 + 0 ;while true do if ((1 + 0)==v195) then v125=v37.Position;break;end if (v195==0) then v123=true;v124=v184.Position;v195=1;end end end end);v4.InputChanged:Connect(function(v185) if (v123 and (v185.UserInputType==Enum.UserInputType.MouseMovement)) then local v196=850 -(20 + 830) ;local v197;while true do if (v196==0) then v197=v185.Position-v124 ;v37.Position=UDim2.new(v125.X.Scale,v125.X.Offset + v197.X ,v125.Y.Scale,v125.Y.Offset + v197.Y );break;end end end end);v4.InputEnded:Connect(function(v186) if (v186.UserInputType==Enum.UserInputType.MouseButton1) then v123=false;end end);v81.MouseButton1Click:Connect(function() local v187=0;while true do if (v187==(0 + 0)) then v37.Visible=false;v83.Visible=true;break;end end end);v83.MouseButton1Click:Connect(function() local v188=126 -(116 + 10) ;while true do if (v188==(0 + 0)) then v37.Visible=true;v83.Visible=false;break;end end end);v121();v18=(v6:FindFirstChild("leaderstats") and v6.leaderstats.Credits.Value) or 0 ;v19=v18;task.spawn(function() while true do local v189=738 -(542 + 196) ;local v190;local v191;local v192;local v193;while true do if (v189==(10 -5)) then v106.Text="🏆 Best Credits Ser: "   .. v17 ;v108.Text=string.format("🏦 Withdrawn: %dk (S) / %dk (All)",v24/1000 ,v25/(293 + 707) );v109.Text=string.format("💸 Spent: %dk (S) / %dk (All)",v26/1000 ,v27/1000 );v189=4 + 2 ;end if (v189==(0 + 0)) then task.wait(1);v15+=(2 -1) v16+=1 v189=1;end if (v189==(17 -10)) then v122(v193);break;end if (v189==(1554 -(1126 + 425))) then v19=v192;v193=(v192-v18) + v29 ;if (v193>v17) then v17,v20=v193,game.JobId;end v189=409 -(118 + 287) ;end if (v189==(23 -17)) then v112.Text="👮 Staff Seen (Total): "   .. v21 ;v113.Text="📈 Max Staff (Peak): "   .. v22 ;v116.Text="🆔 ID: "   .. game.JobId ;v189=7;end if (v189==(1125 -(118 + 1003))) then v104.Text="⏱ Session: "   .. string.format("%02d:%02d:%02d",math.floor(v15/(10535 -6935) ),math.floor((v15%(3977 -(142 + 235)))/(272 -212) ),v15%60 ) ;v115.Text="⌛ Total: "   .. string.format("%02d:%02d:%02d",math.floor(v16/3600 ),math.floor((v16%(784 + 2816))/(1037 -(553 + 424)) ),v16%60 ) ;v105.Text="💰 Session Earned: "   .. v193 ;v189=9 -4 ;end if (v189==(1 + 0)) then v190=0 + 0 ;for v232,v233 in ipairs(v1:GetPlayers()) do if v120(v233) then v190+=1 end end if (v190>v22) then v22,v23=v190,game.JobId;end v189=2 + 0 ;end if (v189==(1 + 1)) then v191=v6:FindFirstChild("leaderstats");v192=(v191 and v191:FindFirstChild("Credits") and v191.Credits.Value) or 0 ;if (v192<v19) then local v236=0 + 0 ;local v237;while true do if (v236==(0 -0)) then v237=v19-v192 ;if (v237~=v11) then local v238=0 -0 ;while true do if (v238==(0 -0)) then v26+=v237 v27+=v237 break;end end end break;end end end v189=3;end end end end);
+-- Configuration
+local PLAYER = Players.LocalPlayer
+local FOLDER_NAME = "TrackedData"
+local DATA_FILE = FOLDER_NAME .. "/PlayerData.json"
+local SESSION_FILE = FOLDER_NAME .. "/mostcreditearnedsessonid.json"
+local STAFF_FILE = FOLDER_NAME .. "/StaffData.json"
+
+-- Withdraw Settings
+local WITHDRAW_THRESHOLD = 148000
+local WithdrawRequestEvent = ReplicatedStorage:WaitForChild("WithdrawRequestEvent")
+
+-- Group Settings
+local GROUP_ID = 35401545
+local DETECT_ROLES = {["Analytics"] = true, ["Administrator"] = true, ["Developer"] = true, ["Owner"] = true}
+
+-- Data Variables
+local sessionTime, totalTime, mostCreditsEarned, startCredits = 0, 0, 0, 0
+local lastBalance = 0
+local bestSessionID = ""
+local totalStaffJoins, maxStaffInOneSession, peakStaffSessionID = 0, 0, ""
+local sessionWithdrawn, allTimeWithdrawn = 0, 0
+local sessionSpent, allTimeSpent = 0, 0
+local hasWithdrawnThisSession = false
+local sessionEarnedOffset = 0 
+
+---------------------------------------------------------
+-- 🛡️ ENCRYPTION & VALIDATION HELPERS
+---------------------------------------------------------
+
+local function generateHash(dataString)
+	local hash = 0
+	local combined = dataString .. SECRET_SALT
+	for i = 1, #combined do
+		hash = (hash * 31 + string.byte(combined, i)) % 2^32
+	end
+	return tostring(hash)
+end
+
+local function safeWrite(path, tableData)
+	if not writefile then return end
+	local json = HttpService:JSONEncode(tableData)
+	local signature = generateHash(json)
+	local finalSave = { Payload = json, Signature = signature }
+	writefile(path, HttpService:JSONEncode(finalSave))
+end
+
+local function safeRead(path)
+	if not isfile or not isfile(path) then return nil end
+	local success, content = pcall(function() return HttpService:JSONDecode(readfile(path)) end)
+	if success and content.Payload and content.Signature then
+		if generateHash(content.Payload) == content.Signature then
+			return HttpService:JSONDecode(content.Payload)
+		end
+	end
+	return nil
+end
+
+---------------------------------------------------------
+-- UI CONSTRUCTION
+---------------------------------------------------------
+local screenGui = Instance.new("ScreenGui", PLAYER.PlayerGui)
+screenGui.Name = "AdvancedTracker_V2_Updated"
+screenGui.DisplayOrder = 999999
+screenGui.IgnoreGuiInset = true
+
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0, 280, 0, 410) 
+mainFrame.Position = UDim2.new(1, -300, 0.5, -205) 
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+mainFrame.BackgroundTransparency = 0.2
+mainFrame.ZIndex = 10
+mainFrame.ClipsDescendants = true
+Instance.new("UICorner", mainFrame)
+
+-- CONFIRMATION OVERLAY
+local confirmOverlay = Instance.new("Frame", mainFrame)
+confirmOverlay.Size = UDim2.new(1, 0, 1, 0)
+confirmOverlay.BackgroundColor3 = Color3.fromRGB(30, 0, 0)
+confirmOverlay.BackgroundTransparency = 0.05
+confirmOverlay.ZIndex = 50
+confirmOverlay.Visible = false
+Instance.new("UICorner", confirmOverlay)
+
+local confirmTitle = Instance.new("TextLabel", confirmOverlay)
+confirmTitle.Size = UDim2.new(1, 0, 0, 80)
+confirmTitle.Position = UDim2.new(0, 0, 0.1, 0)
+confirmTitle.BackgroundTransparency = 1
+confirmTitle.Text = "FORCE OVERWRITE RESET?\nThis wipes JSON files\nand re-zeros all stats."
+confirmTitle.TextColor3 = Color3.new(1, 1, 1)
+confirmTitle.Font = Enum.Font.GothamBold
+confirmTitle.TextSize = 13
+confirmTitle.ZIndex = 51
+
+local yesBtn = Instance.new("TextButton", confirmOverlay)
+yesBtn.Size = UDim2.new(0, 220, 0, 45)
+yesBtn.Position = UDim2.new(0.5, -110, 0.5, -10)
+yesBtn.BackgroundColor3 = Color3.fromRGB(220, 0, 0)
+yesBtn.Text = "CONFIRM HARD OVERWRITE"
+yesBtn.TextColor3 = Color3.new(1, 1, 1)
+yesBtn.Font = Enum.Font.GothamBold
+yesBtn.ZIndex = 51
+Instance.new("UICorner", yesBtn)
+
+local cancelBtn = Instance.new("TextButton", confirmOverlay)
+cancelBtn.Size = UDim2.new(0, 220, 0, 35)
+cancelBtn.Position = UDim2.new(0.5, -110, 0.5, 45)
+cancelBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+cancelBtn.Text = "CANCEL"
+cancelBtn.TextColor3 = Color3.new(1, 1, 1)
+cancelBtn.Font = Enum.Font.GothamBold
+cancelBtn.ZIndex = 51
+Instance.new("UICorner", cancelBtn)
+
+-- Main UI Components
+local topBar = Instance.new("Frame", mainFrame)
+topBar.Size = UDim2.new(1, 0, 0, 30)
+topBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+topBar.ZIndex = 11
+
+local function createTopBtn(text, color, pos)
+	local btn = Instance.new("TextButton", topBar)
+	btn.Size = UDim2.new(0, 25, 0, 25)
+	btn.Position = pos
+	btn.BackgroundColor3 = color
+	btn.Text = text
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.Font = Enum.Font.GothamBold
+	btn.ZIndex = 14
+	Instance.new("UICorner", btn)
+	return btn
+end
+
+local closeBtn = createTopBtn("X", Color3.fromRGB(150, 0, 0), UDim2.new(1, -30, 0, 2))
+local minBtn = createTopBtn("-", Color3.fromRGB(100, 100, 100), UDim2.new(1, -60, 0, 2))
+
+local openBtn = Instance.new("TextButton", screenGui)
+openBtn.Size = UDim2.new(0, 80, 0, 30)
+openBtn.Position = UDim2.new(1, -100, 0.5, 0)
+openBtn.Visible = false
+openBtn.Text = "OPEN STATS"
+openBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+openBtn.TextColor3 = Color3.new(1, 1, 1)
+openBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", openBtn)
+
+local scroll = Instance.new("ScrollingFrame", mainFrame)
+scroll.Size = UDim2.new(1, 0, 1, -30)
+scroll.Position = UDim2.new(0, 0, 0, 30)
+scroll.BackgroundTransparency = 1
+scroll.BorderSizePixel = 0
+scroll.ScrollBarThickness = 4
+scroll.ZIndex = 11
+
+local uiList = Instance.new("UIListLayout", scroll)
+uiList.Padding = UDim.new(0, 5)
+uiList.SortOrder = Enum.SortOrder.LayoutOrder
+
+local function createLabel(name, color, size, order)
+	local lbl = Instance.new("TextLabel", scroll)
+	lbl.Name = name
+	lbl.Size = UDim2.new(1, -25, 0, 18)
+	lbl.BackgroundTransparency = 1
+	lbl.TextColor3 = color or Color3.new(1, 1, 1)
+	lbl.TextXAlignment = Enum.TextXAlignment.Left
+	lbl.Font = Enum.Font.GothamBold
+	lbl.TextSize = size or 11
+	lbl.LayoutOrder = order or 0
+	lbl.ZIndex = 12
+	return lbl
+end
+
+local function createButton(name, text, color, order)
+	local btn = Instance.new("TextButton", scroll)
+	btn.Name = name
+	btn.Size = UDim2.new(1, -35, 0, 26)
+	btn.BackgroundColor3 = color
+	btn.Text = text
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 10
+	btn.LayoutOrder = order or 100
+	btn.ZIndex = 13
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+	return btn
+end
+
+-- Labels
+local sessionTimerLabel = createLabel("Timer", nil, 12, 1)
+local sessionCredLabel  = createLabel("Credits", Color3.fromRGB(255, 215, 0), 12, 2)
+local mostEarnedLabel   = createLabel("BestEarned", Color3.fromRGB(0, 255, 150), 11, 3)
+createLabel("Div1", Color3.fromRGB(100, 100, 100), 9, 10).Text = "--- FINANCIAL HISTORY ---"
+local withdrawnLabel    = createLabel("WD", Color3.fromRGB(85, 255, 127), 11, 11)
+local spentLabel        = createLabel("SP", Color3.fromRGB(255, 80, 80), 11, 12)
+local withdrawStatusLabel = createLabel("WS", Color3.fromRGB(200, 200, 200), 10, 13)
+createLabel("Div2", Color3.fromRGB(100, 100, 100), 9, 20).Text = "--- STAFF TRACKING ---"
+local staffCountLabel   = createLabel("SJ", Color3.fromRGB(255, 100, 100), 11, 21)
+local peakStaffLabel    = createLabel("PS", Color3.fromRGB(255, 150, 150), 11, 22)
+createLabel("Div3", Color3.fromRGB(100, 100, 100), 9, 30).Text = "--- SESSION INFO ---"
+local totalTimerLabel   = createLabel("TotalTimer", Color3.fromRGB(180, 180, 180), 11, 31)
+local jobIDLabel        = createLabel("JobID", Color3.fromRGB(150, 150, 150), 9, 32)
+
+local tpBestCreds = createButton("TPBest", "TP TO BEST CREDIT SESSION", Color3.fromRGB(0, 120, 215), 40)
+local tpPeakStaff = createButton("TPStaff", "TP TO PEAK STAFF SESSION", Color3.fromRGB(140, 0, 215), 41)
+local resetBtn = createButton("Reset", "FORCE WIPE ALL DATA", Color3.fromRGB(180, 0, 0), 42)
+
+---------------------------------------------------------
+-- LOGIC & PERSISTENCE
+---------------------------------------------------------
+
+local function isStaff(player)
+	local success, role = pcall(function() return player:GetRoleInGroup(GROUP_ID) end)
+	return success and DETECT_ROLES[role] or false
+end
+
+local function loadData()
+	local pData = safeRead(DATA_FILE)
+	if pData then 
+		totalTime, mostCreditsEarned = pData.TotalTime or 0, pData.MostCreditsEarned or 0 
+		if pData.SessionProgress and pData.SessionProgress[game.JobId] then
+			sessionEarnedOffset = pData.SessionProgress[game.JobId]
+		end
+	end
+	local sData = safeRead(SESSION_FILE)
+	if sData then bestSessionID = sData.SessionID or "" end
+	local stData = safeRead(STAFF_FILE)
+	if stData then
+		totalStaffJoins, maxStaffInOneSession, peakStaffSessionID = stData.TotalJoins or 0, stData.MaxStaff or 0, stData.PeakID or ""
+		allTimeWithdrawn, allTimeSpent = stData.AllTimeWithdrawn or 0, stData.AllTimeSpent or 0
+	end
+end
+
+local function saveData(earned)
+	local pData = safeRead(DATA_FILE) or {}
+	pData.TotalTime, pData.MostCreditsEarned = totalTime, mostCreditsEarned
+	pData.SessionProgress = pData.SessionProgress or {}
+	pData.SessionProgress[game.JobId] = earned
+	safeWrite(DATA_FILE, pData)
+	safeWrite(SESSION_FILE, {SessionID = bestSessionID})
+	safeWrite(STAFF_FILE, {
+		TotalJoins = totalStaffJoins, MaxStaff = maxStaffInOneSession, PeakID = peakStaffSessionID,
+		AllTimeWithdrawn = allTimeWithdrawn, AllTimeSpent = allTimeSpent
+	})
+end
+
+---------------------------------------------------------
+-- BUTTON ACTIONS & RESET
+---------------------------------------------------------
+
+tpBestCreds.MouseButton1Click:Connect(function()
+	if bestSessionID ~= "" and bestSessionID ~= game.JobId then
+		TeleportService:TeleportToPlaceInstance(game.PlaceId, bestSessionID, PLAYER)
+	end
+end)
+
+tpPeakStaff.MouseButton1Click:Connect(function()
+	if peakStaffSessionID ~= "" and peakStaffSessionID ~= game.JobId then
+		TeleportService:TeleportToPlaceInstance(game.PlaceId, peakStaffSessionID, PLAYER)
+	end
+end)
+
+resetBtn.MouseButton1Click:Connect(function()
+	confirmOverlay.Visible = true
+end)
+
+cancelBtn.MouseButton1Click:Connect(function()
+	confirmOverlay.Visible = false
+end)
+
+yesBtn.MouseButton1Click:Connect(function()
+	-- 1. Explicitly zero out all script variables
+	sessionTime, totalTime, mostCreditsEarned = 0, 0, 0
+	totalStaffJoins, maxStaffInOneSession = 0, 0
+	allTimeWithdrawn, allTimeSpent = 0, 0
+	bestSessionID, peakStaffSessionID = "", ""
+	
+	-- 2. Force Write blank data to bypass hash checks
+	if writefile then
+		safeWrite(DATA_FILE, {TotalTime = 0, MostCreditsEarned = 0, SessionProgress = {}})
+		safeWrite(SESSION_FILE, {SessionID = ""})
+		safeWrite(STAFF_FILE, {TotalJoins = 0, MaxStaff = 0, PeakID = "", AllTimeWithdrawn = 0, AllTimeSpent = 0})
+	end
+	
+	-- 3. Attempt physical file deletion
+	if isfile then
+		pcall(function() delfile(DATA_FILE) end)
+		pcall(function() delfile(SESSION_FILE) end)
+		pcall(function() delfile(STAFF_FILE) end)
+	end
+	
+	yesBtn.Text = "OVERWRITING..."
+	task.wait(1)
+	TeleportService:Teleport(game.PlaceId, PLAYER)
+end)
+
+---------------------------------------------------------
+-- UI DRAGGING
+---------------------------------------------------------
+local dragging, dragStart, startPos
+topBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true dragStart = input.Position startPos = mainFrame.Position
+	end
+end)
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local delta = input.Position - dragStart
+		mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
+
+closeBtn.MouseButton1Click:Connect(function() mainFrame.Visible = false openBtn.Visible = true end)
+openBtn.MouseButton1Click:Connect(function() mainFrame.Visible = true openBtn.Visible = false end)
+
+---------------------------------------------------------
+-- MAIN LOOP
+---------------------------------------------------------
+loadData()
+startCredits = (PLAYER:FindFirstChild("leaderstats") and PLAYER.leaderstats.Credits.Value) or 0
+lastBalance = startCredits
+
+task.spawn(function()
+	while true do
+		task.wait(1)
+		sessionTime += 1
+		totalTime += 1
+		
+		local currentCount = 0
+		for _, p in ipairs(Players:GetPlayers()) do if isStaff(p) then currentCount += 1 end end
+		if currentCount > maxStaffInOneSession then maxStaffInOneSession, peakStaffSessionID = currentCount, game.JobId end
+
+		local leaderstats = PLAYER:FindFirstChild("leaderstats")
+		local currentCredits = (leaderstats and leaderstats:FindFirstChild("Credits") and leaderstats.Credits.Value) or 0
+		
+		if currentCredits < lastBalance then
+			local diff = lastBalance - currentCredits
+			if diff ~= WITHDRAW_THRESHOLD then sessionSpent += diff allTimeSpent += diff end
+		end
+		lastBalance = currentCredits
+		
+		local earned = (currentCredits - startCredits) + sessionEarnedOffset
+		if earned > mostCreditsEarned then mostCreditsEarned, bestSessionID = earned, game.JobId end
+		
+		sessionTimerLabel.Text = "⏱ Session: " .. string.format("%02d:%02d:%02d", math.floor(sessionTime/3600), math.floor((sessionTime%3600)/60), sessionTime%60)
+		totalTimerLabel.Text   = "⌛ Total: " .. string.format("%02d:%02d:%02d", math.floor(totalTime/3600), math.floor((totalTime%3600)/60), totalTime%60)
+		sessionCredLabel.Text  = "💰 Session Earned: " .. earned
+		mostEarnedLabel.Text   = "🏆 Best Credits Ser: " .. mostCreditsEarned
+		withdrawnLabel.Text    = string.format("🏦 Withdrawn: %dk (S) / %dk (All)", sessionWithdrawn/1000, allTimeWithdrawn/1000)
+		spentLabel.Text        = string.format("💸 Spent: %dk (S) / %dk (All)", sessionSpent/1000, allTimeSpent/1000)
+		staffCountLabel.Text   = "👮 Staff Seen (Total): " .. totalStaffJoins
+		peakStaffLabel.Text    = "📈 Max Staff (Peak): " .. maxStaffInOneSession
+		jobIDLabel.Text        = "🆔 ID: " .. game.JobId
+		
+		saveData(earned)
+	end
+end)
