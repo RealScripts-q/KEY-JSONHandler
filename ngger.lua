@@ -3,30 +3,34 @@ local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 
--- PLAYER
 local player = Players.LocalPlayer
 local PLACE_ID = game.PlaceId
 
 -- SETTINGS
 local MAX_PLAYERS = 4
-local CHECK_INTERVAL = 20 -- seconds between checks
+local CHECK_INTERVAL = 1
 
 --------------------------------------------------
--- GUI
+-- GUI SETUP (FIXED)
 --------------------------------------------------
 local gui = Instance.new("ScreenGui")
-gui.Name = "AutoServerCheckGUI"
+gui.Name = "AutoCheckingGUI"
+gui.IgnoreGuiInset = true
 gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = player:WaitForChild("PlayerGui")
 
 local label = Instance.new("TextLabel")
-label.Size = UDim2.new(0, 450, 0, 120)
-label.Position = UDim2.new(0.5, -225, 0.05, 0)
+label.Size = UDim2.new(0, 420, 0, 110)
+label.Position = UDim2.new(0.5, -210, 0, 20)
 label.BackgroundTransparency = 1
 label.TextColor3 = Color3.fromRGB(255,255,255)
 label.Font = Enum.Font.GothamBold
-label.TextScaled = true
+label.TextSize = 18
 label.TextWrapped = true
+label.TextXAlignment = Left
+label.TextYAlignment = Top
+label.ZIndex = 10
 label.Parent = gui
 
 --------------------------------------------------
@@ -37,45 +41,45 @@ local function getCurrentServerSize()
 end
 
 --------------------------------------------------
--- FIND SMALLER SERVER
+-- FIND ABSOLUTE SMALLEST SERVER
 --------------------------------------------------
-local function findSmallerServer(currentSize)
+local function findBestServer(currentSize)
 	local cursor = nil
-	local smallestServer = nil
-	local smallestCount = currentSize
+	local bestServerId = nil
+	local bestCount = currentSize
 
 	repeat
 		local url =
 			"https://games.roblox.com/v1/games/" .. PLACE_ID ..
-			"/servers/Public?sortOrder=Asc&limit=100"
+			"/servers/Public?limit=100"
 
 		if cursor then
 			url ..= "&cursor=" .. cursor
 		end
 
-		local success, response = pcall(function()
+		local success, result = pcall(function()
 			return HttpService:JSONDecode(game:HttpGet(url))
 		end)
 
-		if not success then
-			return nil, nil
+		if not success or not result then
+			break
 		end
 
-		for _, server in ipairs(response.data) do
-			if server.playing > 0
+		for _, server in ipairs(result.data) do
+			if server.id ~= game.JobId
+				and server.playing > 0
 				and server.playing <= MAX_PLAYERS
-				and server.playing < smallestCount
-				and server.id ~= game.JobId then
+				and server.playing < bestCount then
 
-				smallestCount = server.playing
-				smallestServer = server.id
+				bestCount = server.playing
+				bestServerId = server.id
 			end
 		end
 
-		cursor = response.nextPageCursor
+		cursor = result.nextPageCursor
 	until not cursor
 
-	return smallestServer, smallestCount
+	return bestServerId, bestCount
 end
 
 --------------------------------------------------
@@ -85,29 +89,33 @@ task.spawn(function()
 	while true do
 		local currentSize = getCurrentServerSize()
 
-		local bestServer, bestSize = findSmallerServer(currentSize)
+		label.Text =
+			"Auto Checking (this helps it load)\n\n" ..
+			"📉 Current Server: " .. currentSize .. " players\n" ..
+			"Searching for smaller servers..."
 
-		if bestServer then
+		local serverId, serverSize = findBestServer(currentSize)
+
+		if serverId and serverSize < currentSize then
+			label.Text =
+				"Auto Checking (this helps it load)\n\n" ..
+				"📉 Current Server: " .. currentSize .. "\n" ..
+				"✅ Found Smaller Server: " .. serverSize .. "\n" ..
+				"Teleporting..."
+
+			task.wait(1.5)
+			TeleportService:TeleportToPlaceInstance(PLACE_ID, serverId, player)
+			return
+		end
+
+		for i = CHECK_INTERVAL, 1, -1 do
 			label.Text =
 				"Auto Checking (this helps it load)\n\n" ..
 				"📉 Current Server: " .. currentSize .. " players\n" ..
-				"📉 Better Server Found: " .. bestSize .. " players\n" ..
-				"Teleporting..."
+				"No smaller server found\n" ..
+				"⏱ Rechecking in " .. i .. "s"
 
-			task.wait(2)
-			TeleportService:TeleportToPlaceInstance(PLACE_ID, bestServer, player)
-			return
-		else
-			-- Countdown
-			for i = CHECK_INTERVAL, 1, -1 do
-				label.Text =
-					"Auto Checking (this helps it load)\n\n" ..
-					"📉 Current Server: " .. currentSize .. " players\n" ..
-					"No smaller server found\n" ..
-					"⏱ Rechecking in " .. i .. "s"
-
-				task.wait(1)
-			end
+			task.wait(1)
 		end
 	end
 end)
