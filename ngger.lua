@@ -1,50 +1,66 @@
-local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
 
 local PlaceId = game.PlaceId
 local LocalPlayer = Players.LocalPlayer
-local MaxPlayersAllowed = 4
+local MAX_PLAYERS = 4
 
--- Using a proxy because Roblox doesn't allow direct Http requests to its own domain
-local ApiUrl = "https://games.roproxy.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+-- Function to fetch server list using Synapse's optimized request method
+local function getServers(cursor)
+    local url = "https://games.roproxy.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+    if cursor then
+        url = url .. "&cursor=" .. cursor
+    end
 
-local function findAndHop()
-    print("Searching for a smaller server...")
+    -- syn.request is specific to Synapse and much more reliable
+    local response = syn.request({
+        Url = url,
+        Method = "GET"
+    })
+
+    if response.Success then
+        return HttpService:JSONDecode(response.Body)
+    end
+    return nil
+end
+
+local function hop()
+    print("Synapse: Searching for small server...")
+    local nextCursor = nil
     
-    local success, result = pcall(function()
-        return HttpService:JSONDecode(game:HttpGet(ApiUrl))
-    end)
-
-    if success and result and result.data then
-        for _, server in ipairs(result.data) do
-            -- Ensure we don't try to join the server we are already in
-            if server.id ~= game.JobId and server.playing >= 1 and server.playing <= MaxPlayersAllowed then
-                print("Found server with " .. server.playing .. " players. Hopping...")
+    while true do
+        local data = getServers(nextCursor)
+        if not data then break end
+        
+        for _, server in ipairs(data.data) do
+            -- Find server with 1-4 players that isn't the current one
+            if server.playing >= 1 and server.playing <= MAX_PLAYERS and server.id ~= game.JobId then
+                print("Server found (" .. server.playing .. " players). Teleporting...")
+                
+                -- Synapse handles the teleport handshake automatically
                 TeleportService:TeleportToPlaceInstance(PlaceId, server.id, LocalPlayer)
                 return
             end
         end
-        warn("No suitable servers found. Staying put for now.")
-    else
-        warn("API Error: Make sure your executor supports HttpGet and uses a proxy.")
+        
+        nextCursor = data.nextPageCursor
+        if not nextCursor then break end
+        task.wait(0.1) -- Small delay to prevent request throttling
     end
+    warn("Synapse: No servers found. Retrying soon...")
 end
 
--- 1. Check immediately on script run
-if #Players:GetPlayers() > MaxPlayersAllowed then
-    findAndHop()
-end
-
--- 2. Monitor for new players joining
+-- Monitor for player count
 Players.PlayerAdded:Connect(function()
-    local currentCount = #Players:GetPlayers()
-    print("Player joined. Current count: " .. currentCount)
-    
-    if currentCount > MaxPlayersAllowed then
-        print("Server exceeded limit! Initiating hop...")
-        findAndHop()
+    if #Players:GetPlayers() > MAX_PLAYERS then
+        hop()
     end
 end)
 
-print("Auto-Hop script active. Limit: " .. MaxPlayersAllowed .. " players.")
+-- Execute immediately if the server you just joined is too full
+if #Players:GetPlayers() > MAX_PLAYERS then
+    hop()
+end
+
+print("Synapse Server Hopper Loaded. Limit: " .. MAX_PLAYERS)
