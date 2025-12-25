@@ -56,6 +56,14 @@ button{
 .timer{margin-top:8px;font-size:13px;color:#00c6ff}
 .cooldown{margin-top:6px;font-size:12px;color:#ff9500}
 
+.topLeft{
+  position:fixed;
+  top:10px;
+  left:10px;
+  font-size:12px;
+  color:#00c6ff;
+}
+
 /* ADMIN */
 .admin{
   position:fixed;
@@ -71,13 +79,6 @@ button{
   margin-top:8px;
   font-size:12px;
 }
-.topLeft{
-  position:fixed;
-  top:10px;
-  left:10px;
-  font-size:12px;
-  color:#00c6ff;
-}
 </style>
 </head>
 
@@ -92,11 +93,18 @@ button{
 <input id="userid" placeholder="Roblox UserId">
 <button id="gen">Generate / Recover Key</button>
 
+<!-- REQUEST ID -->
 <button id="showRequest" class="secondary">Use Request ID</button>
 <input id="requestInput" class="hidden" placeholder="Paste Request ID">
+<button id="approveRequest" class="secondary hidden">Approve Request ID</button>
 
+<!-- MASTER -->
 <button id="showAdmin" class="secondary">Admin / Master Login</button>
 <input id="adminInput" class="hidden" placeholder="Paste Master Key">
+<button id="approveAdmin" class="secondary hidden">Approve Master Key</button>
+
+<!-- FORCE / RENEW -->
+<button id="renewBtn" class="secondary hidden">🔄 Force / Renew Key</button>
 
 <button id="openAdmin" class="secondary hidden">Open Admin Panel</button>
 
@@ -125,13 +133,17 @@ const JSONBIN_MASTER_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/AS
 const ADMIN_MASTER_KEY = "RSQ-MASTER-KEY";
 
 const KEY_LIFE = 86400;
+const RESET_COOLDOWN = 21600;
 
 /* STATE */
-let isAdmin = false;
+let isAdmin=false;
+let approvedRequest=false;
+let keyTimer=null;
+let cooldownTimer=null;
 
 /* HELPERS */
-const now = ()=>Math.floor(Date.now()/1000);
-const makeKey = ()=>"RSQ-"+crypto.randomUUID().slice(0,8).toUpperCase();
+const now=()=>Math.floor(Date.now()/1000);
+const makeKey=()=> "RSQ-"+crypto.randomUUID().slice(0,8).toUpperCase();
 
 /* JSONBIN */
 async function getKeys(){
@@ -149,58 +161,110 @@ async function saveKeys(keys){
   });
 }
 
-/* USER FLOW */
+/* TIMER */
+function startTimer(exp){
+  clearInterval(keyTimer);
+  timer.classList.remove("hidden");
+  keyTimer=setInterval(()=>{
+    const r=exp-now();
+    if(r<=0){
+      timer.textContent="⛔ Key expired";
+      clearInterval(keyTimer);
+      return;
+    }
+    timer.textContent=`⏱ ${Math.floor(r/3600)}h ${Math.floor(r%3600/60)}m ${r%60}s`;
+  },1000);
+}
+function startCooldown(last){
+  clearInterval(cooldownTimer);
+  function tick(){
+    const r=(last+RESET_COOLDOWN)-now();
+    if(r<=0){
+      cooldown.textContent="";
+      renewBtn.classList.remove("hidden");
+      clearInterval(cooldownTimer);
+      return;
+    }
+    renewBtn.classList.add("hidden");
+    cooldown.textContent=`🔒 Reset cooldown ${Math.floor(r/3600)}h ${Math.floor(r%3600/60)}m ${r%60}s`;
+  }
+  tick();
+  cooldownTimer=setInterval(tick,1000);
+}
+
+/* GENERATE */
 gen.onclick=async()=>{
+  if(!approvedRequest && !isAdmin)
+    return status.textContent="❌ Approve Request ID or Master first";
+
   const id=userid.value.trim();
   if(!/^\d+$/.test(id)) return status.textContent="❌ Invalid UserId";
 
   const keys=await getKeys();
   for(const k in keys){
-    if(keys[k].userId==id){
+    const d=keys[k];
+    if(d.userId==id){
       navigator.clipboard.writeText(k);
       status.textContent="✅ Existing key copied";
-      if(!keys[k].inf) startTimer(keys[k].expires);
+      renewBtn.classList.remove("hidden");
+      if(d.inf){
+        timer.textContent="♾ Expires: NEVER";
+      }else{
+        startTimer(d.expires);
+        if(d.lastReset) startCooldown(d.lastReset);
+      }
       return;
     }
   }
 
   const k=makeKey();
-  keys[k]={userId:id,created:now(),expires:now()+KEY_LIFE};
+  keys[k]={userId:id,created:now(),expires:now()+KEY_LIFE,lastReset:0};
   await saveKeys(keys);
   navigator.clipboard.writeText(k);
   status.textContent="✅ New key generated & copied";
   startTimer(keys[k].expires);
+  renewBtn.classList.remove("hidden");
 };
 
-/* TIMER */
-function startTimer(exp){
-  clearInterval(window.ti);
-  window.ti=setInterval(()=>{
-    const r=exp-now();
-    if(r<=0){timer.textContent="⛔ Expired";clearInterval(window.ti);return;}
-    timer.textContent=`⏱ ${Math.floor(r/3600)}h ${Math.floor(r%3600/60)}m ${r%60}s`;
-  },1000);
-}
+/* FORCE / RENEW */
+renewBtn.onclick=async()=>{
+  const id=userid.value.trim();
+  const keys=await getKeys();
+  for(const k in keys){
+    const d=keys[k];
+    if(d.userId==id && !d.inf){
+      if(d.lastReset && now()-d.lastReset<RESET_COOLDOWN)
+        return status.textContent="⏳ Cooldown active";
+      d.expires=now()+KEY_LIFE;
+      d.lastReset=now();
+      await saveKeys(keys);
+      status.textContent="🔄 Key renewed";
+      startTimer(d.expires);
+      startCooldown(d.lastReset);
+      return;
+    }
+  }
+};
 
-/* REQUEST ID */
+/* REQUEST ID FLOW */
 showRequest.onclick=()=>{
   requestInput.classList.toggle("hidden");
-  status.textContent="🔐 Paste Request ID";
+  approveRequest.classList.toggle("hidden");
 };
-requestInput.onchange=()=>{
+approveRequest.onclick=()=>{
+  approvedRequest=true;
   requestDisplay.textContent="Request ID: "+requestInput.value;
-  status.textContent="✅ Request ID accepted";
+  status.textContent="✅ Request ID approved";
 };
 
-/* ADMIN LOGIN */
+/* ADMIN FLOW */
 showAdmin.onclick=()=>{
   adminInput.classList.toggle("hidden");
+  approveAdmin.classList.toggle("hidden");
 };
-adminInput.onchange=()=>{
-  if(adminInput.value!==ADMIN_MASTER_KEY){
-    status.textContent="❌ Invalid master key";
-    return;
-  }
+approveAdmin.onclick=()=>{
+  if(adminInput.value!==ADMIN_MASTER_KEY)
+    return status.textContent="❌ Invalid master key";
   isAdmin=true;
   openAdmin.classList.remove("hidden");
   status.textContent="👑 Welcome Admin";
@@ -212,7 +276,6 @@ openAdmin.onclick=()=>{
   adminPanel.classList.remove("hidden");
   loadLogs();
 };
-
 async function loadLogs(){
   logs.innerHTML="";
   const keys=await getKeys();
@@ -223,7 +286,7 @@ async function loadLogs(){
     div.innerHTML=`
 <b>${k}</b><br>
 UID: ${d.userId}<br>
-Expires: ${d.inf?"NEVER":new Date(d.expires*1000).toLocaleString()}<br>
+Expires: ${d.inf?"NEVER":new Date(d.expires*1000)}<br>
 <button onclick="renewKey('${k}')">Renew</button>
 <button class="danger" onclick="delKey('${k}')">Delete</button>`;
     logs.appendChild(div);
@@ -245,7 +308,7 @@ async function delKey(k){
 }
 async function genInf(){
   const id=infUser.value.trim();
-  if(!/^\d+$/.test(id)) return;
+  if(!/^\d+$/.test(id))return;
   const keys=await getKeys();
   const k=makeKey();
   keys[k]={userId:id,inf:true};
