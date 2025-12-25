@@ -1,12 +1,296 @@
---[[
- .____                  ________ ___.    _____                           __                
- |    |    __ _______   \_____  \\_ |___/ ____\_ __  ______ ____ _____ _/  |_  ___________ 
- |    |   |  |  \__  \   /   |   \| __ \   __\  |  \/  ___// ___\\__  \\   __\/  _ \_  __ \
- |    |___|  |  // __ \_/    |    \ \_\ \  | |  |  /\___ \\  \___ / __ \|  | (  <_> )  | \/
- |_______ \____/(____  /\_______  /___  /__| |____//____  >\___  >____  /__|  \____/|__|   
-         \/          \/         \/    \/                \/     \/     \/                   
-          \_Welcome to LuaObfuscator.com   (Alpha 0.10.9) ~  Much Love, Ferib 
+----------------------------------------------------
+-- 🔑 RSQ KEY SYSTEM + MULTI SCRIPT LOADER (FINAL)
+----------------------------------------------------
 
-]]--
+-- SERVICES
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local StarterGui = game:GetService("StarterGui")
+local UserInputService = game:GetService("UserInputService")
 
-local v0=game:GetService("Players");local v1=game:GetService("HttpService");local v2=game:GetService("StarterGui");local v3=game:GetService("UserInputService");local v4=v0.LocalPlayer;local v5=v4:WaitForChild("PlayerGui");local v6="https://api.jsonbin.io/v3/b/694c4aefae596e708faef157/latest";local v7={"https://raw.githubusercontent.com/RealScripts-q/KEY-JSONHandler/refs/heads/main/D.lua","https://raw.githubusercontent.com/RealScripts-q/KEY-JSONHandler/refs/heads/main/I.lua","https://raw.githubusercontent.com/RealScripts-q/KEY-JSONHandler/refs/heads/main/N.lua","https://raw.githubusercontent.com/RealScripts-q/KEY-JSONHandler/refs/heads/main/TrackDataSecrete.lua","https://raw.githubusercontent.com/RealScripts-q/KEY-JSONHandler/refs/heads/main/Iforgottoaddthis"};local v8="rsq_saved_key.txt";local v9="rsq_hwid.txt";local function v10(v78) pcall(function() v2:SetCore("SendNotification",{Title="RSQ",Text=v78,Duration=121 -(32 + 85) });end);end local function v11() local v79=0;local v80;while true do if (v79==(0 + 0)) then if ( not writefile or  not readfile or  not isfile) then return "STUDIO";end if isfile(v9) then return readfile(v9);end v79=1 + 0 ;end if (v79==2) then return v80;end if (v79==(958 -(892 + 65))) then v80=v1:GenerateGUID(false);writefile(v9,v80);v79=4 -2 ;end end end local v12=v11();local function v13() local v81,v82=pcall(function() return game:HttpGet(v6);end);if  not v81 then return nil;end local v83=v1:JSONDecode(v82);if (v83 and v83.record and v83.record.keys) then return v83.record.keys;end return nil;end local function v14(v84) local v85=v13();if  not v85 then return false,"DB error";end local v86=v85[v84];if  not v86 then return false,"Invalid key";end if (tonumber(v86.userId)~=v4.UserId) then return false,"Wrong user";end if (tonumber(v86.expires)<os.time()) then return false,"Expired";end if (v86.hwid and (v86.hwid~=v12)) then return false,"HWID mismatch";end return true,v86.expires;end local function v15() for v95,v96 in ipairs(v7) do task.spawn(function() local v104=0 -0 ;local v105;local v106;while true do if (v104==(0 -0)) then v105,v106=pcall(function() return game:HttpGet(v96);end);if v105 then loadstring(v106)();end break;end end end);end end local v16=Instance.new("ScreenGui");v16.Name="RSQ_GUI";v16.ResetOnSpawn=false;v16.IgnoreGuiInset=true;v16.Parent=v5;local v21=Instance.new("Frame",v16);v21.Size=UDim2.fromOffset(590 -(87 + 263) ,1865 -(1703 + 114) );v21.Position=UDim2.new(1, -(440 -(67 + 113)),0 + 0 ,32 -12 );v21.BackgroundColor3=Color3.fromRGB(20,49 -29 ,8 + 17 );v21.BorderSizePixel=0 -0 ;v21.Visible=false;Instance.new("UICorner",v21).CornerRadius=UDim.new(0 + 0 ,47 -35 );local v28=Instance.new("TextLabel",v21);v28.Size=UDim2.new(953 -(802 + 150) , -(392 -(85 + 291)),2 -1 ,0);v28.Position=UDim2.fromOffset(1273 -(243 + 1022) ,0 -0 );v28.BackgroundTransparency=1 + 0 ;v28.Font=Enum.Font.GothamBold;v28.TextSize=1013 -(915 + 82) ;v28.TextColor3=Color3.new(2 -1 ,1 + 0 ,1 -0 );v28.TextXAlignment=Enum.TextXAlignment.Left;do local v87,v88,v89;v21.InputBegan:Connect(function(v97) if (v97.UserInputType==Enum.UserInputType.MouseButton1) then local v107=254 -(163 + 91) ;while true do if ((1188 -(1069 + 118))==v107) then v89=v21.Position;break;end if (v107==(0 -0)) then v87=true;v88=v97.Position;v107=3 -2 ;end end end end);v3.InputChanged:Connect(function(v98) if (v87 and (v98.UserInputType==Enum.UserInputType.MouseMovement)) then local v108=0 -0 ;local v109;while true do if (v108==(0 + 0)) then v109=v98.Position-v88 ;v21.Position=UDim2.new(v89.X.Scale,v89.X.Offset + v109.X ,v89.Y.Scale,v89.Y.Offset + v109.Y );break;end end end end);v3.InputEnded:Connect(function(v99) if (v99.UserInputType==Enum.UserInputType.MouseButton1) then v87=false;end end);end local v38=Instance.new("Frame",v16);v38.Size=UDim2.fromOffset(746 -326 ,206 -56 );v38.Position=UDim2.fromScale(0.5 + 0 ,0.5 + 0 );v38.AnchorPoint=Vector2.new(791.5 -(368 + 423) ,0.5 -0 );v38.BackgroundColor3=Color3.fromRGB(38 -(10 + 8) ,76 -56 ,467 -(416 + 26) );v38.BorderSizePixel=0 -0 ;v38.Visible=false;Instance.new("UICorner",v38).CornerRadius=UDim.new(438 -(262 + 176) ,1737 -(345 + 1376) );local v46=Instance.new("TextLabel",v38);v46.Position=UDim2.fromOffset(7 + 9 ,17 -7 );v46.Size=UDim2.new(439 -(145 + 293) , -(462 -(44 + 386)),22);v46.Text="My Super Hub";v46.Font=Enum.Font.GothamBold;v46.TextSize=1502 -(998 + 488) ;v46.TextColor3=Color3.fromRGB(240,77 + 163 ,197 + 43 );v46.BackgroundTransparency=773 -(201 + 571) ;v46.TextXAlignment=Enum.TextXAlignment.Left;local v55=Instance.new("TextBox",v38);v55.Position=UDim2.fromOffset(1154 -(116 + 1022) ,50);v55.Size=UDim2.new(3 -2 , -(133 -101),22 + 14 );v55.PlaceholderText="Enter Key";v55.ClearTextOnFocus=false;v55.Font=Enum.Font.Gotham;v55.TextSize=14;v55.TextColor3=Color3.new(1,3 -2 ,4 -3 );v55.BackgroundColor3=Color3.fromRGB(106 -76 ,30,4 + 32 );v55.BorderSizePixel=859 -(814 + 45) ;Instance.new("UICorner",v55).CornerRadius=UDim.new(0 -0 ,2 + 8 );local v67=Instance.new("TextButton",v38);v67.Position=UDim2.fromOffset(218 -(14 + 188) ,6 + 94 );v67.Size=UDim2.new(1 + 0 , -(917 -(261 + 624)),33 + 1 );v67.Text="Submit";v67.Font=Enum.Font.GothamBold;v67.TextSize=14;v67.TextColor3=Color3.new(1 -0 ,1081 -(1020 + 60) ,2 -1 );v67.BackgroundColor3=Color3.fromRGB(49 + 41 ,1523 -(630 + 793) ,863 -608 );v67.BorderSizePixel=0 -0 ;Instance.new("UICorner",v67).CornerRadius=UDim.new(0 -0 ,4 + 6 );local function v77(v90) local v91=0 -0 ;while true do if ((1749 -(760 + 987))==v91) then task.spawn(function() while true do local v113=v90-os.time() ;if (v113<=(1913 -(1789 + 124))) then v28.Text="❌ KEY EXPIRED";break;end local v114=math.floor(v113/(4366 -(745 + 21)) );local v115=math.floor((v113%(1239 + 2361))/(165 -105) );local v116=v113%(235 -175) ;v28.Text=string.format("⏱ %02dh %02dm %02ds",v114,v115,v116);task.wait(1 + 0 );end end);break;end if (v91==(0 + 0)) then v38.Visible=false;v21.Visible=true;v91=286 -(134 + 151) ;end if (v91==(1056 -(87 + 968))) then if writefile then writefile(v8,v55.Text);end v15();v91=8 -6 ;end end end v67.MouseButton1Click:Connect(function() local v92=v55.Text:gsub("%s+","");if (v92=="") then return;end local v93,v94=v14(v92);if  not v93 then v10(v94);return;end v77(v94);end);task.wait(1990.5 -(582 + 1408) );if (isfile and isfile(v8)) then local v100=readfile(v8);local v101,v102=v14(v100);if v101 then v77(v102);else v38.Visible=true;end else v38.Visible=true;end
+local PLAYER = Players.LocalPlayer
+
+----------------------------------------------------
+-- CONFIG
+----------------------------------------------------
+
+-- JSONBIN (PUBLIC READ)
+local JSONBIN_URL =
+"https://api.jsonbin.io/v3/b/694c4aefae596e708faef157/latest"
+
+-- ✅ ALL SCRIPTS TO LOAD AFTER AUTH
+local SCRIPT_URLS = {
+	"https://raw.githubusercontent.com/RealScripts-q/KEY-JSONHandler/refs/heads/main/D.lua",
+	"https://raw.githubusercontent.com/RealScripts-q/KEY-JSONHandler/refs/heads/main/I.lua",
+	"https://raw.githubusercontent.com/RealScripts-q/KEY-JSONHandler/refs/heads/main/N.lua",
+	"https://raw.githubusercontent.com/RealScripts-q/KEY-JSONHandler/refs/heads/main/TrackDataSecrete.lua",
+	"https://raw.githubusercontent.com/RealScripts-q/KEY-JSONHandler/refs/heads/main/Iforgottoaddthis"
+}
+
+-- FILES
+local KEY_FILE = "rsq_saved_key.txt"
+local HWID_FILE = "rsq_hwid.txt"
+
+----------------------------------------------------
+-- UTIL
+----------------------------------------------------
+
+local function notify(text)
+	StarterGui:SetCore("SendNotification", {
+		Title = "RSQ",
+		Text = text,
+		Duration = 4
+	})
+end
+
+----------------------------------------------------
+-- HWID
+----------------------------------------------------
+
+local function getHWID()
+	if not writefile or not readfile or not isfile then
+		return "STUDIO"
+	end
+	if isfile(HWID_FILE) then
+		return readfile(HWID_FILE)
+	end
+	local id = HttpService:GenerateGUID(false)
+	writefile(HWID_FILE, id)
+	return id
+end
+
+local HWID = getHWID()
+
+----------------------------------------------------
+-- FETCH KEYS
+----------------------------------------------------
+
+local function fetchKeys()
+	local raw
+	local ok = pcall(function()
+		raw = game:HttpGet(JSONBIN_URL)
+	end)
+	if not ok then return nil end
+
+	local decoded = HttpService:JSONDecode(raw)
+	if not decoded or not decoded.record or not decoded.record.keys then
+		return nil
+	end
+	return decoded.record.keys
+end
+
+----------------------------------------------------
+-- VALIDATE KEY
+----------------------------------------------------
+
+local function validateKey(key)
+	local keys = fetchKeys()
+	if not keys then
+		return false, "Database error"
+	end
+
+	local entry = keys[key]
+	if not entry then
+		return false, "Invalid key"
+	end
+
+	if tonumber(entry.userId) ~= PLAYER.UserId then
+		return false, "Wrong user"
+	end
+
+	if tonumber(entry.expires) < os.time() then
+		return false, "Key expired"
+	end
+
+	if entry.hwid and entry.hwid ~= HWID then
+		return false, "HWID mismatch"
+	end
+
+	return true, entry.expires
+end
+
+----------------------------------------------------
+-- LOAD ALL SCRIPTS (MULTI SCRIPT SUPPORT)
+----------------------------------------------------
+
+local function loadAllScripts()
+	for _, url in ipairs(SCRIPT_URLS) do
+		task.spawn(function()
+			local src = game:HttpGet(url)
+			loadstring(src)()
+		end)
+	end
+end
+
+----------------------------------------------------
+-- GUI ROOT
+----------------------------------------------------
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "RSQ_GUI"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.Parent = PLAYER:WaitForChild("PlayerGui")
+
+----------------------------------------------------
+-- ⏱️ TIMER HUD (TOP RIGHT)
+----------------------------------------------------
+
+local timerFrame = Instance.new("Frame", gui)
+timerFrame.Size = UDim2.fromOffset(220, 46)
+timerFrame.Position = UDim2.new(1, -230, 0, 20)
+timerFrame.BackgroundColor3 = Color3.fromRGB(20,20,25)
+timerFrame.BorderSizePixel = 0
+Instance.new("UICorner", timerFrame).CornerRadius = UDim.new(0, 12)
+timerFrame.Visible = false
+
+local timerLabel = Instance.new("TextLabel", timerFrame)
+timerLabel.Size = UDim2.new(1, -20, 1, 0)
+timerLabel.Position = UDim2.fromOffset(10, 0)
+timerLabel.BackgroundTransparency = 1
+timerLabel.Font = Enum.Font.GothamBold
+timerLabel.TextSize = 16
+timerLabel.TextColor3 = Color3.new(1,1,1)
+timerLabel.TextXAlignment = Left
+
+-- Dragging
+do
+	local dragging, dragStart, startPos
+	timerFrame.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			dragStart = i.Position
+			startPos = timerFrame.Position
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(i)
+		if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
+			local delta = i.Position - dragStart
+			timerFrame.Position = UDim2.new(
+				startPos.X.Scale,
+				startPos.X.Offset + delta.X,
+				startPos.Y.Scale,
+				startPos.Y.Offset + delta.Y
+			)
+		end
+	end)
+	UserInputService.InputEnded:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = false
+		end
+	end)
+end
+
+----------------------------------------------------
+-- 🎮 CENTER AUTH GUI
+----------------------------------------------------
+
+local keyFrame = Instance.new("Frame", gui)
+keyFrame.Size = UDim2.fromOffset(420, 150)
+keyFrame.Position = UDim2.fromScale(0.5, 0.5)
+keyFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+keyFrame.BackgroundColor3 = Color3.fromRGB(20,20,25)
+keyFrame.BorderSizePixel = 0
+Instance.new("UICorner", keyFrame).CornerRadius = UDim.new(0, 16)
+
+local title = Instance.new("TextLabel", keyFrame)
+title.Position = UDim2.fromOffset(16, 10)
+title.Size = UDim2.new(1, -32, 22)
+title.Text = "My Super Hub"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.TextColor3 = Color3.fromRGB(240,240,240)
+title.BackgroundTransparency = 1
+title.TextXAlignment = Left
+
+local subtitle = Instance.new("TextLabel", keyFrame)
+subtitle.Position = UDim2.fromOffset(16, 32)
+subtitle.Size = UDim2.new(1, -32, 18)
+subtitle.Text = "hi, im ured."
+subtitle.Font = Enum.Font.Gotham
+subtitle.TextSize = 13
+subtitle.TextColor3 = Color3.fromRGB(160,160,170)
+subtitle.BackgroundTransparency = 1
+subtitle.TextXAlignment = Left
+
+local input = Instance.new("TextBox", keyFrame)
+input.Position = UDim2.fromOffset(16, 60)
+input.Size = UDim2.new(1, -32, 36)
+input.PlaceholderText = "Enter Key"
+input.ClearTextOnFocus = false
+input.Font = Enum.Font.Gotham
+input.TextSize = 14
+input.TextColor3 = Color3.new(1,1,1)
+input.BackgroundColor3 = Color3.fromRGB(30,30,36)
+input.BorderSizePixel = 0
+Instance.new("UICorner", input).CornerRadius = UDim.new(0, 10)
+
+local submit = Instance.new("TextButton", keyFrame)
+submit.Position = UDim2.fromOffset(16, 105)
+submit.Size = UDim2.new(1, -32, 34)
+submit.Text = "Submit"
+submit.Font = Enum.Font.GothamBold
+submit.TextSize = 14
+submit.TextColor3 = Color3.new(1,1,1)
+submit.BackgroundColor3 = Color3.fromRGB(80,90,255)
+submit.BorderSizePixel = 0
+Instance.new("UICorner", submit).CornerRadius = UDim.new(0, 10)
+
+----------------------------------------------------
+-- AUTH FLOW
+----------------------------------------------------
+
+local function onAuthenticated(expireTime)
+	keyFrame.Visible = false
+	timerFrame.Visible = true
+
+	if writefile then
+		writefile(KEY_FILE, input.Text)
+	end
+
+	loadAllScripts()
+
+	task.spawn(function()
+		while true do
+			local remaining = expireTime - os.time()
+			if remaining <= 0 then
+				timerLabel.Text = "❌ KEY EXPIRED"
+				break
+			end
+			local h = math.floor(remaining / 3600)
+			local m = math.floor((remaining % 3600) / 60)
+			local s = remaining % 60
+			timerLabel.Text = string.format("⏱ %02dh %02dm %02ds", h, m, s)
+			task.wait(1)
+		end
+	end)
+end
+
+submit.MouseButton1Click:Connect(function()
+	local key = input.Text:gsub("%s+", "")
+	if key == "" then return end
+
+	local valid, expires = validateKey(key)
+	if not valid then
+		notify(expires)
+		return
+	end
+
+	onAuthenticated(expires)
+end)
+
+----------------------------------------------------
+-- AUTO LOGIN (SAVED KEY)
+----------------------------------------------------
+
+if isfile and isfile(KEY_FILE) then
+	local savedKey = readfile(KEY_FILE)
+	local ok, expires = validateKey(savedKey)
+	if ok then
+		onAuthenticated(expires)
+	else
+		keyFrame.Visible = true
+	end
+else
+	keyFrame.Visible = true
+end
