@@ -7,9 +7,12 @@
 
 <style>
 body {
+  margin:0;
   background:#070707;
   font-family:system-ui;
   color:#fff;
+}
+.center {
   display:flex;
   justify-content:center;
   align-items:center;
@@ -22,9 +25,7 @@ body {
   padding:20px;
   box-shadow:0 0 40px rgba(0,120,255,.25);
 }
-h1 { font-size:18px; margin:0; }
-p { font-size:13px; color:#aaa; }
-
+.hidden { display:none; }
 input,button {
   width:100%;
   padding:12px;
@@ -43,54 +44,78 @@ button {
   font-weight:bold;
   cursor:pointer;
 }
-button.secondary {
-  background:linear-gradient(135deg,#ff6a00,#ff9500);
-}
 button.admin {
   background:linear-gradient(135deg,#8e2de2,#4a00e0);
 }
-.hidden { display:none; }
-
-.status { margin-top:10px; font-size:13px; }
-.timer { margin-top:6px; font-size:13px; color:#00c6ff; }
-.cooldown { margin-top:6px; font-size:12px; color:#ff9500; }
-.logs {
-  margin-top:10px;
-  font-size:12px;
-  max-height:150px;
-  overflow:auto;
+button.danger {
+  background:linear-gradient(135deg,#ff3b30,#ff9500);
+}
+.admin-screen {
+  position:fixed;
+  inset:0;
+  background:#050505;
+  padding:20px;
+}
+.admin-top {
+  display:flex;
+  justify-content:space-between;
+  font-size:13px;
+  color:#aaa;
+}
+.key-log {
   background:#0b0b0b;
-  padding:8px;
-  border-radius:8px;
+  border-radius:12px;
+  padding:12px;
+  margin-top:10px;
+}
+.key-log button {
+  width:auto;
+  padding:6px 10px;
+  margin-right:6px;
+  font-size:12px;
 }
 </style>
 </head>
 
 <body>
-<div class="card">
-  <h1>🔑 RSQ Key System</h1>
-  <p>Paste Roblox UserId or admin credentials</p>
 
-  <input id="userid" placeholder="Roblox UserId">
-  <button id="gen">Get / Recover Key</button>
+<div class="center" id="userUI">
+  <div class="card">
+    <h3>🔑 RSQ Key System</h3>
 
-  <button id="requestBtn" class="secondary">🧾 Use Request ID</button>
-  <input id="requestInput" class="hidden" placeholder="Paste Request ID">
+    <input id="userid" placeholder="Roblox UserId">
+    <button id="gen">Get / Recover Key</button>
 
-  <button id="masterBtn" class="admin">👑 Admin Master Key</button>
-  <input id="masterInput" class="hidden" placeholder="Paste Admin Master Key">
+    <button id="reqBtn">🧾 Use Request ID</button>
+    <input id="reqInput" class="hidden" placeholder="Request ID">
 
-  <button id="renewBtn" class="secondary hidden">🔁 Renew Selected Key</button>
-  <button id="removeBtn" class="secondary hidden">🗑 Remove Selected Key</button>
+    <button id="masterBtn" class="admin">👑 Admin Master Key</button>
+    <input id="masterInput" class="hidden" placeholder="Admin Master Key">
 
-  <div class="status" id="status"></div>
-  <div class="timer" id="timer"></div>
-  <div class="cooldown" id="cooldown"></div>
-  <div class="logs hidden" id="logs"></div>
+    <button id="adminPanelBtn" class="admin hidden">🛠 Open Admin Panel</button>
+
+    <div id="status"></div>
+  </div>
+</div>
+
+<!-- ================= ADMIN PANEL ================= -->
+
+<div class="admin-screen hidden" id="adminUI">
+  <div class="admin-top">
+    <div>🧾 Request ID: <span id="reqLabel"></span></div>
+    <button onclick="location.reload()">Exit</button>
+  </div>
+
+  <h2>🛠 Admin Panel</h2>
+
+  <input id="infUser" placeholder="UserId for Infinite Key">
+  <button class="admin" onclick="genInfKey()">♾ Generate INF Key</button>
+
+  <div id="logs"></div>
 </div>
 
 <script>
-const _0x37bac0=_0xaa21;(function(_0x5040af,_0x3dd0f7){const _0x44e56e=_0xaa21,_0x5c8f96=_0x5040af();while(!![]){try{const _0x147182=-parseInt(_0x44e56e(0x189))/0x1+parseInt(_0x44e56e(0x18d))/0x2*(parseInt(_0x44e56e(0x18e))/0x3)+parseInt(_0x44e56e(0x1af))/0x4*(parseInt(_0x44e56e(0x19d))/0x5)+-parseInt(_0x44e56e(0x191))/0x6*(parseInt(_0x44e56e(0x190))/0x7)+-parseInt(_0x44e56e(0x187))/0x8+parseInt(_0x44e56e(0x18b))/0x9*(parseInt(_0x44e56e(0x18f))/0xa)+parseInt(_0x44e56e(0x1b3))/0xb*(parseInt(_0x44e56e(0x19b))/0xc);if(_0x147182===_0x3dd0f7)break;else _0x5c8f96['push'](_0x5c8f96['shift']());}catch(_0x295d6d){_0x5c8f96['push'](_0x5c8f96['shift']());}}}(_0x4e44,0x2e24d));function _0x4e44(){const _0x3efc89=['application/json','694c4aefae596e708faef157','\x0a\x20\x20\x20\x20\x20\x20<hr>','json','1481080QHeySV','userId','320503eRaYAJ','record','81yxGtiv','lastReset','86RlIeAj','666IqIquc','264960TMeUbA','7CDxYcg','938076vhLozX','textContent','✅\x20New\x20key\x20generated\x20&\x20copied','✅\x20Existing\x20key\x20copied','/latest','expires','PlsSubScribeToRynoxScripts','PUT','⛔\x20Key\x20expired','remove','132eEmZfU','innerHTML','234570WJWAcr','trim','toggle','keys','$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu','https://api.jsonbin.io/v3/b/','test','clipboard','🔒\x20Reset\x20cooldown:\x20','slice','classList','<br>\x0a\x20\x20\x20\x20\x20\x20👤\x20','hidden','onchange','toUpperCase','👑\x20Admin\x20authenticated','toLocaleString','onclick','32wVvPSH','writeText','\x0a\x20\x20\x20\x20\x20\x20🔑\x20','<br>\x0a\x20\x20\x20\x20\x20\x20⏱\x20Expires:\x20','227667aLDpfs','randomUUID','❌\x20Invalid\x20UserId','now','floor','value'];_0x4e44=function(){return _0x3efc89;};return _0x4e44();}const BIN_ID=_0x37bac0(0x184),JSONBIN_MASTER_KEY=_0x37bac0(0x1a1),ADMIN_MASTER_KEY=_0x37bac0(0x197),KEY_LIFE=0x15180,RESET_COOLDOWN=0x5460;let adminAuthed=![],activeUserId=null,selectedKey=null,keyInterval=null,cooldownInterval=null;const now=()=>Math[_0x37bac0(0x181)](Date[_0x37bac0(0x180)]()/0x3e8),makeKey=()=>'RSQ-'+crypto[_0x37bac0(0x17e)]()[_0x37bac0(0x1a6)](0x0,0x8)[_0x37bac0(0x1ab)]();function startTimer(_0x48b519){clearInterval(keyInterval),keyInterval=setInterval(()=>{const _0x546e07=_0xaa21,_0x26ecc2=_0x48b519-now();if(_0x26ecc2<=0x0){timer['textContent']=_0x546e07(0x199),clearInterval(keyInterval);return;}timer[_0x546e07(0x192)]='⏱\x20'+Math[_0x546e07(0x181)](_0x26ecc2/0xe10)+'h\x20'+Math[_0x546e07(0x181)](_0x26ecc2%0xe10/0x3c)+'m\x20'+_0x26ecc2%0x3c+'s';},0x3e8);}function startCooldown(_0x3649b6){clearInterval(cooldownInterval),cooldownInterval=setInterval(()=>{const _0x2ffb2f=_0xaa21,_0x14396a=_0x3649b6+RESET_COOLDOWN-now();if(_0x14396a<=0x0)return cooldown['textContent']='',clearInterval(cooldownInterval);cooldown[_0x2ffb2f(0x192)]=_0x2ffb2f(0x1a5)+Math['floor'](_0x14396a/0xe10)+'h\x20'+Math[_0x2ffb2f(0x181)](_0x14396a%0xe10/0x3c)+'m\x20'+_0x14396a%0x3c+'s';},0x3e8);}function _0xaa21(_0x50bcc5,_0x14494f){_0x50bcc5=_0x50bcc5-0x17e;const _0x4e44ed=_0x4e44();let _0xaa21ec=_0x4e44ed[_0x50bcc5];return _0xaa21ec;}async function getKeys(){const _0x51be75=_0x37bac0,_0x38e4b8=await fetch(_0x51be75(0x1a2)+BIN_ID+_0x51be75(0x195));return(await _0x38e4b8[_0x51be75(0x186)]())[_0x51be75(0x18a)][_0x51be75(0x1a0)]||{};}async function saveKeys(_0x3bd666){const _0x2d15d1=_0x37bac0;await fetch(_0x2d15d1(0x1a2)+BIN_ID,{'method':_0x2d15d1(0x198),'headers':{'Content-Type':_0x2d15d1(0x183),'X-Master-Key':JSONBIN_MASTER_KEY},'body':JSON['stringify']({'keys':_0x3bd666})});}gen[_0x37bac0(0x1ae)]=async()=>{const _0xe25159=_0x37bac0,_0x3671a6=userid[_0xe25159(0x182)][_0xe25159(0x19e)]();if(!/^\d+$/[_0xe25159(0x1a3)](_0x3671a6))return status[_0xe25159(0x192)]=_0xe25159(0x17f);activeUserId=_0x3671a6;const _0xb4e92b=await getKeys();for(const _0x260a05 in _0xb4e92b){const _0x3ec376=_0xb4e92b[_0x260a05];if(_0x3ec376['userId']==_0x3671a6&&_0x3ec376[_0xe25159(0x196)]>now()){navigator[_0xe25159(0x1a4)][_0xe25159(0x1b0)](_0x260a05),status[_0xe25159(0x192)]=_0xe25159(0x194),startTimer(_0x3ec376[_0xe25159(0x196)]);if(_0x3ec376[_0xe25159(0x18c)])startCooldown(_0x3ec376[_0xe25159(0x18c)]);return;}}const _0x331a6c=makeKey();_0xb4e92b[_0x331a6c]={'userId':Number(_0x3671a6),'created':now(),'expires':now()+KEY_LIFE,'lastReset':0x0},await saveKeys(_0xb4e92b),navigator[_0xe25159(0x1a4)][_0xe25159(0x1b0)](_0x331a6c),status[_0xe25159(0x192)]=_0xe25159(0x193),startTimer(_0xb4e92b[_0x331a6c][_0xe25159(0x196)]);},requestBtn['onclick']=()=>requestInput[_0x37bac0(0x1a7)][_0x37bac0(0x19f)](_0x37bac0(0x1a9)),masterBtn[_0x37bac0(0x1ae)]=()=>masterInput['classList'][_0x37bac0(0x19f)](_0x37bac0(0x1a9)),masterInput[_0x37bac0(0x1aa)]=()=>{const _0x5b5230=_0x37bac0;masterInput['value']===ADMIN_MASTER_KEY&&requestInput[_0x5b5230(0x182)]['trim']()!==''?(adminAuthed=!![],status[_0x5b5230(0x192)]=_0x5b5230(0x1ac),showLogs()):status[_0x5b5230(0x192)]='❌\x20Admin\x20auth\x20failed';};async function showLogs(){const _0x5e19c6=_0x37bac0;if(!adminAuthed)return;const _0x1fbddf=await getKeys();logs['classList'][_0x5e19c6(0x19a)](_0x5e19c6(0x1a9)),logs['innerHTML']='';for(const _0x3e2089 in _0x1fbddf){const _0x2bf6df=_0x1fbddf[_0x3e2089];logs[_0x5e19c6(0x19c)]+=_0x5e19c6(0x1b1)+_0x3e2089+_0x5e19c6(0x1a8)+_0x2bf6df[_0x5e19c6(0x188)]+_0x5e19c6(0x1b2)+new Date(_0x2bf6df[_0x5e19c6(0x196)]*0x3e8)[_0x5e19c6(0x1ad)]()+_0x5e19c6(0x185);}}
+const _0x4c2021=_0x456e;(function(_0x5a4d97,_0x252e24){const _0x54bfc0=_0x456e,_0x3c2179=_0x5a4d97();while(!![]){try{const _0x403747=-parseInt(_0x54bfc0(0x17f))/0x1+parseInt(_0x54bfc0(0x17c))/0x2+-parseInt(_0x54bfc0(0x177))/0x3+-parseInt(_0x54bfc0(0x198))/0x4*(parseInt(_0x54bfc0(0x189))/0x5)+-parseInt(_0x54bfc0(0x17d))/0x6+parseInt(_0x54bfc0(0x192))/0x7+parseInt(_0x54bfc0(0x184))/0x8;if(_0x403747===_0x252e24)break;else _0x3c2179['push'](_0x3c2179['shift']());}catch(_0x122577){_0x3c2179['push'](_0x3c2179['shift']());}}}(_0x209b,0x62299));const BIN_ID=_0x4c2021(0x17a),JSONBIN_MASTER_KEY='$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu',ADMIN_MASTER_KEY=_0x4c2021(0x19c);function _0x456e(_0x4fd58e,_0x208525){_0x4fd58e=_0x4fd58e-0x176;const _0x209b73=_0x209b();let _0x456e41=_0x209b73[_0x4fd58e];return _0x456e41;}let adminAuthed=![],requestId='';async function getKeys(){const _0x42087a=_0x4c2021,_0x1fbc60=await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID+_0x42087a(0x18b));return(await _0x1fbc60[_0x42087a(0x190)]())[_0x42087a(0x18c)][_0x42087a(0x18d)]||{};}async function saveKeys(_0x26c22c){const _0x40cc11=_0x4c2021;await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID,{'method':_0x40cc11(0x185),'headers':{'Content-Type':_0x40cc11(0x176),'X-Master-Key':JSONBIN_MASTER_KEY},'body':JSON['stringify']({'keys':_0x26c22c})});}reqBtn[_0x4c2021(0x188)]=()=>reqInput[_0x4c2021(0x194)][_0x4c2021(0x17b)](_0x4c2021(0x18e)),masterBtn['onclick']=()=>masterInput[_0x4c2021(0x194)][_0x4c2021(0x17b)](_0x4c2021(0x18e)),masterInput[_0x4c2021(0x18f)]=()=>{const _0x46b9c2=_0x4c2021;masterInput[_0x46b9c2(0x19a)]===ADMIN_MASTER_KEY&&reqInput[_0x46b9c2(0x19a)]['trim']()!==''?(adminAuthed=!![],requestId=reqInput[_0x46b9c2(0x19a)]['trim'](),adminPanelBtn['classList'][_0x46b9c2(0x180)](_0x46b9c2(0x18e)),status[_0x46b9c2(0x196)]=_0x46b9c2(0x195)):status[_0x46b9c2(0x196)]='❌\x20Admin\x20auth\x20failed';},adminPanelBtn[_0x4c2021(0x188)]=async()=>{const _0xdc2afb=_0x4c2021;userUI[_0xdc2afb(0x194)][_0xdc2afb(0x197)](_0xdc2afb(0x18e)),adminUI[_0xdc2afb(0x194)][_0xdc2afb(0x180)](_0xdc2afb(0x18e)),reqLabel[_0xdc2afb(0x196)]=requestId,loadLogs();};async function loadLogs(){const _0x321661=_0x4c2021,_0x539350=await getKeys();logs[_0x321661(0x186)]='';for(const _0x5dabb1 in _0x539350){const _0x39a73a=_0x539350[_0x5dabb1];logs[_0x321661(0x186)]+=_0x321661(0x199)+_0x5dabb1+_0x321661(0x182)+_0x39a73a[_0x321661(0x179)]+'<br>\x0a\x20\x20\x20\x20\x20\x20\x20\x20⏱\x20'+(_0x39a73a['expires']===Infinity?_0x321661(0x17e):new Date(_0x39a73a['expires']*0x3e8))+_0x321661(0x181)+_0x5dabb1+'\x27)\x22>🔁\x20Renew</button>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<button\x20class=\x22danger\x22\x20onclick=\x22deleteKey(\x27'+_0x5dabb1+'\x27)\x22>🗑\x20Delete</button>\x0a\x20\x20\x20\x20\x20\x20</div>';}}async function renewKey(_0x11a692){const _0xeace2e=_0x4c2021,_0x1dc4a2=await getKeys();if(!_0x1dc4a2[_0x11a692])return;_0x1dc4a2[_0x11a692]['expires']=Math[_0xeace2e(0x19b)](Date[_0xeace2e(0x193)]()/0x3e8)+0x15180,await saveKeys(_0x1dc4a2),loadLogs();}async function deleteKey(_0x22b799){const _0xc4c15c=await getKeys();delete _0xc4c15c[_0x22b799],await saveKeys(_0xc4c15c),loadLogs();}function _0x209b(){const _0x5b94e1=['/latest','record','keys','hidden','onchange','json','test','4074560Xesqfw','now','classList','👑\x20Admin\x20authenticated','textContent','add','426228nLgaDk','\x0a\x20\x20\x20\x20\x20\x20<div\x20class=\x22key-log\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20🔑\x20<b>','value','floor','PlsSubScribeToRynoxScripts','application/json','2226309lHnnBz','Invalid\x20UserId','userId','694c4aefae596e708faef157','toggle','1065850lfvvCo','407238IyekBA','INF','583371tMseHy','remove','\x0a\x20\x20\x20\x20\x20\x20\x20\x20<br><br>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<button\x20onclick=\x22renewKey(\x27','</b><br>\x0a\x20\x20\x20\x20\x20\x20\x20\x20👤\x20','slice','8853144ynTbaw','PUT','innerHTML','randomUUID','onclick','20uFoTyR','toUpperCase'];_0x209b=function(){return _0x5b94e1;};return _0x209b();}async function genInfKey(){const _0x572373=_0x4c2021,_0x557977=infUser[_0x572373(0x19a)]['trim']();if(!/^\d+$/[_0x572373(0x191)](_0x557977))return alert(_0x572373(0x178));const _0x247583=await getKeys(),_0x12322d='RSQ-INF-'+crypto[_0x572373(0x187)]()[_0x572373(0x183)](0x0,0x6)[_0x572373(0x18a)]();_0x247583[_0x12322d]={'userId':Number(_0x557977),'created':Date[_0x572373(0x193)]()/0x3e8,'expires':Infinity,'inf':!![]},await saveKeys(_0x247583),loadLogs();}
 </script>
 </body>
 </html>
