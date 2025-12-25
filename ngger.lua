@@ -7,11 +7,12 @@ local player = Players.LocalPlayer
 local PLACE_ID = game.PlaceId
 
 -- SETTINGS
+local MIN_PLAYERS = 1
 local MAX_PLAYERS = 4
-local CHECK_INTERVAL = 1
+local CHECK_INTERVAL = 1 -- seconds
 
 --------------------------------------------------
--- GUI SETUP (FIXED)
+-- GUI (ALWAYS VISIBLE)
 --------------------------------------------------
 local gui = Instance.new("ScreenGui")
 gui.Name = "AutoCheckingGUI"
@@ -21,15 +22,15 @@ gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = player:WaitForChild("PlayerGui")
 
 local label = Instance.new("TextLabel")
-label.Size = UDim2.new(0, 420, 0, 110)
+label.Size = UDim2.new(0, 420, 0, 120)
 label.Position = UDim2.new(0.5, -210, 0, 20)
-label.BackgroundTransparency = 1
-label.TextColor3 = Color3.fromRGB(255,255,255)
+label.BackgroundTransparency = 0
+label.TextColor3 = Color3.fromRGB(255, 255, 255)
 label.Font = Enum.Font.GothamBold
 label.TextSize = 18
 label.TextWrapped = true
-label.TextXAlignment = Left
-label.TextYAlignment = Top
+label.TextXAlignment = Enum.TextXAlignment.Left
+label.TextYAlignment = Enum.TextYAlignment.Top
 label.ZIndex = 10
 label.Parent = gui
 
@@ -41,9 +42,9 @@ local function getCurrentServerSize()
 end
 
 --------------------------------------------------
--- FIND ABSOLUTE SMALLEST SERVER
+-- FIND SMALLEST SERVER (1–4 ONLY)
 --------------------------------------------------
-local function findBestServer(currentSize)
+local function findSmallestServer(currentSize)
 	local cursor = nil
 	local bestServerId = nil
 	local bestCount = currentSize
@@ -66,12 +67,14 @@ local function findBestServer(currentSize)
 		end
 
 		for _, server in ipairs(result.data) do
-			if server.id ~= game.JobId
-				and server.playing > 0
-				and server.playing <= MAX_PLAYERS
-				and server.playing < bestCount then
+			local count = server.playing
 
-				bestCount = server.playing
+			if server.id ~= game.JobId
+				and count >= MIN_PLAYERS
+				and count <= MAX_PLAYERS
+				and count < bestCount then
+
+				bestCount = count
 				bestServerId = server.id
 			end
 		end
@@ -92,15 +95,16 @@ task.spawn(function()
 		label.Text =
 			"Auto Checking (this helps it load)\n\n" ..
 			"📉 Current Server: " .. currentSize .. " players\n" ..
-			"Searching for smaller servers..."
+			"Searching servers (1–4 players)..."
 
-		local serverId, serverSize = findBestServer(currentSize)
+		local serverId, serverSize = findSmallestServer(currentSize)
 
+		-- TELEPORT ONLY IF SMALLER SERVER EXISTS
 		if serverId and serverSize < currentSize then
 			label.Text =
 				"Auto Checking (this helps it load)\n\n" ..
 				"📉 Current Server: " .. currentSize .. "\n" ..
-				"✅ Found Smaller Server: " .. serverSize .. "\n" ..
+				"✅ Smaller Server Found: " .. serverSize .. "\n" ..
 				"Teleporting..."
 
 			task.wait(1.5)
@@ -108,11 +112,12 @@ task.spawn(function()
 			return
 		end
 
+		-- COUNTDOWN
 		for i = CHECK_INTERVAL, 1, -1 do
 			label.Text =
 				"Auto Checking (this helps it load)\n\n" ..
 				"📉 Current Server: " .. currentSize .. " players\n" ..
-				"No smaller server found\n" ..
+				"No smaller server (1–4) found\n" ..
 				"⏱ Rechecking in " .. i .. "s"
 
 			task.wait(1)
