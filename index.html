@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body {
+body{
   background:#070707;
   font-family:system-ui;
   color:#fff;
@@ -14,283 +14,249 @@ body {
   justify-content:center;
   align-items:center;
   height:100vh;
+  margin:0;
 }
-.card {
+.card{
   width:460px;
   background:#121212;
   border-radius:18px;
   padding:20px;
   box-shadow:0 0 40px rgba(0,120,255,.25);
 }
-h1 { font-size:18px; margin:0; }
-p { font-size:13px; color:#aaa; }
+h1{font-size:18px;margin:0}
+p{font-size:13px;color:#aaa}
 
-input,button {
+input,button{
   width:100%;
   padding:12px;
   margin-top:10px;
   border-radius:10px;
   border:none;
 }
-input {
+input{
   background:#0b0b0b;
   color:#fff;
   border:1px solid #222;
 }
-button {
+button{
   background:linear-gradient(135deg,#007aff,#00c6ff);
   color:#fff;
   font-weight:bold;
   cursor:pointer;
 }
-button.secondary {
+.secondary{
   background:linear-gradient(135deg,#ff6a00,#ff9500);
 }
-button.danger {
+.danger{
   background:linear-gradient(135deg,#ff3b3b,#ff0000);
 }
+.hidden{display:none}
 
-.hidden { display:none; }
+.status{margin-top:10px;font-size:13px}
+.timer{margin-top:8px;font-size:13px;color:#00c6ff}
+.cooldown{margin-top:6px;font-size:12px;color:#ff9500}
 
-.status { margin-top:10px; font-size:13px; }
-.timer { margin-top:8px; font-size:13px; color:#00c6ff; }
-.cooldown { margin-top:6px; font-size:12px; color:#ff9500; }
-
-.admin {
-  margin-top:14px;
-  padding-top:10px;
-  border-top:1px solid #222;
+/* ADMIN */
+.admin{
+  position:fixed;
+  inset:0;
+  background:#070707;
+  padding:20px;
+  overflow:auto;
 }
-.log {
-  background:#0b0b0b;
-  padding:8px;
-  border-radius:8px;
+.log{
+  background:#0c0c0c;
+  padding:10px;
+  border-radius:10px;
+  margin-top:8px;
   font-size:12px;
-  margin-top:6px;
+}
+.topLeft{
+  position:fixed;
+  top:10px;
+  left:10px;
+  font-size:12px;
+  color:#00c6ff;
 }
 </style>
 </head>
 
 <body>
-<div class="card">
 
+<div class="topLeft" id="requestDisplay"></div>
+
+<div class="card" id="userUI">
 <h1>🔑 RSQ Key System</h1>
-<p>Normal users: enter UserId • Admins: use Master Key</p>
+<p>Paste your Roblox UserId</p>
 
-<!-- USER -->
 <input id="userid" placeholder="Roblox UserId">
 <button id="gen">Generate / Recover Key</button>
 
-<!-- REQUEST ID -->
-<input id="requestId" class="hidden" placeholder="Paste Request ID from Roblox">
+<button id="showRequest" class="secondary">Use Request ID</button>
+<input id="requestInput" class="hidden" placeholder="Paste Request ID">
 
-<!-- RESET -->
-<button id="renewBtn" class="secondary hidden">🔄 Force / Renew Key</button>
-<input id="resetToken" class="hidden" placeholder="Paste Reset Token">
+<button id="showAdmin" class="secondary">Admin / Master Login</button>
+<input id="adminInput" class="hidden" placeholder="Paste Master Key">
 
-<!-- ADMIN -->
-<div class="admin hidden" id="adminPanel">
-  <h1>👑 Admin Panel</h1>
-  <input id="adminKey" placeholder="Paste Admin Master Key">
-  <button id="adminLogin">Unlock Admin</button>
-
-  <button id="refreshLogs" class="secondary hidden">📜 Refresh Logs</button>
-  <button id="genInf" class="secondary hidden">♾ Generate INF Key</button>
-
-  <div id="logs"></div>
-</div>
+<button id="openAdmin" class="secondary hidden">Open Admin Panel</button>
 
 <div class="status" id="status"></div>
 <div class="timer" id="timer"></div>
 <div class="cooldown" id="cooldown"></div>
+</div>
 
+<!-- ADMIN PANEL -->
+<div id="adminPanel" class="admin hidden">
+<h1>👑 Admin Panel</h1>
+<button onclick="closeAdmin()">Close</button>
+
+<input id="infUser" placeholder="UserId for INF key">
+<button onclick="genInf()">Generate INF Key</button>
+
+<h2>📜 Logs</h2>
+<button onclick="loadLogs()">Refresh Logs</button>
+<div id="logs"></div>
 </div>
 
 <script>
-/* ================= CONFIG ================= */
+/* CONFIG */
 const BIN_ID = "694c4aefae596e708faef157";
-const JSONBIN_MASTER_KEY = "PUT_JSONBIN_MASTER_KEY_HERE"; // storage key
-const ADMIN_MASTER_KEY = "RSQ-ADMIN-ONLY-KEY";            // your admin key
+const JSONBIN_MASTER_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu";
+const ADMIN_MASTER_KEY = "RSQ-MASTER-KEY";
 
 const KEY_LIFE = 86400;
-const RESET_COOLDOWN = 21600;
 
-/* ================= STATE ================= */
-let keyInterval, cooldownInterval;
+/* STATE */
 let isAdmin = false;
 
-/* ================= HELPERS ================= */
-const now = () => Math.floor(Date.now()/1000);
-const makeKey = () => "RSQ-" + crypto.randomUUID().slice(0,8).toUpperCase();
+/* HELPERS */
+const now = ()=>Math.floor(Date.now()/1000);
+const makeKey = ()=>"RSQ-"+crypto.randomUUID().slice(0,8).toUpperCase();
 
-function startKeyTimer(exp) {
-  clearInterval(keyInterval);
-  if (exp === "INF") {
-    timer.textContent = "♾ Key expires: NEVER";
-    return;
-  }
-  keyInterval = setInterval(() => {
-    const r = exp - now();
-    if (r <= 0) {
-      timer.textContent = "⛔ Key expired";
-      clearInterval(keyInterval);
-      return;
-    }
-    timer.textContent =
-      `⏱ ${Math.floor(r/3600)}h ${Math.floor(r%3600/60)}m ${r%60}s`;
-  }, 1000);
+/* JSONBIN */
+async function getKeys(){
+  const r=await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
+  return (await r.json()).record.keys||{};
 }
-
-/* ================= JSONBIN ================= */
-async function getKeys() {
-  const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
-  return (await r.json()).record.keys || {};
-}
-
-async function saveKeys(keys) {
-  await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+async function saveKeys(keys){
+  await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{
     method:"PUT",
     headers:{
       "Content-Type":"application/json",
-      "X-Master-Key": JSONBIN_MASTER_KEY
+      "X-Master-Key":JSONBIN_MASTER_KEY
     },
-    body:JSON.stringify({ keys })
+    body:JSON.stringify({keys})
   });
 }
 
-/* ================= USER FLOW ================= */
-gen.onclick = async () => {
-  const id = userid.value.trim();
-  if (!/^\d+$/.test(id))
-    return status.textContent = "❌ Invalid UserId";
+/* USER FLOW */
+gen.onclick=async()=>{
+  const id=userid.value.trim();
+  if(!/^\d+$/.test(id)) return status.textContent="❌ Invalid UserId";
 
-  const keys = await getKeys();
-  for (const k in keys) {
-    const d = keys[k];
-    if (d.userId == id && (d.inf || d.expires > now())) {
+  const keys=await getKeys();
+  for(const k in keys){
+    if(keys[k].userId==id){
       navigator.clipboard.writeText(k);
-      status.textContent = "✅ Existing key copied";
-      startKeyTimer(d.inf ? "INF" : d.expires);
-      renewBtn.classList.remove("hidden");
+      status.textContent="✅ Existing key copied";
+      if(!keys[k].inf) startTimer(keys[k].expires);
       return;
     }
   }
 
-  const key = makeKey();
-  keys[key] = {
-    userId:Number(id),
-    created:now(),
-    expires:now()+KEY_LIFE,
-    lastReset:0,
-    resetToken:crypto.randomUUID().slice(0,6).toUpperCase()
-  };
-
+  const k=makeKey();
+  keys[k]={userId:id,created:now(),expires:now()+KEY_LIFE};
   await saveKeys(keys);
-  navigator.clipboard.writeText(key);
-  status.textContent = "✅ New key generated & copied";
-  startKeyTimer(keys[key].expires);
-  renewBtn.classList.remove("hidden");
+  navigator.clipboard.writeText(k);
+  status.textContent="✅ New key generated & copied";
+  startTimer(keys[k].expires);
 };
 
-/* ================= RESET ================= */
-renewBtn.onclick = () => {
-  resetToken.classList.toggle("hidden");
-  status.textContent = "🔐 Paste reset token from Roblox";
+/* TIMER */
+function startTimer(exp){
+  clearInterval(window.ti);
+  window.ti=setInterval(()=>{
+    const r=exp-now();
+    if(r<=0){timer.textContent="⛔ Expired";clearInterval(window.ti);return;}
+    timer.textContent=`⏱ ${Math.floor(r/3600)}h ${Math.floor(r%3600/60)}m ${r%60}s`;
+  },1000);
+}
+
+/* REQUEST ID */
+showRequest.onclick=()=>{
+  requestInput.classList.toggle("hidden");
+  status.textContent="🔐 Paste Request ID";
+};
+requestInput.onchange=()=>{
+  requestDisplay.textContent="Request ID: "+requestInput.value;
+  status.textContent="✅ Request ID accepted";
 };
 
-resetToken.onchange = async () => {
-  const token = resetToken.value.trim().toUpperCase();
-  const id = userid.value.trim();
-  if (!token || !id) return;
-
-  const keys = await getKeys();
-  for (const k in keys) {
-    const d = keys[k];
-    if (d.userId == id && d.resetToken === token) {
-      if (d.lastReset && now() - d.lastReset < RESET_COOLDOWN)
-        return status.textContent = "⏳ Reset cooldown active";
-
-      delete keys[k];
-      const nk = makeKey();
-      keys[nk] = {
-        userId:d.userId,
-        created:now(),
-        expires:now()+KEY_LIFE,
-        lastReset:now(),
-        resetToken:crypto.randomUUID().slice(0,6).toUpperCase()
-      };
-
-      await saveKeys(keys);
-      navigator.clipboard.writeText(nk);
-      status.textContent = "✅ Key reset successfully";
-      startKeyTimer(keys[nk].expires);
-      resetToken.value="";
-      resetToken.classList.add("hidden");
-      return;
-    }
+/* ADMIN LOGIN */
+showAdmin.onclick=()=>{
+  adminInput.classList.toggle("hidden");
+};
+adminInput.onchange=()=>{
+  if(adminInput.value!==ADMIN_MASTER_KEY){
+    status.textContent="❌ Invalid master key";
+    return;
   }
-  status.textContent = "❌ Invalid reset key";
+  isAdmin=true;
+  openAdmin.classList.remove("hidden");
+  status.textContent="👑 Welcome Admin";
 };
 
-/* ================= ADMIN ================= */
-adminLogin.onclick = () => {
-  if (adminKey.value !== ADMIN_MASTER_KEY)
-    return status.textContent = "❌ Invalid admin key";
-
-  isAdmin = true;
-  status.textContent = "👑 Welcome Admin";
-  refreshLogs.classList.remove("hidden");
-  genInf.classList.remove("hidden");
+/* ADMIN PANEL */
+openAdmin.onclick=()=>{
+  userUI.classList.add("hidden");
+  adminPanel.classList.remove("hidden");
+  loadLogs();
 };
 
-refreshLogs.onclick = async () => {
-  logs.innerHTML = "";
-  const keys = await getKeys();
-  for (const k in keys) {
-    const d = keys[k];
-    const div = document.createElement("div");
-    div.className = "log";
-    div.innerHTML =
-      `<b>${k}</b><br>
-       UID: ${d.userId}<br>
-       Expires: ${d.inf ? "NEVER" : new Date(d.expires*1000).toLocaleString()}
-       <br>
-       <button onclick="adminRenew('${k}')">🔁</button>
-       <button onclick="adminDelete('${k}')" class="danger">🗑</button>`;
+async function loadLogs(){
+  logs.innerHTML="";
+  const keys=await getKeys();
+  for(const k in keys){
+    const d=keys[k];
+    const div=document.createElement("div");
+    div.className="log";
+    div.innerHTML=`
+<b>${k}</b><br>
+UID: ${d.userId}<br>
+Expires: ${d.inf?"NEVER":new Date(d.expires*1000).toLocaleString()}<br>
+<button onclick="renewKey('${k}')">Renew</button>
+<button class="danger" onclick="delKey('${k}')">Delete</button>`;
     logs.appendChild(div);
   }
-};
-
-window.adminRenew = async (k) => {
-  const keys = await getKeys();
-  if (!keys[k]) return;
-  keys[k].expires = now() + KEY_LIFE;
-  await saveKeys(keys);
-  refreshLogs.click();
-};
-
-window.adminDelete = async (k) => {
-  const keys = await getKeys();
+}
+async function renewKey(k){
+  const keys=await getKeys();
+  if(keys[k]&&!keys[k].inf){
+    keys[k].expires=now()+KEY_LIFE;
+    await saveKeys(keys);
+    loadLogs();
+  }
+}
+async function delKey(k){
+  const keys=await getKeys();
   delete keys[k];
   await saveKeys(keys);
-  refreshLogs.click();
-};
-
-genInf.onclick = async () => {
-  const id = userid.value.trim();
-  if (!/^\d+$/.test(id)) return;
-
-  const keys = await getKeys();
-  const key = makeKey();
-  keys[key] = {
-    userId:Number(id),
-    created:now(),
-    inf:true
-  };
+  loadLogs();
+}
+async function genInf(){
+  const id=infUser.value.trim();
+  if(!/^\d+$/.test(id)) return;
+  const keys=await getKeys();
+  const k=makeKey();
+  keys[k]={userId:id,inf:true};
   await saveKeys(keys);
-  navigator.clipboard.writeText(key);
-  status.textContent = "♾ INF key generated";
-};
+  navigator.clipboard.writeText(k);
+  alert("INF key copied");
+}
+function closeAdmin(){
+  location.reload();
+}
 </script>
+
 </body>
 </html>
