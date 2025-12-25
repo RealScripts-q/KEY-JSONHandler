@@ -7,68 +7,61 @@
 
 <style>
 body {
-  background: radial-gradient(circle at top, #111, #050505);
-  font-family: system-ui;
-  color: #fff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
+  background:#070707;
+  font-family:system-ui;
+  color:#fff;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
 }
-
 .card {
-  width: 400px;
-  background: #121212;
-  border-radius: 18px;
-  padding: 20px;
-  box-shadow: 0 0 35px rgba(0,120,255,.35);
+  width:420px;
+  background:#121212;
+  border-radius:18px;
+  padding:20px;
+  box-shadow:0 0 40px rgba(0,120,255,.25);
 }
+h1 { font-size:18px; margin:0; }
+p { font-size:13px; color:#aaa; }
 
-h1 { font-size: 18px; margin: 0; }
-p { font-size: 13px; color: #aaa; }
-
-input, button {
-  width: 100%;
-  padding: 12px;
-  margin-top: 12px;
-  border-radius: 10px;
-  border: none;
+input,button {
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border-radius:10px;
+  border:none;
 }
-
 input {
-  background: #0b0b0b;
-  color: #fff;
-  border: 1px solid #222;
+  background:#0b0b0b;
+  color:#fff;
+  border:1px solid #222;
 }
-
 button {
-  background: linear-gradient(135deg,#007aff,#00c6ff);
-  color: #fff;
-  font-weight: bold;
-  cursor: pointer;
+  background:linear-gradient(135deg,#007aff,#00c6ff);
+  color:#fff;
+  font-weight:bold;
+  cursor:pointer;
 }
-
 button.secondary {
-  background: linear-gradient(135deg,#ff6a00,#ff9500);
+  background:linear-gradient(135deg,#ff6a00,#ff9500);
 }
-
 button:disabled {
-  opacity: .5;
-  cursor: not-allowed;
+  opacity:.5;
+  cursor:not-allowed;
 }
 
-.status { margin-top: 12px; font-size: 13px; }
-.timer { margin-top: 8px; font-size: 13px; color: #00c6ff; }
-.cooldown { margin-top: 6px; font-size: 12px; color: #ff9500; }
-
-.hidden { display: none; }
+.status { margin-top:10px; font-size:13px; }
+.timer { margin-top:8px; font-size:13px; color:#00c6ff; }
+.cooldown { margin-top:6px; font-size:12px; color:#ff9500; }
+.hidden { display:none; }
 </style>
 </head>
 
 <body>
 <div class="card">
   <h1>🔑 RSQ Key System</h1>
-  <p>One key per UserId · 24h lifetime</p>
+  <p>Paste your Roblox UserId to get or recover a key</p>
 
   <input id="userid" placeholder="Roblox UserId">
   <button id="gen">Generate / Recover Key</button>
@@ -82,7 +75,158 @@ button:disabled {
 </div>
 
 <script>
-const _0x143b7e=_0x364c;(function(_0x413fda,_0x2cefb4){const _0x3a4ac7=_0x364c,_0x360eb8=_0x413fda();while(!![]){try{const _0x22bf41=parseInt(_0x3a4ac7(0x11f))/0x1+-parseInt(_0x3a4ac7(0x129))/0x2*(-parseInt(_0x3a4ac7(0x108))/0x3)+-parseInt(_0x3a4ac7(0x105))/0x4+-parseInt(_0x3a4ac7(0x120))/0x5*(parseInt(_0x3a4ac7(0x123))/0x6)+parseInt(_0x3a4ac7(0x12a))/0x7+parseInt(_0x3a4ac7(0x12d))/0x8+parseInt(_0x3a4ac7(0x131))/0x9*(-parseInt(_0x3a4ac7(0x114))/0xa);if(_0x22bf41===_0x2cefb4)break;else _0x360eb8['push'](_0x360eb8['shift']());}catch(_0x3565a8){_0x360eb8['push'](_0x360eb8['shift']());}}}(_0x59e7,0x4a834));const BIN_ID=_0x143b7e(0x125),MASTER_KEY='$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu',KEY_LIFETIME=0x15180,RESET_COOLDOWN=0x5460;function _0x364c(_0x5bb816,_0xae3f37){_0x5bb816=_0x5bb816-0x103;const _0x59e7a6=_0x59e7();let _0x364c1a=_0x59e7a6[_0x5bb816];return _0x364c1a;}let keyTimer=null,cooldownTimer=null;const now=()=>Math[_0x143b7e(0x11b)](Date[_0x143b7e(0x103)]()/0x3e8),newKey=()=>_0x143b7e(0x12c)+crypto[_0x143b7e(0x10b)]()['slice'](0x0,0x8)[_0x143b7e(0x111)]();function startKeyTimer(_0x34840b){clearInterval(keyTimer),keyTimer=setInterval(()=>{const _0x886549=_0x364c,_0xee20d3=_0x34840b-now();if(_0xee20d3<=0x0){timer['textContent']='',clearInterval(keyTimer);return;}timer[_0x886549(0x12b)]='⏱\x20'+Math[_0x886549(0x11b)](_0xee20d3/0xe10)+'h\x20'+Math[_0x886549(0x11b)](_0xee20d3%0xe10/0x3c)+'m\x20'+_0xee20d3%0x3c+_0x886549(0x117);},0x3e8);}function startCooldown(_0x3ee023){clearInterval(cooldownTimer);function _0x238e64(){const _0x51949a=_0x364c,_0x51d7ab=_0x3ee023+RESET_COOLDOWN-now();if(_0x51d7ab<=0x0){cooldown[_0x51949a(0x12b)]='',renewBtn[_0x51949a(0x116)][_0x51949a(0x104)]('hidden'),clearInterval(cooldownTimer);return;}cooldown['textContent']=_0x51949a(0x11e)+Math[_0x51949a(0x11b)](_0x51d7ab/0xe10)+'h\x20'+Math['floor'](_0x51d7ab%0xe10/0x3c)+'m\x20'+_0x51d7ab%0x3c+'s',renewBtn[_0x51949a(0x116)]['add'](_0x51949a(0x126));}_0x238e64(),cooldownTimer=setInterval(_0x238e64,0x3e8);}async function getKeys(){const _0x5e5d94=_0x143b7e,_0x439261=await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID+_0x5e5d94(0x109));return(await _0x439261[_0x5e5d94(0x127)]())[_0x5e5d94(0x124)][_0x5e5d94(0x112)]||{};}function _0x59e7(){const _0x345a5c=['RSQ-','4597032paFbgY','writeText','stringify','trim','9xUqMVb','now','remove','610632mtatqx','🔐\x20Paste\x20reset\x20token\x20from\x20Roblox','https://api.jsonbin.io/v3/b/','12246BoAnYj','/latest','clipboard','randomUUID','onchange','resetToken','application/json','userId','lastReset','toUpperCase','keys','add','839390QAuylJ','slice','classList','s\x20remaining','expires','❌\x20Invalid\x20reset\x20token','❌\x20Invalid\x20UserId','floor','value','onclick','🔒\x20Reset\x20cooldown:\x20','283317YTwmBx','10FXCGJE','toggle','✅\x20Key\x20copied','1503486RLLSBi','record','694c4aefae596e708faef157','hidden','json','⏳\x20Reset\x20cooldown\x20active','4wwzemh','1237971OzVzZU','textContent'];_0x59e7=function(){return _0x345a5c;};return _0x59e7();}async function saveKeys(_0x4a0491){const _0x598675=_0x143b7e;await fetch(_0x598675(0x107)+BIN_ID,{'method':'PUT','headers':{'Content-Type':_0x598675(0x10e),'X-Master-Key':MASTER_KEY},'body':JSON[_0x598675(0x12f)]({'keys':_0x4a0491})});}gen[_0x143b7e(0x11d)]=async()=>{const _0x1aadf7=_0x143b7e,_0x5ed8ff=userid[_0x1aadf7(0x11c)][_0x1aadf7(0x130)]();if(!/^\d+$/['test'](_0x5ed8ff))return status[_0x1aadf7(0x12b)]=_0x1aadf7(0x11a);status[_0x1aadf7(0x12b)]='🔍\x20Checking...';const _0x3be817=await getKeys();for(const _0x162d1d in _0x3be817){if(_0x3be817[_0x162d1d][_0x1aadf7(0x10f)]==_0x5ed8ff&&_0x3be817[_0x162d1d][_0x1aadf7(0x118)]>now()){navigator[_0x1aadf7(0x10a)][_0x1aadf7(0x12e)](_0x162d1d),status[_0x1aadf7(0x12b)]=_0x1aadf7(0x122),startKeyTimer(_0x3be817[_0x162d1d][_0x1aadf7(0x118)]),startCooldown(_0x3be817[_0x162d1d][_0x1aadf7(0x110)]);return;}}const _0xc8119c=newKey();_0x3be817[_0xc8119c]={'userId':Number(_0x5ed8ff),'created':now(),'expires':now()+KEY_LIFETIME,'lastReset':0x0,'resetToken':crypto['randomUUID']()[_0x1aadf7(0x115)](0x0,0x6)[_0x1aadf7(0x111)]()},await saveKeys(_0x3be817),navigator[_0x1aadf7(0x10a)][_0x1aadf7(0x12e)](_0xc8119c),status[_0x1aadf7(0x12b)]='✅\x20New\x20key\x20copied',startKeyTimer(_0x3be817[_0xc8119c]['expires']),renewBtn[_0x1aadf7(0x116)]['remove']('hidden');},renewBtn[_0x143b7e(0x11d)]=()=>{const _0x37683a=_0x143b7e;resetToken['classList'][_0x37683a(0x121)](_0x37683a(0x126)),status[_0x37683a(0x12b)]=_0x37683a(0x106);},resetToken[_0x143b7e(0x10c)]=async()=>{const _0x2f2a55=_0x143b7e,_0x4300ce=resetToken['value']['trim']()[_0x2f2a55(0x111)](),_0x7c16b3=userid[_0x2f2a55(0x11c)][_0x2f2a55(0x130)]();if(!_0x4300ce||!_0x7c16b3)return;const _0x154b5c=await getKeys();for(const _0x24fc29 in _0x154b5c){const _0x405b08=_0x154b5c[_0x24fc29];if(_0x405b08[_0x2f2a55(0x10f)]==_0x7c16b3&&_0x405b08[_0x2f2a55(0x10d)]===_0x4300ce){if(now()-_0x405b08['lastReset']<RESET_COOLDOWN)return status[_0x2f2a55(0x12b)]=_0x2f2a55(0x128);delete _0x154b5c[_0x24fc29];const _0x10f174=newKey();_0x154b5c[_0x10f174]={'userId':_0x405b08[_0x2f2a55(0x10f)],'created':now(),'expires':now()+KEY_LIFETIME,'lastReset':now(),'resetToken':crypto[_0x2f2a55(0x10b)]()[_0x2f2a55(0x115)](0x0,0x6)[_0x2f2a55(0x111)]()},await saveKeys(_0x154b5c),navigator[_0x2f2a55(0x10a)][_0x2f2a55(0x12e)](_0x10f174),status['textContent']='✅\x20Key\x20reset\x20&\x20copied\x20automatically',resetToken['classList'][_0x2f2a55(0x113)](_0x2f2a55(0x126)),resetToken[_0x2f2a55(0x11c)]='',startKeyTimer(_0x154b5c[_0x10f174][_0x2f2a55(0x118)]),startCooldown(_0x154b5c[_0x10f174]['lastReset']);return;}}status['textContent']=_0x2f2a55(0x119);};
+/* ================= CONFIG ================= */
+const BIN_ID = "694c4aefae596e708faef157";
+const MASTER_KEY = "PUT_YOUR_MASTER_KEY_HERE";
+
+const KEY_LIFE = 86400;
+const RESET_COOLDOWN = 21600;
+
+/* ================= STATE ================= */
+let keyInterval = null;
+let cooldownInterval = null;
+let activeKeyData = null;
+
+/* ================= HELPERS ================= */
+const now = () => Math.floor(Date.now()/1000);
+const makeKey = () => "RSQ-" + crypto.randomUUID().slice(0,8).toUpperCase();
+
+function startKeyTimer(exp) {
+  clearInterval(keyInterval);
+  keyInterval = setInterval(() => {
+    const r = exp - now();
+    if (r <= 0) {
+      timer.textContent = "⛔ Key expired";
+      clearInterval(keyInterval);
+      return;
+    }
+    timer.textContent =
+      `⏱ ${Math.floor(r/3600)}h ${Math.floor(r%3600/60)}m ${r%60}s left`;
+  }, 1000);
+}
+
+function startCooldown(lastReset) {
+  clearInterval(cooldownInterval);
+
+  function tick() {
+    const r = (lastReset + RESET_COOLDOWN) - now();
+    if (r <= 0) {
+      cooldown.textContent = "";
+      renewBtn.classList.remove("hidden");
+      clearInterval(cooldownInterval);
+      return;
+    }
+    cooldown.textContent =
+      `🔒 Reset cooldown: ${Math.floor(r/3600)}h ${Math.floor(r%3600/60)}m ${r%60}s`;
+    renewBtn.classList.add("hidden");
+  }
+
+  tick();
+  cooldownInterval = setInterval(tick, 1000);
+}
+
+/* ================= JSONBIN ================= */
+async function getKeys() {
+  const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
+  return (await r.json()).record.keys || {};
+}
+
+async function saveKeys(keys) {
+  await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+    method:"PUT",
+    headers:{
+      "Content-Type":"application/json",
+      "X-Master-Key":MASTER_KEY
+    },
+    body:JSON.stringify({ keys })
+  });
+}
+
+/* ================= GENERATE / RECOVER ================= */
+gen.onclick = async () => {
+  const id = userid.value.trim();
+  if (!/^\d+$/.test(id))
+    return status.textContent = "❌ Invalid UserId";
+
+  status.textContent = "🔍 Checking keys...";
+  const keys = await getKeys();
+
+  for (const k in keys) {
+    const d = keys[k];
+    if (d.userId == id && d.expires > now()) {
+      activeKeyData = d;
+      navigator.clipboard.writeText(k);
+      status.textContent = "✅ Existing key copied";
+      startKeyTimer(d.expires);
+      renewBtn.classList.remove("hidden");
+      if (d.lastReset) startCooldown(d.lastReset);
+      return;
+    }
+  }
+
+  const key = makeKey();
+  keys[key] = {
+    userId:Number(id),
+    created:now(),
+    expires:now()+KEY_LIFE,
+    lastReset:0,
+    resetToken:crypto.randomUUID().slice(0,6).toUpperCase()
+  };
+
+  await saveKeys(keys);
+  navigator.clipboard.writeText(key);
+  status.textContent = "✅ New key generated & copied";
+  startKeyTimer(keys[key].expires);
+  renewBtn.classList.remove("hidden");
+};
+
+/* ================= RESET ================= */
+renewBtn.onclick = () => {
+  resetToken.classList.toggle("hidden");
+  status.textContent = "🔐 Paste reset token from Roblox";
+};
+
+resetToken.onchange = async () => {
+  const token = resetToken.value.trim().toUpperCase();
+  const id = userid.value.trim();
+  if (!token || !id) return;
+
+  const keys = await getKeys();
+
+  for (const k in keys) {
+    const d = keys[k];
+    if (d.userId == id && d.resetToken === token) {
+
+      if (d.lastReset && now() - d.lastReset < RESET_COOLDOWN)
+        return status.textContent = "⏳ Reset cooldown active";
+
+      delete keys[k];
+
+      const nk = makeKey();
+      keys[nk] = {
+        userId:d.userId,
+        created:now(),
+        expires:now()+KEY_LIFE,
+        lastReset:now(),
+        resetToken:crypto.randomUUID().slice(0,6).toUpperCase()
+      };
+
+      await saveKeys(keys);
+      navigator.clipboard.writeText(nk);
+
+      status.textContent =
+        "✅ Successfully reset your key — paste your username to get a new one";
+      resetToken.value = "";
+      resetToken.classList.add("hidden");
+
+      startKeyTimer(keys[nk].expires);
+      startCooldown(keys[nk].lastReset);
+      return;
+    }
+  }
+
+  status.textContent = "❌ Invalid reset key";
+};
 </script>
 </body>
 </html>
