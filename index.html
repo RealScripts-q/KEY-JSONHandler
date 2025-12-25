@@ -16,7 +16,7 @@ body {
   height:100vh;
 }
 .card {
-  width:420px;
+  width:440px;
   background:#121212;
   border-radius:18px;
   padding:20px;
@@ -46,6 +46,9 @@ button {
 button.secondary {
   background:linear-gradient(135deg,#ff6a00,#ff9500);
 }
+button.danger {
+  background:linear-gradient(135deg,#ff3b30,#ff453a);
+}
 button:disabled {
   opacity:.5;
   cursor:not-allowed;
@@ -55,16 +58,38 @@ button:disabled {
 .timer { margin-top:8px; font-size:13px; color:#00c6ff; }
 .cooldown { margin-top:6px; font-size:12px; color:#ff9500; }
 .hidden { display:none; }
+
+.shake {
+  animation: shake .35s;
+}
+@keyframes shake {
+  0%{transform:translateX(0)}
+  25%{transform:translateX(-6px)}
+  50%{transform:translateX(6px)}
+  75%{transform:translateX(-6px)}
+  100%{transform:translateX(0)}
+}
+
+.log {
+  margin-top:10px;
+  padding:10px;
+  background:#0b0b0b;
+  border-radius:10px;
+  font-size:12px;
+}
+.log button {
+  margin-top:6px;
+}
 </style>
 </head>
 
 <body>
-<div class="card">
+<div class="card" id="card">
   <h1>🔑 RSQ Key System</h1>
   <p>Paste your Roblox UserId to get or recover a key</p>
 
-  <input id="userid" placeholder="Roblox UserId">
-  <button id="gen">Generate / Recover Key</button>
+  <input id="userid" placeholder="Roblox UserId or Master Key">
+  <button id="gen">Generate / Recover</button>
 
   <button id="renewBtn" class="secondary hidden">🔐 Force / Renew Key</button>
   <input id="resetToken" class="hidden" placeholder="Paste reset token from Roblox">
@@ -72,161 +97,12 @@ button:disabled {
   <div class="status" id="status"></div>
   <div class="timer" id="timer"></div>
   <div class="cooldown" id="cooldown"></div>
+
+  <div id="admin" class="hidden"></div>
 </div>
 
 <script>
-/* ================= CONFIG ================= */
-const BIN_ID = "694c4aefae596e708faef157";
-const MASTER_KEY = "PUT_YOUR_MASTER_KEY_HERE";
-
-const KEY_LIFE = 86400;
-const RESET_COOLDOWN = 21600;
-
-/* ================= STATE ================= */
-let keyInterval = null;
-let cooldownInterval = null;
-let activeKeyData = null;
-
-/* ================= HELPERS ================= */
-const now = () => Math.floor(Date.now()/1000);
-const makeKey = () => "RSQ-" + crypto.randomUUID().slice(0,8).toUpperCase();
-
-function startKeyTimer(exp) {
-  clearInterval(keyInterval);
-  keyInterval = setInterval(() => {
-    const r = exp - now();
-    if (r <= 0) {
-      timer.textContent = "⛔ Key expired";
-      clearInterval(keyInterval);
-      return;
-    }
-    timer.textContent =
-      `⏱ ${Math.floor(r/3600)}h ${Math.floor(r%3600/60)}m ${r%60}s left`;
-  }, 1000);
-}
-
-function startCooldown(lastReset) {
-  clearInterval(cooldownInterval);
-
-  function tick() {
-    const r = (lastReset + RESET_COOLDOWN) - now();
-    if (r <= 0) {
-      cooldown.textContent = "";
-      renewBtn.classList.remove("hidden");
-      clearInterval(cooldownInterval);
-      return;
-    }
-    cooldown.textContent =
-      `🔒 Reset cooldown: ${Math.floor(r/3600)}h ${Math.floor(r%3600/60)}m ${r%60}s`;
-    renewBtn.classList.add("hidden");
-  }
-
-  tick();
-  cooldownInterval = setInterval(tick, 1000);
-}
-
-/* ================= JSONBIN ================= */
-async function getKeys() {
-  const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
-  return (await r.json()).record.keys || {};
-}
-
-async function saveKeys(keys) {
-  await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-    method:"PUT",
-    headers:{
-      "Content-Type":"application/json",
-      "X-Master-Key":MASTER_KEY
-    },
-    body:JSON.stringify({ keys })
-  });
-}
-
-/* ================= GENERATE / RECOVER ================= */
-gen.onclick = async () => {
-  const id = userid.value.trim();
-  if (!/^\d+$/.test(id))
-    return status.textContent = "❌ Invalid UserId";
-
-  status.textContent = "🔍 Checking keys...";
-  const keys = await getKeys();
-
-  for (const k in keys) {
-    const d = keys[k];
-    if (d.userId == id && d.expires > now()) {
-      activeKeyData = d;
-      navigator.clipboard.writeText(k);
-      status.textContent = "✅ Existing key copied";
-      startKeyTimer(d.expires);
-      renewBtn.classList.remove("hidden");
-      if (d.lastReset) startCooldown(d.lastReset);
-      return;
-    }
-  }
-
-  const key = makeKey();
-  keys[key] = {
-    userId:Number(id),
-    created:now(),
-    expires:now()+KEY_LIFE,
-    lastReset:0,
-    resetToken:crypto.randomUUID().slice(0,6).toUpperCase()
-  };
-
-  await saveKeys(keys);
-  navigator.clipboard.writeText(key);
-  status.textContent = "✅ New key generated & copied";
-  startKeyTimer(keys[key].expires);
-  renewBtn.classList.remove("hidden");
-};
-
-/* ================= RESET ================= */
-renewBtn.onclick = () => {
-  resetToken.classList.toggle("hidden");
-  status.textContent = "🔐 Paste reset token from Roblox";
-};
-
-resetToken.onchange = async () => {
-  const token = resetToken.value.trim().toUpperCase();
-  const id = userid.value.trim();
-  if (!token || !id) return;
-
-  const keys = await getKeys();
-
-  for (const k in keys) {
-    const d = keys[k];
-    if (d.userId == id && d.resetToken === token) {
-
-      if (d.lastReset && now() - d.lastReset < RESET_COOLDOWN)
-        return status.textContent = "⏳ Reset cooldown active";
-
-      delete keys[k];
-
-      const nk = makeKey();
-      keys[nk] = {
-        userId:d.userId,
-        created:now(),
-        expires:now()+KEY_LIFE,
-        lastReset:now(),
-        resetToken:crypto.randomUUID().slice(0,6).toUpperCase()
-      };
-
-      await saveKeys(keys);
-      navigator.clipboard.writeText(nk);
-
-      status.textContent =
-        "✅ Successfully reset your key — paste your username to get a new one";
-      resetToken.value = "";
-      resetToken.classList.add("hidden");
-
-      startKeyTimer(keys[nk].expires);
-      startCooldown(keys[nk].lastReset);
-      return;
-    }
-  }
-
-  status.textContent = "❌ Invalid reset key";
-};
+function _0x234f(_0x5b1d5a,_0x3de377){_0x5b1d5a=_0x5b1d5a-0x186;const _0x396359=_0x3963();let _0x234f14=_0x396359[_0x5b1d5a];return _0x234f14;}const _0x20b568=_0x234f;(function(_0x5a3094,_0x28020e){const _0x234d9e=_0x234f,_0x5b1ee0=_0x5a3094();while(!![]){try{const _0x19a018=-parseInt(_0x234d9e(0x1a6))/0x1*(-parseInt(_0x234d9e(0x1a9))/0x2)+parseInt(_0x234d9e(0x18e))/0x3*(parseInt(_0x234d9e(0x1a3))/0x4)+parseInt(_0x234d9e(0x199))/0x5*(parseInt(_0x234d9e(0x190))/0x6)+-parseInt(_0x234d9e(0x192))/0x7*(parseInt(_0x234d9e(0x18d))/0x8)+parseInt(_0x234d9e(0x189))/0x9+-parseInt(_0x234d9e(0x1b2))/0xa*(parseInt(_0x234d9e(0x19d))/0xb)+parseInt(_0x234d9e(0x188))/0xc*(-parseInt(_0x234d9e(0x1ba))/0xd);if(_0x19a018===_0x28020e)break;else _0x5b1ee0['push'](_0x5b1ee0['shift']());}catch(_0x10ed45){_0x5b1ee0['push'](_0x5b1ee0['shift']());}}}(_0x3963,0x580e0));const BIN_ID=_0x20b568(0x18b),MASTER_KEY=_0x20b568(0x19e),KEY_LIFE=0x15180,RESET_COOLDOWN=0x5460;let keyInterval=null,cooldownInterval=null;const now=()=>Math[_0x20b568(0x1a7)](Date['now']()/0x3e8),makeKey=()=>'RSQ-'+crypto[_0x20b568(0x187)]()['slice'](0x0,0x8)[_0x20b568(0x186)]();function clearTimers(){clearInterval(keyInterval),clearInterval(cooldownInterval);}function startKeyTimer(_0x2be9b5){clearInterval(keyInterval),keyInterval=setInterval(()=>{const _0x31f00c=_0x234f,_0x376037=_0x2be9b5-now();if(_0x376037<=0x0){timer[_0x31f00c(0x1af)]=_0x31f00c(0x19f),clearInterval(keyInterval);return;}timer[_0x31f00c(0x1af)]='⏱\x20'+Math[_0x31f00c(0x1a7)](_0x376037/0xe10)+'h\x20'+Math['floor'](_0x376037%0xe10/0x3c)+'m\x20'+_0x376037%0x3c+'s';},0x3e8);}function startCooldown(_0x54dca8){clearInterval(cooldownInterval);function _0x1d667d(){const _0x130a10=_0x234f,_0x1e669e=_0x54dca8+RESET_COOLDOWN-now();if(_0x1e669e<=0x0){cooldown['textContent']='',renewBtn[_0x130a10(0x1b4)][_0x130a10(0x1b3)](_0x130a10(0x197)),clearInterval(cooldownInterval);return;}cooldown[_0x130a10(0x1af)]='🔒\x20Reset\x20cooldown:\x20'+Math['floor'](_0x1e669e/0xe10)+'h\x20'+Math['floor'](_0x1e669e%0xe10/0x3c)+'m\x20'+_0x1e669e%0x3c+'s',renewBtn['classList'][_0x130a10(0x1a1)](_0x130a10(0x197));}_0x1d667d(),cooldownInterval=setInterval(_0x1d667d,0x3e8);}function _0x3963(){const _0x2695fe=['❌\x20Invalid\x20reset\x20key','280CkKqMg','228141MhcBQz','expires','938586ECdfFU','createElement','65513IfLvTO','\x27)\x22>🗑\x20Remove</button>\x0a\x20\x20\x20\x20\x20\x20','log','value','🔍\x20Checking\x20keys...','hidden','writeText','20IuCpXN','\x27)\x22>🔄\x20Renew</button>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<button\x20class=\x22danger\x22\x20onclick=\x22removeAdmin(\x27','resetToken','shake','1600852QXcDvg','$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu','⛔\x20Key\x20expired','json','add','record','16nIjhoQ','userId','click','17myrmvI','floor','test','65922nTuuLY','trim','className','lastReset','✅\x20Existing\x20key\x20copied','</b><br>\x0a\x20\x20\x20\x20\x20\x20\x20\x20User:\x20','textContent','🔐\x20Paste\x20reset\x20token\x20from\x20Roblox','innerHTML','10MnxACv','remove','classList','👑\x20Master\x20access\x20granted','PUT','application/json','slice','/latest','13uZomko','✅\x20New\x20key\x20generated\x20&\x20copied','https://api.jsonbin.io/v3/b/','✅\x20Successfully\x20reset\x20your\x20key','appendChild','onclick','toUpperCase','randomUUID','12912948AShTly','3776391OgQFqz','clipboard','694c4aefae596e708faef157'];_0x3963=function(){return _0x2695fe;};return _0x3963();}async function getKeys(){const _0x230385=_0x20b568,_0x3518e8=await fetch(_0x230385(0x1bc)+BIN_ID+_0x230385(0x1b9));return(await _0x3518e8[_0x230385(0x1a0)]())[_0x230385(0x1a2)]['keys']||{};}async function saveKeys(_0x1b65d9){const _0x59a077=_0x20b568;await fetch(_0x59a077(0x1bc)+BIN_ID,{'method':_0x59a077(0x1b6),'headers':{'Content-Type':_0x59a077(0x1b7),'X-Master-Key':MASTER_KEY},'body':JSON['stringify']({'keys':_0x1b65d9})});}gen[_0x20b568(0x1bf)]=async()=>{const _0xba65d5=_0x20b568;clearTimers(),admin[_0xba65d5(0x1b1)]='',admin[_0xba65d5(0x1b4)][_0xba65d5(0x1a1)]('hidden');const _0x526879=userid[_0xba65d5(0x195)]['trim']();if(_0x526879===MASTER_KEY){status[_0xba65d5(0x1af)]=_0xba65d5(0x1b5);const _0x3ce063=await getKeys();admin[_0xba65d5(0x1b4)]['remove'](_0xba65d5(0x197));for(const _0x32e9d7 in _0x3ce063){const _0x59a50b=_0x3ce063[_0x32e9d7],_0x3f1932=document[_0xba65d5(0x191)]('div');_0x3f1932[_0xba65d5(0x1ab)]=_0xba65d5(0x194),_0x3f1932[_0xba65d5(0x1b1)]='\x0a\x20\x20\x20\x20\x20\x20\x20\x20<b>'+_0x32e9d7+_0xba65d5(0x1ae)+_0x59a50b[_0xba65d5(0x1a4)]+'<br>\x0a\x20\x20\x20\x20\x20\x20\x20\x20Expires:\x20'+new Date(_0x59a50b[_0xba65d5(0x18f)]*0x3e8)['toLocaleString']()+'\x0a\x20\x20\x20\x20\x20\x20\x20\x20<button\x20onclick=\x22renewAdmin(\x27'+_0x32e9d7+_0xba65d5(0x19a)+_0x32e9d7+_0xba65d5(0x193),admin[_0xba65d5(0x1be)](_0x3f1932);}return;}if(!/^\d+$/[_0xba65d5(0x1a8)](_0x526879))return status[_0xba65d5(0x1af)]='❌\x20Invalid\x20UserId';status[_0xba65d5(0x1af)]=_0xba65d5(0x196);const _0x39e18b=await getKeys();for(const _0x4a8cdf in _0x39e18b){const _0x26a68b=_0x39e18b[_0x4a8cdf];if(_0x26a68b[_0xba65d5(0x1a4)]==_0x526879&&_0x26a68b[_0xba65d5(0x18f)]>now()){navigator[_0xba65d5(0x18a)][_0xba65d5(0x198)](_0x4a8cdf),status[_0xba65d5(0x1af)]=_0xba65d5(0x1ad),startKeyTimer(_0x26a68b['expires']),renewBtn['classList'][_0xba65d5(0x1b3)](_0xba65d5(0x197));if(_0x26a68b['lastReset'])startCooldown(_0x26a68b[_0xba65d5(0x1ac)]);return;}}const _0x5768a9=makeKey();_0x39e18b[_0x5768a9]={'userId':Number(_0x526879),'created':now(),'expires':now()+KEY_LIFE,'lastReset':0x0,'resetToken':crypto[_0xba65d5(0x187)]()[_0xba65d5(0x1b8)](0x0,0x6)[_0xba65d5(0x186)]()},await saveKeys(_0x39e18b),navigator['clipboard'][_0xba65d5(0x198)](_0x5768a9),status[_0xba65d5(0x1af)]=_0xba65d5(0x1bb),startKeyTimer(_0x39e18b[_0x5768a9]['expires']),renewBtn[_0xba65d5(0x1b4)]['remove'](_0xba65d5(0x197));},renewBtn[_0x20b568(0x1bf)]=()=>{const _0x2c989f=_0x20b568;resetToken['classList']['toggle'](_0x2c989f(0x197)),status[_0x2c989f(0x1af)]=_0x2c989f(0x1b0);},resetToken['onchange']=async()=>{const _0x5c5613=_0x20b568,_0x10f72a=resetToken[_0x5c5613(0x195)][_0x5c5613(0x1aa)]()[_0x5c5613(0x186)](),_0x49d2a8=userid[_0x5c5613(0x195)]['trim'](),_0x105328=await getKeys();for(const _0x2a9976 in _0x105328){const _0x18d0b5=_0x105328[_0x2a9976];if(_0x18d0b5[_0x5c5613(0x1a4)]==_0x49d2a8&&_0x18d0b5[_0x5c5613(0x19b)]===_0x10f72a){clearTimers(),delete _0x105328[_0x2a9976];const _0x5d0041=makeKey();_0x105328[_0x5d0041]={'userId':_0x18d0b5[_0x5c5613(0x1a4)],'created':now(),'expires':now()+KEY_LIFE,'lastReset':now(),'resetToken':crypto[_0x5c5613(0x187)]()[_0x5c5613(0x1b8)](0x0,0x6)[_0x5c5613(0x186)]()},await saveKeys(_0x105328),navigator[_0x5c5613(0x18a)][_0x5c5613(0x198)](_0x5d0041),status[_0x5c5613(0x1af)]=_0x5c5613(0x1bd),startKeyTimer(_0x105328[_0x5d0041][_0x5c5613(0x18f)]),startCooldown(_0x105328[_0x5d0041][_0x5c5613(0x1ac)]),resetToken[_0x5c5613(0x195)]='',resetToken[_0x5c5613(0x1b4)][_0x5c5613(0x1a1)](_0x5c5613(0x197));return;}}card[_0x5c5613(0x1b4)]['add'](_0x5c5613(0x19c)),status[_0x5c5613(0x1af)]=_0x5c5613(0x18c),setTimeout(()=>{const _0x19d0be=_0x5c5613;card['classList'][_0x19d0be(0x1b3)]('shake'),cooldown['textContent']='';},0x1388);};async function renewAdmin(_0xee0154){const _0x3eb0fd=_0x20b568,_0x4485ea=await getKeys();_0x4485ea[_0xee0154][_0x3eb0fd(0x18f)]=now()+KEY_LIFE,await saveKeys(_0x4485ea),gen[_0x3eb0fd(0x1a5)]();}async function removeAdmin(_0x301683){const _0x161fcf=_0x20b568,_0xedc01=await getKeys();delete _0xedc01[_0x301683],await saveKeys(_0xedc01),gen[_0x161fcf(0x1a5)]();}
 </script>
 </body>
 </html>
