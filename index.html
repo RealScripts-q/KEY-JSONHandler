@@ -12,6 +12,7 @@ body {
   color:white;
 }
 .hidden { display:none; }
+
 .panel {
   width:520px;
   background:#141822;
@@ -21,6 +22,7 @@ body {
   margin:auto;
   margin-top:10vh;
 }
+
 button,input,select {
   width:100%;
   padding:12px;
@@ -29,11 +31,13 @@ button,input,select {
   border:none;
   font-size:14px;
 }
+
 input,select {
   background:#0b0f18;
   color:white;
   border:1px solid #222;
 }
+
 button {
   background:linear-gradient(135deg,#4f7cff,#3fd2ff);
   font-weight:bold;
@@ -45,11 +49,11 @@ button.danger {
 button.secondary {
   background:linear-gradient(135deg,#ff8a00,#ffb300);
 }
+
 .status {
   text-align:center;
   margin-top:8px;
   font-size:13px;
-  min-height:18px;
 }
 .keyDisplay {
   text-align:center;
@@ -58,6 +62,7 @@ button.secondary {
   color:#3fd2ff;
   word-break:break-all;
 }
+
 .adminFull {
   position:fixed;
   inset:0;
@@ -65,6 +70,7 @@ button.secondary {
   padding:20px;
   overflow:auto;
 }
+
 .keyRow {
   background:#111625;
   border-radius:10px;
@@ -72,12 +78,14 @@ button.secondary {
   margin-bottom:12px;
   font-size:12px;
 }
+
 hr { opacity:.2 }
 </style>
 </head>
 
 <body>
 
+<!-- USER PANEL -->
 <div id="userPanel" class="panel">
   <h2 style="text-align:center">🔐 RSQ Key System</h2>
 
@@ -91,6 +99,7 @@ hr { opacity:.2 }
   <input id="adminInput" class="hidden" placeholder="Admin Master Key">
 </div>
 
+<!-- ADMIN PANEL -->
 <div id="adminPanel" class="adminFull hidden">
   <h2>👑 ADMIN PANEL</h2>
   <button onclick="exitAdmin()">Exit Admin Panel</button>
@@ -106,7 +115,7 @@ hr { opacity:.2 }
     <option value="2592000">1 Month</option>
     <option value="31536000">1 Year</option>
   </select>
-  <button class="danger" onclick="banUser()">Ban User</button>
+  <button class="danger" onclick="banUser()">Ban User (Deletes All Keys)</button>
 
   <hr>
 
@@ -132,9 +141,7 @@ const makeKey = () =>
   "RSQ-" + crypto.randomUUID().replace(/-/g,"").slice(0,24).toUpperCase();
 
 function copy(text){
-  navigator.clipboard.writeText(text).then(()=>{
-    status.textContent += " 📋 Copied to clipboard";
-  });
+  navigator.clipboard.writeText(text);
 }
 
 /* JSONBIN */
@@ -142,7 +149,6 @@ async function getData(){
   const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
   return (await r.json()).record || {};
 }
-
 async function saveData(data){
   await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{
     method:"PUT",
@@ -154,16 +160,14 @@ async function saveData(data){
   });
 }
 
-/* USER FLOW — HARD FIXED */
+/* USER FLOW */
 genBtn.onclick = async ()=>{
-  const rawUid = userid.value.trim();
-  const uid = String(rawUid);
-
-  status.textContent = "";
-  keyOut.textContent = "";
+  const uid = userid.value.trim();
+  status.textContent="";
+  keyOut.textContent="";
 
   if(!/^\d+$/.test(uid)){
-    status.textContent = "❌ Invalid UserId";
+    status.textContent="❌ Invalid UserId";
     return;
   }
 
@@ -171,59 +175,54 @@ genBtn.onclick = async ()=>{
   data.keys ||= {};
   data.bans ||= {};
 
-  /* 🚫 ABSOLUTE BAN CHECK (CANNOT BE BYPASSED) */
-  if (
-    Object.prototype.hasOwnProperty.call(data.bans, uid) &&
-    Number(data.bans[uid]) > now()
-  ){
+  /* 🚫 BAN CHECK */
+  if(data.bans[uid] && data.bans[uid] > now()){
     status.textContent =
       "🚫 You were banned by an admin until " +
-      new Date(data.bans[uid] * 1000).toLocaleString();
+      new Date(data.bans[uid]*1000).toLocaleString();
     return;
   }
 
-  /* CHECK EXISTING KEY */
-  for(const key in data.keys){
-    const entry = data.keys[key];
-    if(String(entry.userId) === uid){
-      if(entry.expires === 0){
-        status.textContent = "👑 Your key is infinite";
-        keyOut.textContent = key;
-        copy(key);
+  /* EXISTING KEY */
+  for(const k in data.keys){
+    const d = data.keys[k];
+    if(String(d.userId) === uid){
+      if(d.expires === 0){
+        status.textContent="♾️ Your key is infinite";
+        keyOut.textContent=k;
+        copy(k);
         return;
       }
-      if(entry.expires < now()){
-        status.textContent = "⏰ Your key has expired";
+      if(d.expires < now()){
+        status.textContent="⏰ Your key has expired";
         return;
       }
       status.textContent =
         "✅ Active key · Expires " +
-        new Date(entry.expires * 1000).toLocaleString();
-      keyOut.textContent = key;
-      copy(key);
+        new Date(d.expires*1000).toLocaleString();
+      keyOut.textContent=k;
+      copy(k);
       return;
     }
   }
 
-  /* CREATE NEW KEY */
-  const newKey = makeKey();
-  data.keys[newKey] = {
-    userId: uid,
-    expires: now() + KEY_LIFE
+  /* NEW KEY */
+  const key = makeKey();
+  data.keys[key] = {
+    userId:Number(uid),
+    expires: now()+KEY_LIFE
   };
 
   await saveData(data);
-
   status.textContent =
     "✅ New key generated · Expires " +
-    new Date((now() + KEY_LIFE) * 1000).toLocaleString();
-  keyOut.textContent = newKey;
-  copy(newKey);
+    new Date((now()+KEY_LIFE)*1000).toLocaleString();
+  keyOut.textContent = key;
+  copy(key);
 };
 
 /* ADMIN LOGIN */
 adminBtn.onclick = ()=>adminInput.classList.toggle("hidden");
-
 adminInput.onchange = ()=>{
   if(adminInput.value !== ADMIN_MASTER_KEY){
     alert("Invalid admin key");
@@ -234,7 +233,7 @@ adminInput.onchange = ()=>{
   refreshAdmin();
 };
 
-/* ADMIN FUNCTIONS (UNCHANGED LOGIC) */
+/* ADMIN RENDER */
 async function refreshAdmin(){
   const data = await getData();
   renderKeys(data);
@@ -249,11 +248,13 @@ function renderKeys(data){
     const d = data.keys[k];
     const div = document.createElement("div");
     div.className="keyRow";
+
     div.innerHTML=`
 <b>${k}</b><br>
 UserId: ${d.userId}<br>
 Expires: ${d.expires===0?"Never":new Date(d.expires*1000).toLocaleString()}
 `;
+
     const renew = document.createElement("button");
     renew.textContent="Renew 24h";
     renew.onclick=async()=>{
@@ -261,6 +262,7 @@ Expires: ${d.expires===0?"Never":new Date(d.expires*1000).toLocaleString()}
       await saveData(data);
       refreshAdmin();
     };
+
     const inf = document.createElement("button");
     inf.textContent="Make Infinite";
     inf.className="secondary";
@@ -269,6 +271,7 @@ Expires: ${d.expires===0?"Never":new Date(d.expires*1000).toLocaleString()}
       await saveData(data);
       refreshAdmin();
     };
+
     const del = document.createElement("button");
     del.textContent="Delete Key";
     del.className="danger";
@@ -277,19 +280,30 @@ Expires: ${d.expires===0?"Never":new Date(d.expires*1000).toLocaleString()}
       await saveData(data);
       refreshAdmin();
     };
+
     div.append(renew,inf,del);
     keyLogs.appendChild(div);
   }
 }
 
+/* 🚫 BAN USER + DELETE KEYS */
 async function banUser(){
-  const uid = String(banUserId.value.trim());
+  const uid = banUserId.value.trim();
   const dur = Number(banDuration.value);
   if(!uid) return;
 
   const data = await getData();
   data.bans ||= {};
-  data.bans[uid] = now()+dur;
+  data.keys ||= {};
+
+  data.bans[uid] = now() + dur;
+
+  /* 🔥 DELETE ALL USER KEYS */
+  for(const k in data.keys){
+    if(String(data.keys[k].userId) === uid){
+      delete data.keys[k];
+    }
+  }
 
   await saveData(data);
   refreshAdmin();
@@ -298,6 +312,7 @@ async function banUser(){
 function renderBans(data){
   banLogs.innerHTML="";
   data.bans ||= {};
+
   for(const uid in data.bans){
     if(data.bans[uid] < now()) continue;
     const div = document.createElement("div");
@@ -318,6 +333,7 @@ Until: ${new Date(data.bans[uid]*1000).toLocaleString()}
   }
 }
 
+/* EXIT ADMIN */
 function exitAdmin(){
   adminPanel.classList.add("hidden");
   userPanel.classList.remove("hidden");
