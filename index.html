@@ -53,7 +53,11 @@ button.secondary {
   background:linear-gradient(135deg,#ff8a00,#ffb300);
 }
 
-.status { text-align:center;margin-top:8px;font-size:13px; }
+.status {
+  text-align:center;
+  margin-top:8px;
+  font-size:13px;
+}
 
 .adminFull {
   position:fixed;
@@ -66,10 +70,12 @@ button.secondary {
 .keyRow {
   background:#111625;
   border-radius:10px;
-  padding:10px;
-  margin-bottom:10px;
+  padding:12px;
+  margin-bottom:12px;
   font-size:12px;
 }
+
+hr { opacity:.2 }
 </style>
 </head>
 
@@ -82,8 +88,6 @@ button.secondary {
   <input id="userid" placeholder="Roblox UserId">
   <button id="genBtn">Generate Key</button>
 
-  <div id="keyBox" class="hidden"></div>
-  <div id="timer"></div>
   <div id="status" class="status"></div>
 
   <button id="adminBtn" class="danger">👑 Admin Panel</button>
@@ -97,15 +101,9 @@ button.secondary {
 
   <hr>
 
-  <h3>Create Infinite Key</h3>
-  <input id="infUser" placeholder="UserId">
-  <button onclick="createInfinite()">Generate Infinite Key</button>
-
-  <hr>
-
-  <h3>Ban UserId</h3>
-  <input id="banUser" placeholder="UserId">
-  <select id="banTime">
+  <h3>🚫 Ban UserId</h3>
+  <input id="banUserId" placeholder="Roblox UserId">
+  <select id="banDuration">
     <option value="3600">1 Hour</option>
     <option value="86400">1 Day</option>
     <option value="604800">1 Week</option>
@@ -116,8 +114,13 @@ button.secondary {
 
   <hr>
 
-  <h3>Key Logs</h3>
-  <div id="logs"></div>
+  <h3>🔑 Key Logs</h3>
+  <div id="keyLogs"></div>
+
+  <hr>
+
+  <h3>📜 Ban Logs</h3>
+  <div id="banLogs"></div>
 </div>
 
 <script>
@@ -129,13 +132,13 @@ const KEY_LIFE = 86400;
 
 /* HELPERS */
 const now = () => Math.floor(Date.now()/1000);
-const makeKey = () => "RSQ-" + crypto.randomUUID().replace(/-/g,"").slice(0,20).toUpperCase();
+const makeKey = () =>
+  "RSQ-" + crypto.randomUUID().replace(/-/g,"").slice(0,24).toUpperCase();
 
 /* JSONBIN */
 async function getData(){
   const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
-  const j = await r.json();
-  return j.record;
+  return (await r.json()).record;
 }
 async function saveData(data){
   await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{
@@ -148,102 +151,151 @@ async function saveData(data){
   });
 }
 
-/* USER */
+/* USER GENERATE */
 genBtn.onclick = async ()=>{
   const uid = userid.value.trim();
-  if(!/^\d+$/.test(uid)) return status.textContent="❌ Invalid UserId";
+  if(!/^\d+$/.test(uid))
+    return status.textContent="❌ Invalid UserId";
 
   const data = await getData();
   data.bans ||= {};
+
   if(data.bans[uid] && data.bans[uid] > now())
     return status.textContent="🚫 You are banned";
 
   data.keys ||= {};
   for(const k in data.keys){
     const d = data.keys[k];
-    if(d.userId==uid && (d.expires===0 || d.expires>now())){
+    if(d.userId == uid && (d.expires === 0 || d.expires > now())){
       navigator.clipboard.writeText(k);
-      status.textContent="✅ Key copied";
-      return;
+      return status.textContent="✅ Existing key copied";
     }
   }
 
   const key = makeKey();
-  data.keys[key] = {userId:Number(uid),expires:now()+KEY_LIFE};
+  data.keys[key] = { userId:Number(uid), expires:now()+KEY_LIFE };
   await saveData(data);
 
   navigator.clipboard.writeText(key);
-  status.textContent="✅ New key generated";
+  status.textContent="✅ New key generated & copied";
 };
 
 /* ADMIN LOGIN */
-adminBtn.onclick=()=>adminInput.classList.toggle("hidden");
+adminBtn.onclick = ()=>adminInput.classList.toggle("hidden");
 
-adminInput.onchange=()=>{
-  if(adminInput.value!==ADMIN_MASTER_KEY)
+adminInput.onchange = ()=>{
+  if(adminInput.value !== ADMIN_MASTER_KEY)
     return alert("Invalid admin key");
 
   userPanel.classList.add("hidden");
   adminPanel.classList.remove("hidden");
-  renderLogs();
+  refreshAdmin();
 };
 
-/* ADMIN ACTIONS */
-async function renderLogs(){
+/* ADMIN RENDER */
+async function refreshAdmin(){
   const data = await getData();
-  logs.innerHTML="";
+  renderKeys(data);
+  renderBans(data);
+}
+
+/* KEYS */
+async function renderKeys(data){
+  keyLogs.innerHTML="";
   data.keys ||= {};
+
   for(const k in data.keys){
     const d = data.keys[k];
-    const div=document.createElement("div");
+    const div = document.createElement("div");
     div.className="keyRow";
+
+    const status =
+      d.expires === 0 ? "♾️ INFINITE" :
+      d.expires > now() ? "✅ ACTIVE" :
+      "❌ EXPIRED";
+
     div.innerHTML=`
 <b>${k}</b><br>
 UserId: ${d.userId}<br>
-Status: ${d.expires===0?"♾️ INFINITE":d.expires>now()?"✅ ACTIVE":"❌ EXPIRED"}
+Status: ${status}<br>
+Expires: ${d.expires===0?"Never":new Date(d.expires*1000).toLocaleString()}
 `;
-    const renew=document.createElement("button");
+
+    const renew = document.createElement("button");
     renew.textContent="Renew 24h";
     renew.onclick=async()=>{
-      d.expires=now()+KEY_LIFE;
+      d.expires = now()+KEY_LIFE;
       await saveData(data);
-      renderLogs();
+      refreshAdmin();
     };
 
-    const del=document.createElement("button");
-    del.textContent="Delete";
+    const inf = document.createElement("button");
+    inf.textContent="Make Infinite";
+    inf.className="secondary";
+    inf.onclick=async()=>{
+      d.expires = 0;
+      await saveData(data);
+      refreshAdmin();
+    };
+
+    const del = document.createElement("button");
+    del.textContent="Delete Key";
     del.className="danger";
     del.onclick=async()=>{
       delete data.keys[k];
       await saveData(data);
-      renderLogs();
+      refreshAdmin();
     };
 
-    div.append(renew,del);
-    logs.appendChild(div);
+    div.append(renew,inf,del);
+    keyLogs.appendChild(div);
   }
 }
 
-async function createInfinite(){
-  const uid=infUser.value.trim();
-  if(!uid) return;
-  const data=await getData();
-  const key=makeKey();
-  data.keys[key]={userId:Number(uid),expires:0};
-  await saveData(data);
-  renderLogs();
-}
-
+/* BAN */
 async function banUser(){
-  const uid=banUser.value.trim();
-  const dur=Number(banTime.value);
-  const data=await getData();
+  const uid = banUserId.value.trim();
+  const dur = Number(banDuration.value);
+  if(!uid) return;
+
+  const data = await getData();
   data.bans ||= {};
-  data.bans[uid]=now()+dur;
+  data.bans[uid] = now()+dur;
+
   await saveData(data);
-  renderLogs();
+  refreshAdmin();
 }
 
+/* BAN LOGS */
+function renderBans(data){
+  banLogs.innerHTML="";
+  data.bans ||= {};
+
+  for(const uid in data.bans){
+    const exp = data.bans[uid];
+    if(exp < now()) continue;
+
+    const div = document.createElement("div");
+    div.className="keyRow";
+    div.innerHTML=`
+<b>UserId:</b> ${uid}<br>
+<b>Banned Until:</b> ${new Date(exp*1000).toLocaleString()}
+`;
+
+    const unban = document.createElement("button");
+    unban.textContent="Unban";
+    unban.onclick=async()=>{
+      delete data.bans[uid];
+      await saveData(data);
+      refreshAdmin();
+    };
+
+    div.appendChild(unban);
+    banLogs.appendChild(div);
+  }
+}
+
+/* EXIT */
 function exitAdmin(){
   adminPanel.classList.add("hidden");
   userPanel.classList.remove("hidden");
