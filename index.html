@@ -151,7 +151,7 @@ const BIN_ID = "694c4aefae596e708faef157";
 const JSONBIN_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu";
 const ADMIN_MASTER_KEY = "roblox";
 const KEY_LIFE = 86400;
-const TEST_TIMEOUT = 10; // 10 Seconds for testing
+const TEST_TIMEOUT = 10; 
 
 /* HELPERS */
 const now = () => Math.floor(Date.now()/1000);
@@ -165,7 +165,8 @@ const MY_DEVICE_ID = getDeviceId();
 
 async function getData(){
   const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
-  return (await r.json()).record || {};
+  const res = await r.json();
+  return res.record || {};
 }
 
 async function saveData(data){
@@ -183,8 +184,9 @@ async function checkSecurity() {
     data.bans ||= {};
     data.registry ||= {};
 
-    // Auto-register device
-    data.registry[MY_DEVICE_ID] = true;
+    // Update: Registry entry is now the Device ID
+    data.registry[MY_DEVICE_ID] = { lastSeen: now(), active: true };
+    await saveData(data);
 
     const isTimedOut = data.timeouts[MY_DEVICE_ID] && data.timeouts[MY_DEVICE_ID] > now();
     const isBanned = Object.values(data.keys || {}).some(k => k.deviceId === MY_DEVICE_ID && data.bans[k.userId]);
@@ -255,6 +257,22 @@ adminInput.onchange = ()=>{
   }
 };
 
+// RESET ALL JSON (NUKE)
+async function nukeAllData() {
+    if(confirm("⚠️ EXTREME WARNING: This will permanently delete ALL keys, bans, device records, and appeals. You cannot undo this. Reset all JSON?")) {
+        const resetData = {
+            keys: {},
+            bans: {},
+            timeouts: {},
+            registry: {},
+            appeals: []
+        };
+        await saveData(resetData);
+        alert("JSON Data has been wiped. Refreshing...");
+        location.reload();
+    }
+}
+
 async function adminCmd(type, target) {
     const data = await getData();
     data.timeouts ||= {};
@@ -267,12 +285,10 @@ async function adminCmd(type, target) {
     }
     else if(type === 'ban') {
         data.bans[target] = true;
-        // Perm timeout for all devices linked to this ID
         Object.values(data.keys).forEach(k => { if(k.userId === target) data.timeouts[k.deviceId] = 9999999999; });
     }
     else if(type === 'unban') {
         delete data.bans[target];
-        // Remove infinite timeout
         Object.keys(data.timeouts).forEach(d => { if(data.timeouts[d] > 5000000000) delete data.timeouts[d]; });
     }
     else if(type === 'untimeout') {
@@ -307,6 +323,25 @@ async function refreshAdmin(){
       div.appendChild(row);
       keyLogs.appendChild(div);
   });
+
+  // Render Device Registry (Device ID as keys)
+  deviceLogs.innerHTML = "";
+  Object.keys(data.registry || {}).forEach(did => {
+      const div = document.createElement("div");
+      div.className = "keyRow";
+      div.innerHTML = `💻 Device: <code>${did}</code>`;
+      deviceLogs.appendChild(div);
+  });
+  
+  // Add Nuke Button to Device Logs Section
+  const nukeContainer = document.createElement("div");
+  nukeContainer.innerHTML = `<hr><p style="color:#ff3b30; font-size:12px; text-align:center;">Danger Zone</p>`;
+  const nukeBtn = document.createElement("button");
+  nukeBtn.className = "danger";
+  nukeBtn.textContent = "🔥 RESET ALL JSON DATA";
+  nukeBtn.onclick = nukeAllData;
+  nukeContainer.appendChild(nukeBtn);
+  deviceLogs.appendChild(nukeContainer);
 
   // Render Timeouts/Bans
   banLogs.innerHTML = "";
