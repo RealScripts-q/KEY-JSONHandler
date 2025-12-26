@@ -17,128 +17,57 @@
 }
 
 body {
-  margin: 0;
-  background: var(--bg);
-  background-image: 
-    radial-gradient(circle at 15% 15%, rgba(79, 124, 255, 0.08), transparent),
-    radial-gradient(circle at 85% 85%, rgba(63, 210, 255, 0.08), transparent);
-  font-family: 'Inter', system-ui, sans-serif;
-  color: var(--text);
-  height: 100vh;
-  overflow: hidden;
+  margin: 0; background: var(--bg);
+  background-image: radial-gradient(circle at 15% 15%, rgba(79, 124, 255, 0.08), transparent), radial-gradient(circle at 85% 85%, rgba(63, 210, 255, 0.08), transparent);
+  font-family: 'Inter', system-ui, sans-serif; color: var(--text); height: 100vh; overflow: hidden;
 }
 
 .hidden { display: none !important; }
 
 /* FULL SCREEN BLUR GATE */
 #interactionGate {
-    position: fixed;
-    inset: 0;
-    z-index: 10000;
-    background: rgba(11, 14, 20, 0.7);
-    backdrop-filter: blur(60px);
-    -webkit-backdrop-filter: blur(60px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: opacity 0.6s ease;
+    position: fixed; inset: 0; z-index: 10000;
+    background: rgba(11, 14, 20, 0.7); backdrop-filter: blur(60px);
+    display: flex; align-items: center; justify-content: center;
 }
-
-.gate-content { text-align: center; max-width: 450px; padding: 40px; }
 
 @keyframes panelFadeIn {
   from { opacity: 0; transform: scale(0.96) translateY(10px); filter: blur(10px); }
   to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0px); }
 }
 
-@keyframes panelFadeOut {
-  from { opacity: 1; transform: scale(1); filter: blur(0px); }
-  to { opacity: 0; transform: scale(1.02); filter: blur(10px); }
-}
-
 .animate-in { animation: panelFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-.animate-out { animation: panelFadeOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
 .panel {
-  width: 520px;
-  background: var(--panel-bg);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 28px;
-  padding: 35px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
-  margin: auto;
-  margin-top: 12vh;
+  width: 520px; background: var(--panel-bg); backdrop-filter: var(--blur);
+  border: 1px solid rgba(255,255,255,0.08); border-radius: 28px; padding: 35px; margin: auto; margin-top: 12vh;
 }
 
 .adminFull {
-  position: fixed;
-  inset: 0;
-  background: rgba(11, 14, 20, 0.94);
-  backdrop-filter: var(--blur);
-  padding: 40px;
-  overflow-y: auto;
-  z-index: 100;
+  position: fixed; inset: 0; background: rgba(11, 14, 20, 0.94); backdrop-filter: var(--blur);
+  padding: 40px; overflow-y: auto; z-index: 100;
 }
 
 button, input, select, textarea {
-  width: 100%;
-  padding: 14px 18px;
-  margin-top: 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.1);
-  font-size: 14px;
-  transition: all 0.2s ease;
-  box-sizing: border-box;
+  width: 100%; padding: 14px 18px; margin-top: 12px; border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.1); font-size: 14px; transition: all 0.2s ease; box-sizing: border-box;
 }
 
 input, select, textarea { background: rgba(0, 0, 0, 0.4); color: white; }
-input:focus { border-color: #4f7cff; outline: none; background: rgba(0,0,0,0.6); }
-
-button {
-  background: var(--accent);
-  color: white;
-  font-weight: 700;
-  cursor: pointer;
-  border: none;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-}
-
+button { background: var(--accent); color: white; font-weight: 700; cursor: pointer; border: none; text-transform: uppercase; }
 button:hover { filter: brightness(1.1); transform: translateY(-1px); }
-button:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
 button.danger { background: var(--danger); }
 button.secondary { background: var(--secondary); }
 button.success { background: var(--success); }
 
 .key-card {
-  background: rgba(255,255,255,0.03);
-  padding: 20px;
-  border-radius: 18px;
-  margin-bottom: 12px;
-  border: 1px solid rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.03); padding: 20px; border-radius: 18px;
+  margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.05);
 }
 
 .key-text {
-  font-family: 'JetBrains Mono', monospace;
-  color: #3fd2ff;
-  font-size: 11px;
-  background: rgba(0,0,0,0.3);
-  padding: 10px;
-  border-radius: 8px;
-  word-break: break-all;
-  display: block;
-}
-
-.id-display {
-  font-family: monospace;
-  color: #3fd2ff;
-  font-size: 10px;
-  background: rgba(0,0,0,0.5);
-  padding: 8px;
-  border-radius: 6px;
-  display: block;
+  font-family: monospace; color: #3fd2ff; font-size: 11px; background: rgba(0,0,0,0.3);
+  padding: 10px; border-radius: 8px; word-break: break-all; display: block;
 }
 
 .blocked-overlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; }
@@ -149,17 +78,17 @@ button.success { background: var(--success); }
 
 <div id="interactionGate" class="hidden">
     <div class="gate-content animate-in">
-        <h1 style="font-weight: 900; letter-spacing: -1px; margin-bottom: 10px;">SECURE ACCESS</h1>
-        <p style="opacity: 0.7; margin-bottom: 30px;">Initialize hardware session via cloud registry.</p>
+        <h1 style="font-weight: 900;">SECURITY HANDSHAKE</h1>
+        <p style="opacity: 0.7; margin-bottom: 30px;">Verifying hardware ID via cloud registry...</p>
         <button id="authBtn" onclick="authorizeDevice()" style="padding: 20px; font-size: 16px;">VERIFY & ENTER</button>
     </div>
 </div>
 
 <div id="timeoutOverlay" class="blocked-overlay hidden">
     <div class="animate-in">
-        <h1 style="color: #ff3b30; font-size: 50px; margin: 0;">🚫 SYSTEM TIMEOUT</h1>
-        <p style="font-size: 18px; opacity: 0.8; margin-top: 10px;">Your device has been restricted.</p>
-        <p id="displaySiteId" style="font-family: monospace; margin-top: 30px; color: #3fd2ff; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px;"></p>
+        <h1 style="color: #ff3b30; font-size: 50px;">🚫 RESTRICTED</h1>
+        <p style="font-size: 18px; opacity: 0.8;">Your device has been restricted for violating terms.</p>
+        <p id="displaySiteId" style="font-family: monospace; color: #3fd2ff; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px;"></p>
     </div>
 </div>
 
@@ -167,7 +96,7 @@ button.success { background: var(--success); }
   <h2 style="text-align:center; margin-bottom:25px; font-weight:800;">🔐 RSQ KEY SYSTEM</h2>
   <input id="userid" placeholder="Enter Roblox UserId">
   <button id="genBtn">GENERATE / RECOVER ACCESS</button>
-  <div id="status" style="text-align:center; margin-top:15px; font-size:13px; color:#888;">System Secure</div>
+  <div id="status" style="text-align:center; margin-top:15px; font-size:13px; color:#888;">Checking Registry...</div>
   <div id="keyOut" class="key-text" style="margin-top:10px; display:none; text-align:center;"></div>
   <div style="margin-top:25px; display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
     <button id="adminBtn" class="danger" style="font-size:11px;">👑 ADMIN</button>
@@ -181,16 +110,16 @@ button.success { background: var(--success); }
   <input id="fbUser" placeholder="Roblox Username/ID">
   <textarea id="fbMsg" placeholder="Why should you be unbanned?" style="height:150px; resize:none;"></textarea>
   <button id="fbSubmit" onclick="submitFeedback()">SUBMIT APPEAL</button>
-  <button style="background:none; border:1px solid rgba(255,255,255,0.1);" onclick="changePanel(feedbackPanel, userPanel)">CANCEL</button>
+  <button style="background:none;" onclick="changePanel(feedbackPanel, userPanel)">CANCEL</button>
 </div>
 
 <div id="adminPanel" class="adminFull hidden">
   <div style="max-width:1100px; margin:auto;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:40px;">
-      <h1 style="margin:0; font-weight:900;">👑 SYSTEM OVERSEER</h1>
+      <h1>👑 SYSTEM OVERSEER</h1>
       <div style="display:flex; gap:15px;">
-        <button onclick="changePanel(adminPanel, formsPanel)" class="secondary" style="width:auto; padding:10px 25px;">VIEW APPEALS</button>
-        <button onclick="exitAdmin()" style="width:auto; padding:10px 25px; background:rgba(255,255,255,0.1);">EXIT</button>
+        <button onclick="changePanel(adminPanel, formsPanel)" class="secondary" style="width:auto;">VIEW APPEALS</button>
+        <button onclick="exitAdmin()" style="width:auto; background:rgba(255,255,255,0.1);">EXIT</button>
       </div>
     </div>
     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:40px;">
@@ -201,9 +130,10 @@ button.success { background: var(--success); }
         <div id="idRegistryLogs"></div>
       </div>
       <div>
-        <h3>⏳ TIMEOUTS & BANS</h3>
+        <h3>⏳ ACTIVE TIMEOUTS (1H)</h3>
         <div id="timeoutLogs"></div>
-        <div id="banLogs" style="margin-top:20px;"></div>
+        <h3 style="margin-top:30px;">📜 USER BANS (PERMANENT)</h3>
+        <div id="banLogs"></div>
       </div>
     </div>
   </div>
@@ -211,17 +141,13 @@ button.success { background: var(--success); }
 
 <div id="formsPanel" class="adminFull hidden">
   <div style="max-width:900px; margin:auto;">
-    <div id="formsListView">
       <h2 style="font-weight:900;">📋 APPEALS</h2>
       <button onclick="changePanel(formsPanel, adminPanel)" style="width:auto; margin-bottom:25px;">⬅ BACK</button>
       <div id="formsList"></div>
-    </div>
   </div>
 </div>
 
 <script>
-/* --- CONFIG & STATE --- */
-localStorage.clear(); 
 const BIN_ID = "694c4aefae596e708faef157";
 const JSONBIN_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu";
 const ADMIN_MASTER_KEY = "roblox";
@@ -230,18 +156,16 @@ let SESSION_DEVICE_ID = null;
 const now = () => Math.floor(Date.now()/1000);
 
 function getFingerprint() {
-    return btoa(navigator.userAgent + screen.colorDepth + screen.width + navigator.language).slice(0, 32);
+    return btoa(navigator.userAgent + screen.colorDepth + screen.width).slice(0, 32);
 }
 
 async function getData(){ const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`); return (await r.json()).record || {}; }
 async function saveData(data){ await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, { method:"PUT", headers:{"Content-Type":"application/json", "X-Master-Key":JSONBIN_KEY}, body:JSON.stringify(data) }); }
 
-/* AUTO-DETECTION ON LOAD */
 window.onload = async () => {
     const fp = getFingerprint();
     const data = await getData();
     data.registry ||= {};
-
     if(data.registry[fp]) {
         SESSION_DEVICE_ID = data.registry[fp];
         bootApp();
@@ -277,10 +201,12 @@ async function checkGlobalSecurity() {
 genBtn.onclick = async () => {
     const uid = userid.value.trim();
     if(!/^\d+$/.test(uid)) return;
-    status.textContent = "⌛ Authorizing...";
+    status.textContent = "⌛ Syncing Registry...";
     const data = await getData();
     data.keys ||= {}; data.bans ||= {};
-    if(data.bans[uid]) { status.textContent = "🚫 USER BANNED"; return; }
+    
+    // Exact Ban Structure Check
+    if(data.bans[uid] === true) { status.textContent = "🚫 USER PERMANENTLY BANNED"; return; }
     
     const key = "RSQ-" + crypto.randomUUID().replace(/-/g, '').toUpperCase().slice(0, 24);
     data.keys[key] = { userId: uid, expires: now() + 86400, device: SESSION_DEVICE_ID };
@@ -290,47 +216,60 @@ genBtn.onclick = async () => {
 };
 
 /* ADMIN POWER ACTIONS */
-window.removeKey = async (key) => {
-    const data = await getData(); delete data.keys[key];
-    await saveData(data); refreshAdmin();
-};
+window.removeKey = async (key) => { const d = await getData(); delete d.keys[key]; await saveData(d); refreshAdmin(); };
+window.renewKey = async (key) => { const d = await getData(); d.keys[key].expires = now() + 86400; await saveData(d); refreshAdmin(); };
+window.makeInf = async (key) => { const d = await getData(); d.keys[key].expires = 32503680000; await saveData(d); refreshAdmin(); };
+window.purgeID = async (fp) => { const d = await getData(); delete d.registry[fp]; await saveData(d); refreshAdmin(); };
+window.liftBan = async (uid) => { const d = await getData(); delete d.bans[uid]; await saveData(d); refreshAdmin(); };
+window.liftTimeout = async (did) => { const d = await getData(); delete d.timeouts[did]; await saveData(d); refreshAdmin(); };
+
 window.banUser = async (uid) => {
-    const data = await getData(); data.bans ||= {}; data.bans[uid] = true;
-    await saveData(data); refreshAdmin();
+    const d = await getData(); d.bans ||= {};
+    d.bans[uid] = true; // Your requested structure
+    await saveData(d); refreshAdmin();
 };
-window.renewKey = async (key) => {
-    const data = await getData(); data.keys[key].expires = now() + 86400;
-    await saveData(data); refreshAdmin();
-};
-window.makeInf = async (key) => {
-    const data = await getData(); data.keys[key].expires = 32503680000;
-    await saveData(data); refreshAdmin();
-};
-window.purgeID = async (fp) => {
-    const data = await getData(); delete data.registry[fp];
-    await saveData(data); refreshAdmin();
+
+window.timeoutDevice = async (did) => {
+    const d = await getData(); d.timeouts ||= {};
+    d.timeouts[did] = now() + 3600; 
+    await saveData(d); refreshAdmin();
 };
 
 async function refreshAdmin() {
     const data = await getData();
+    
+    // Key Logs
     const kLogs = document.getElementById("keyLogs"); kLogs.innerHTML = "";
     Object.entries(data.keys || {}).forEach(([k, v]) => {
-        kLogs.innerHTML += `
-            <div class="key-card">
-                <b>User: ${v.userId}</b> | <small>${v.expires > 20000000000 ? 'INF' : '24H'}</small><br>
-                <code class="key-text">${k}</code>
-                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:5px; margin-top:10px;">
-                    <button class="danger" style="font-size:8px; padding:5px;" onclick="removeKey('${k}')">REMOVE</button>
-                    <button class="danger" style="font-size:8px; padding:5px;" onclick="banUser('${v.userId}')">BAN</button>
-                    <button class="success" style="font-size:8px; padding:5px;" onclick="renewKey('${k}')">RENEW</button>
-                    <button class="success" style="font-size:8px; padding:5px;" onclick="makeInf('${k}')">INF</button>
-                </div>
-            </div>`;
+        kLogs.innerHTML += `<div class="key-card">
+            <b>User: ${v.userId}</b> | <small>${v.expires > 20000000000 ? 'INF' : '24H'}</small><br>
+            <code class="key-text">${k}</code>
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:5px; margin-top:10px;">
+                <button class="danger" style="font-size:8px; padding:5px;" onclick="removeKey('${k}')">REMOVE</button>
+                <button class="danger" style="font-size:8px; padding:5px;" onclick="banUser('${v.userId}')">BAN</button>
+                <button class="success" style="font-size:8px; padding:5px;" onclick="renewKey('${k}')">RENEW</button>
+                <button class="success" style="font-size:8px; padding:5px;" onclick="makeInf('${k}')">INF</button>
+            </div>
+            <button class="secondary" style="font-size:8px; margin-top:5px;" onclick="timeoutDevice('${v.device}')">TIMEOUT DEVICE</button>
+        </div>`;
     });
 
+    // Ban Logs
+    const bLogs = document.getElementById("banLogs"); bLogs.innerHTML = "";
+    Object.keys(data.bans || {}).forEach(uid => {
+        bLogs.innerHTML += `<div class="key-card"><b>UID: ${uid}</b> <button class="success" style="font-size:8px; width:auto; float:right;" onclick="liftBan('${uid}')">UNBAN</button></div>`;
+    });
+
+    // Timeout Logs
+    const tLogs = document.getElementById("timeoutLogs"); tLogs.innerHTML = "";
+    Object.entries(data.timeouts || {}).forEach(([did, exp]) => {
+        if(exp > now()) tLogs.innerHTML += `<div class="key-card"><b>ID: ${did}</b><br><small>Ends: ${new Date(exp*1000).toLocaleTimeString()}</small> <button class="success" style="font-size:8px;" onclick="liftTimeout('${did}')">LIFT</button></div>`;
+    });
+
+    // Registry Logs
     const rLogs = document.getElementById("idRegistryLogs"); rLogs.innerHTML = "";
     Object.entries(data.registry || {}).forEach(([fp, did]) => {
-        rLogs.innerHTML += `<div class="key-card"><code class="id-display">${did}</code><button class="danger" style="font-size:8px; margin-top:5px;" onclick="purgeID('${fp}')">PURGE</button></div>`;
+        rLogs.innerHTML += `<div class="key-card"><code style="font-size:9px;">${did}</code><button class="danger" style="font-size:8px; margin-top:5px;" onclick="purgeID('${fp}')">PURGE</button></div>`;
     });
 }
 
