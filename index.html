@@ -12,7 +12,7 @@
   --danger: linear-gradient(135deg, #ff3b30, #ff453a);
   --secondary: linear-gradient(135deg, #ff8a00, #ffb300);
   --text: #ffffff;
-  --blur: blur(25px);
+  --blur: blur(20px);
 }
 
 body {
@@ -45,20 +45,29 @@ body {
 
 .gate-content { text-align: center; max-width: 450px; padding: 40px; }
 
+/* Advanced Animations */
 @keyframes panelFadeIn {
-  from { opacity: 0; transform: scale(0.96) translateY(10px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  from { opacity: 0; transform: scale(0.96) translateY(10px); filter: blur(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0px); }
+}
+
+@keyframes panelFadeOut {
+  from { opacity: 1; transform: scale(1); filter: blur(0px); }
+  to { opacity: 0; transform: scale(1.02); filter: blur(10px); }
 }
 
 .animate-in { animation: panelFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-out { animation: panelFadeOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
 .panel {
   width: 520px;
   background: var(--panel-bg);
   backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 28px;
   padding: 35px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
   margin: auto;
   margin-top: 12vh;
 }
@@ -66,35 +75,39 @@ body {
 .adminFull {
   position: fixed;
   inset: 0;
-  background: rgba(11, 14, 20, 0.96);
+  background: rgba(11, 14, 20, 0.94);
   backdrop-filter: var(--blur);
   padding: 40px;
   overflow-y: auto;
   z-index: 100;
 }
 
-button, input, textarea {
+button, input, select, textarea {
   width: 100%;
   padding: 14px 18px;
   margin-top: 12px;
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(0, 0, 0, 0.4);
-  color: white;
   font-size: 14px;
   transition: all 0.2s ease;
   box-sizing: border-box;
 }
 
+input, select, textarea { background: rgba(0, 0, 0, 0.4); color: white; }
+input:focus { border-color: #4f7cff; outline: none; background: rgba(0,0,0,0.6); }
+
 button {
   background: var(--accent);
+  color: white;
   font-weight: 700;
   cursor: pointer;
   border: none;
+  letter-spacing: 0.8px;
   text-transform: uppercase;
 }
 
 button:hover { filter: brightness(1.1); transform: translateY(-1px); }
+button:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
 button.danger { background: var(--danger); }
 button.secondary { background: var(--secondary); }
 
@@ -106,6 +119,17 @@ button.secondary { background: var(--secondary); }
   border: 1px solid rgba(255,255,255,0.05);
 }
 
+.key-text {
+  font-family: 'JetBrains Mono', monospace;
+  color: #3fd2ff;
+  font-size: 11px;
+  background: rgba(0,0,0,0.3);
+  padding: 10px;
+  border-radius: 8px;
+  word-break: break-all;
+  display: block;
+}
+
 .id-display {
   font-family: monospace;
   color: #3fd2ff;
@@ -115,6 +139,8 @@ button.secondary { background: var(--secondary); }
   border-radius: 6px;
   display: block;
 }
+
+.blocked-overlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; }
 </style>
 </head>
 
@@ -128,13 +154,21 @@ button.secondary { background: var(--secondary); }
     </div>
 </div>
 
+<div id="timeoutOverlay" class="blocked-overlay hidden">
+    <div class="animate-in">
+        <h1 style="color: #ff3b30; font-size: 50px; margin: 0;">🚫 SYSTEM TIMEOUT</h1>
+        <p style="font-size: 18px; opacity: 0.8; margin-top: 10px;">Your device has been restricted for 1 hour for violating guidelines.</p>
+        <p id="displaySiteId" style="font-family: monospace; margin-top: 30px; color: #3fd2ff; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px;"></p>
+    </div>
+</div>
+
 <div id="userPanel" class="panel animate-in hidden">
   <h2 style="text-align:center; margin-bottom:25px; font-weight:800;">🔐 RSQ KEY SYSTEM</h2>
   <input id="userid" placeholder="Enter Roblox UserId">
-  <button id="genBtn">GENERATE ACCESS</button>
+  <button id="genBtn">GENERATE / RECOVER ACCESS</button>
 
-  <div id="status" style="text-align:center; margin-top:15px; font-size:13px; color:#888; height: 16px;"></div>
-  <div id="keyOut" class="id-display" style="margin-top:10px; display:none; text-align:center;"></div>
+  <div id="status" style="text-align:center; margin-top:15px; font-size:13px; color:#888;">System Secure</div>
+  <div id="keyOut" class="key-text" style="margin-top:10px; display:none; text-align:center;"></div>
 
   <div style="margin-top:25px; display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
     <button id="adminBtn" class="danger" style="font-size:11px;">👑 ADMIN</button>
@@ -145,66 +179,116 @@ button.secondary { background: var(--secondary); }
 
 <div id="feedbackPanel" class="panel hidden">
   <h2>📨 BAN APPEAL</h2>
-  <textarea id="fbMsg" placeholder="Message..." style="height:150px; resize:none;"></textarea>
-  <button onclick="submitFeedback()">SUBMIT</button>
-  <button style="background:none;" onclick="changePanel(feedbackPanel, userPanel)">BACK</button>
+  <p style="font-size: 11px; color: #888; margin: 0;">Automated moderation is active. Slurs result in a 1-hour device timeout.</p>
+  <input id="fbUser" placeholder="Roblox Username/ID">
+  <textarea id="fbMsg" placeholder="Why should you be unbanned?" style="height:150px; resize:none;"></textarea>
+  <button id="fbSubmit" onclick="submitFeedback()">SUBMIT APPEAL</button>
+  <button style="background:none; border:1px solid rgba(255,255,255,0.1);" onclick="changePanel(feedbackPanel, userPanel)">CANCEL</button>
+  <div id="fbStatus" style="text-align:center; margin-top:12px; font-size:13px;"></div>
 </div>
 
 <div id="adminPanel" class="adminFull hidden">
   <div style="max-width:1100px; margin:auto;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:40px;">
-      <h1>👑 SYSTEM OVERSEER</h1>
-      <button onclick="exitAdmin()" style="width:auto; padding:10px 25px;">EXIT</button>
+      <h1 style="margin:0; font-weight:900;">👑 SYSTEM OVERSEER</h1>
+      <div style="display:flex; gap:15px;">
+        <button onclick="changePanel(adminPanel, formsPanel)" class="secondary" style="width:auto; padding:10px 25px;">VIEW APPEALS</button>
+        <button onclick="exitAdmin()" style="width:auto; padding:10px 25px; background:rgba(255,255,255,0.1);">EXIT</button>
+      </div>
     </div>
+
     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:40px;">
       <div>
-        <h3>🖥️ DEVICE ID REGISTRY</h3>
-        <div id="idLogs" style="max-height: 300px; overflow-y: auto;"></div>
-        <h3 style="margin-top:30px;">🔑 ACTIVE KEYS</h3>
+        <h3>🔑 ACTIVE KEYS & DEVICE IDs</h3>
         <div id="keyLogs"></div>
+        <h3 style="margin-top:30px;">🖥️ SYSTEM REGISTRY (PURGE)</h3>
+        <div id="idRegistryLogs" style="max-height: 300px; overflow-y: auto;"></div>
       </div>
       <div>
-        <h3>📨 APPEALS</h3>
-        <div id="formsList"></div>
+        <h3>⏳ ACTIVE TIMEOUTS (1H)</h3>
+        <div id="timeoutLogs"></div>
+        <h3 style="margin-top: 30px;">📜 USER BANS</h3>
+        <div id="banLogs"></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<div id="formsPanel" class="adminFull hidden">
+  <div style="max-width:900px; margin:auto;">
+    <div id="formsListView">
+      <h2 style="font-weight:900;">📋 APPEALS BY DEVICE ID</h2>
+      <button onclick="changePanel(formsPanel, adminPanel)" style="width:auto; margin-bottom:25px;">⬅ BACK</button>
+      <div id="formsList" style="margin-top:20px;"></div>
+    </div>
+
+    <div id="formsDetailView" class="hidden animate-in" style="background: rgba(255,255,255,0.02); border-radius: 24px; min-height: 60vh; position: relative; border: 1px solid rgba(255,255,255,0.05);">
+        <div style="padding:30px;">
+            <h2 id="detailUser" style="margin:0; color:#3fd2ff;"></h2>
+            <div id="detailTime" style="font-size:12px; opacity:0.5; margin-top:5px;"></div>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:center; text-align:center; padding:40px 60px;">
+            <p id="detailMessage" style="font-size:20px; line-height:1.6; max-width:85%;"></p>
+        </div>
+        <div style="padding:25px; display:flex; gap:15px; justify-content:flex-end; background:rgba(0,0,0,0.3); border-radius:0 0 24px 24px; position: absolute; bottom: 0; width: 100%;">
+            <button style="width:auto; background:rgba(255,255,255,0.1); padding:10px 30px;" onclick="closeDetail()">CLOSE</button>
+            <button id="detailDeleteBtn" class="danger" style="width:auto; padding:10px 30px;">RESOLVE</button>
+        </div>
     </div>
   </div>
 </div>
 
 <script>
 /* --- CONFIG & STATE --- */
-localStorage.clear(); // Reset storage on every load as requested
+localStorage.clear(); // Wipe local storage to rely on JSON registry
 const BIN_ID = "694c4aefae596e708faef157";
 const JSONBIN_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu";
 const ADMIN_MASTER_KEY = "roblox";
+const BAD_WORDS = ["slur1", "slur2", "curse1"]; 
 
 let SESSION_DEVICE_ID = null;
 const now = () => Math.floor(Date.now()/1000);
 
+/* --- UTILS --- */
+function changePanel(oldPanel, newPanel) {
+    oldPanel.classList.add("animate-out");
+    setTimeout(() => {
+        oldPanel.classList.add("hidden");
+        oldPanel.classList.remove("animate-out");
+        newPanel.classList.remove("hidden");
+        newPanel.classList.add("animate-in");
+    }, 300);
+}
+
+async function getData(){
+    const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
+    const res = await r.json();
+    return res.record || {};
+}
+async function saveData(data){
+    await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+        method:"PUT", headers:{"Content-Type":"application/json", "X-Master-Key":JSONBIN_KEY},
+        body:JSON.stringify(data)
+    });
+}
+
 /* --- PERSISTENT IDENTIFICATION --- */
 function getFingerprint() {
-    // Generates a fingerprint based on hardware/browser properties
     return btoa(navigator.userAgent + screen.colorDepth + screen.width + navigator.language).slice(0, 32);
 }
 
-async function getData(){ const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`); return (await r.json()).record || {}; }
-async function saveData(data){ await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, { method:"PUT", headers:{"Content-Type":"application/json", "X-Master-Key":JSONBIN_KEY}, body:JSON.stringify(data) }); }
-
-/* --- HANDSHAKE PROCESS --- */
 async function authorizeDevice() {
     const authBtn = document.getElementById('authBtn');
     authBtn.disabled = true;
-    authBtn.textContent = "QUERYING REGISTRY...";
+    authBtn.textContent = "QUERYING CLOUD REGISTRY...";
     
     const fp = getFingerprint();
     const data = await getData();
-    data.registry ||= {}; // Key: Fingerprint, Value: 24+ char ID
+    data.registry ||= {}; 
 
     if (data.registry[fp]) {
-        // ID Found in JSON
         SESSION_DEVICE_ID = data.registry[fp];
     } else {
-        // ID Not found, generate new 24+ char unique ID
         SESSION_DEVICE_ID = "RSQ-ID-" + crypto.randomUUID().replace(/-/g,'').toUpperCase().slice(0,24);
         data.registry[fp] = SESSION_DEVICE_ID;
         await saveData(data);
@@ -214,57 +298,175 @@ async function authorizeDevice() {
     setTimeout(() => {
         document.getElementById('interactionGate').classList.add('hidden');
         document.getElementById('userPanel').classList.remove('hidden');
-        status.textContent = "✅ ID LINKED: " + SESSION_DEVICE_ID.slice(0,12) + "...";
+        checkGlobalSecurity();
     }, 600);
 }
 
-/* --- LOGIC --- */
-genBtn.onclick = async () => {
-    const uid = userid.value.trim();
-    if(!/^\d+$/.test(uid)) { status.textContent="❌ INVALID USERID"; return; }
-    status.textContent = "⌛ SYNCING...";
+/* --- SECURITY & TIMEOUTS --- */
+async function checkGlobalSecurity() {
+    if(!SESSION_DEVICE_ID) return;
     const data = await getData();
-    data.keys ||= {};
-    const key = "RSQ-" + crypto.randomUUID().replace(/-/g, '').toUpperCase().slice(0, 24);
-    data.keys[key] = { userId: uid, device: SESSION_DEVICE_ID, time: now() };
-    await saveData(data);
-    keyOut.textContent = key; keyOut.style.display = "block";
-    status.textContent = "✅ ACCESS GRANTED";
+    data.timeouts ||= {};
+    
+    const timeoutExpiry = data.timeouts[SESSION_DEVICE_ID];
+    if(timeoutExpiry && timeoutExpiry > now()) {
+        const remaining = Math.ceil((timeoutExpiry - now()) / 60);
+        status.textContent = `⏳ TIMEOUT: ${remaining}m remaining`;
+        displaySiteId.textContent = "ID: " + SESSION_DEVICE_ID;
+        timeoutOverlay.classList.remove("hidden");
+        genBtn.disabled = true;
+        return true;
+    } 
+    return false;
+}
+
+/* --- USER ACTIONS --- */
+genBtn.onclick = async () => {
+    if(await checkGlobalSecurity()) return;
+    const uid = userid.value.trim();
+    if(!/^\d+$/.test(uid)) { status.textContent="❌ INVALID ID"; return; }
+    status.textContent = "⌛ Authorizing...";
+    
+    const data = await getData();
+    data.keys ||= {}; data.bans ||= {};
+    
+    if(data.bans[uid] && data.bans[uid] > now()){
+        status.textContent = "🚫 BANNED UNTIL " + new Date(data.bans[uid]*1000).toLocaleString();
+        return;
+    }
+    
+    const existing = Object.entries(data.keys).find(([k,v]) => String(v.userId) === uid);
+    if(existing) {
+        keyOut.textContent = existing[0]; keyOut.style.display = "block";
+        status.textContent = "✅ KEY RECOVERED";
+    } else {
+        const key = "RSQ-" + crypto.randomUUID().replace(/-/g, '').toUpperCase().slice(0, 24);
+        data.keys[key] = { userId: Number(uid), expires: now() + 86400, device: SESSION_DEVICE_ID };
+        await saveData(data);
+        keyOut.textContent = key; keyOut.style.display = "block";
+        status.textContent = "✅ NEW KEY GENERATED";
+    }
 };
 
 async function submitFeedback() {
+    const user = fbUser.value.trim(); const msg = fbMsg.value.trim();
+    if(!user || !msg) return;
+
+    if(BAD_WORDS.some(word => msg.toLowerCase().includes(word.toLowerCase()))) {
+        const data = await getData();
+        data.timeouts ||= {};
+        data.timeouts[SESSION_DEVICE_ID] = now() + 3600; 
+        await saveData(data);
+        checkGlobalSecurity();
+        return;
+    }
+
+    fbStatus.textContent = "⌛ SUBMITTING...";
     const data = await getData();
-    data.feedback ||= [];
-    data.feedback.push({ message: fbMsg.value, device: SESSION_DEVICE_ID, time: now() });
+    data.feedback ||= []; data.feedback.push({ id: crypto.randomUUID(), user, message: msg, device: SESSION_DEVICE_ID, time: now() });
     await saveData(data);
-    alert("Appeal Submitted to Registry");
+    fbStatus.textContent = "✅ APPEAL SUBMITTED";
+    setTimeout(() => changePanel(feedbackPanel, userPanel), 1500);
 }
 
-/* --- ADMIN VIEW --- */
+/* --- ADMIN --- */
 async function refreshAdmin() {
     const data = await getData();
     
-    // Registry Log (Showing all 24+ char IDs from JSON)
-    const il = document.getElementById("idLogs"); il.innerHTML = "";
-    Object.values(data.registry || {}).forEach(id => {
-        il.innerHTML += `<div class="key-card"><code class="id-display">${id}</code></div>`;
+    // Key Logs
+    const kLogs = document.getElementById("keyLogs");
+    kLogs.innerHTML = "";
+    Object.entries(data.keys || {}).forEach(([k, v]) => {
+        const div = document.createElement("div");
+        div.className = "key-card";
+        div.innerHTML = `
+            <b>User: ${v.userId}</b><br>
+            <small>Device: ${v.device || 'Unknown'}</small><br>
+            <code class="key-text">${k}</code>
+            <button class="danger" style="font-size:9px; padding:5px; margin-top:5px;" onclick="forceTimeout('${v.device}')">1H Timeout Device</button>
+        `;
+        kLogs.appendChild(div);
     });
 
-    const kl = document.getElementById("keyLogs"); kl.innerHTML = "";
-    Object.entries(data.keys || {}).forEach(([k,v]) => {
-        kl.innerHTML += `<div class="key-card"><b>User: ${v.userId}</b><br><small>Dev: ${v.device}</small></div>`;
+    // Cloud Registry Registry (PURGE SECTION)
+    const rLogs = document.getElementById("idRegistryLogs");
+    rLogs.innerHTML = "";
+    Object.entries(data.registry || {}).forEach(([fp, did]) => {
+        const div = document.createElement("div");
+        div.className = "key-card";
+        div.style.padding = "10px";
+        div.innerHTML = `
+            <code class="id-display" style="font-size:9px;">${did}</code>
+            <button class="danger" style="font-size:8px; padding:3px; margin-top:5px; width:auto;" onclick="purgeID('${fp}')">PURGE FROM SYSTEM</button>
+        `;
+        rLogs.appendChild(div);
     });
 
-    const fl = document.getElementById("formsList"); fl.innerHTML = "";
+    // Timeout Logs
+    const tLogs = document.getElementById("timeoutLogs");
+    tLogs.innerHTML = "";
+    Object.entries(data.timeouts || {}).forEach(([did, exp]) => {
+        if(exp < now()) return;
+        const div = document.createElement("div");
+        div.className = "key-card";
+        div.style.borderColor = "#ff8a00";
+        div.innerHTML = `<small>ID: ${did}</small><br><b>Expires: ${new Date(exp*1000).toLocaleTimeString()}</b>
+        <button style="width:auto; font-size:9px;" onclick="liftTimeout('${did}')">LIFT</button>`;
+        tLogs.appendChild(div);
+    });
+
+    // Appeals
+    const list = document.getElementById("formsList"); list.innerHTML = "";
     (data.feedback || []).forEach(f => {
-        fl.innerHTML += `<div class="key-card"><b>From: ${f.device}</b><p>${f.message}</p></div>`;
+        const div = document.createElement("div");
+        div.className = "key-card"; div.style.display="flex"; div.style.justifyContent="space-between";
+        div.innerHTML = `<span><b>${f.device}</b><br><small>User: ${f.user}</small></span> <button style="width:auto; font-size:10px;" onclick='showDetail(${JSON.stringify(f)})'>OPEN</button>`;
+        list.appendChild(div);
     });
 }
 
-function changePanel(oldP, newP) { oldP.classList.add("hidden"); newP.classList.remove("hidden"); newP.classList.add("animate-in"); }
+window.purgeID = async (fp) => {
+    if(!confirm("Purge this device? They will be forced to re-initialize.")) return;
+    const data = await getData();
+    delete data.registry[fp];
+    await saveData(data); refreshAdmin();
+};
+
+window.forceTimeout = async (did) => {
+    if(!did || did === 'Unknown') return;
+    const data = await getData();
+    data.timeouts ||= {};
+    data.timeouts[did] = now() + 3600;
+    await saveData(data); refreshAdmin();
+};
+
+window.liftTimeout = async (did) => {
+    const data = await getData();
+    delete data.timeouts[did];
+    await saveData(data); refreshAdmin();
+};
+
+function showDetail(f) {
+    document.getElementById("formsListView").classList.add("hidden");
+    document.getElementById("formsDetailView").classList.remove("hidden");
+    document.getElementById("detailUser").textContent = f.user;
+    document.getElementById("detailTime").textContent = "Device: " + f.device;
+    document.getElementById("detailMessage").textContent = f.message;
+    document.getElementById("detailDeleteBtn").onclick = async () => {
+        const data = await getData(); data.feedback = data.feedback.filter(x => x.id !== f.id);
+        await saveData(data); closeDetail(); refreshAdmin();
+    };
+}
+
+function closeDetail() {
+    document.getElementById("formsDetailView").classList.add("hidden");
+    document.getElementById("formsListView").classList.remove("hidden");
+}
+
 adminBtn.onclick = () => adminInput.classList.toggle("hidden");
 adminInput.onchange = () => { if(adminInput.value === ADMIN_MASTER_KEY) { changePanel(userPanel, adminPanel); refreshAdmin(); } };
-function exitAdmin() { changePanel(adminPanel, userPanel); adminInput.value = ""; }
+function exitAdmin() { changePanel(adminPanel, userPanel); adminInput.value = ""; adminInput.classList.add("hidden"); }
+
 </script>
 </body>
 </html>
