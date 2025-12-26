@@ -143,7 +143,7 @@ button.mini { width: auto; padding: 5px 10px; font-size: 10px; margin: 2px; marg
         
         <input id="userid" placeholder="Roblox UserID">
         <button id="genBtn">Generate Access Key</button>
-        <div id="statusMsg" style="text-align:center; margin-top:10px; font-size:12px;"></div>
+        <div id="statusMsg" style="text-align:center; margin-top:10px; font-size:12px; color:var(--danger);"></div>
         <div id="keyOut" style="text-align:center; margin-top:10px; color:var(--secondary); font-family:monospace; font-weight:bold;"></div>
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:20px;">
@@ -169,14 +169,13 @@ button.mini { width: auto; padding: 5px 10px; font-size: 10px; margin: 2px; marg
         <h2>👑 OVERSEER CONTROL</h2>
         <div style="display:flex; gap:10px;">
             <button onclick="nukeAll()" class="danger" style="width:auto; margin:0;">RESET ALL (NUKE)</button>
-            <button onclick="manualBan()" class="danger" style="width:auto; margin:0; background:orange;">BAN USER</button>
             <button onclick="document.getElementById('adminPanel').classList.add('hidden')" style="width:auto; margin:0; background:#444;">Exit</button>
         </div>
     </div>
     <input id="adminSearch" placeholder="Search Data..." style="margin-bottom:20px;" oninput="renderAdmin()">
     <div class="admin-grid">
         <div><h3>System Keys</h3><div id="keyLogs" class="log-box"></div></div>
-        <div><h3>User Activity</h3><div id="feedLogs" class="log-box"></div><div id="banDisplay"></div></div>
+        <div><h3>User Warns & Dev IDs</h3><div id="userLogs" class="log-box"></div></div>
     </div>
 </div>
 
@@ -185,11 +184,10 @@ const BIN_ID = "694c4aefae596e708faef157";
 const JSON_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu";
 const MASTER_KEY = "roblox";
 
-// MODERATION CONFIG
 const BANNED_WORDS = ["nigger", "fuck", "shit"];
-let localWarnings = 0;
-
 let currentUser = null;
+let currentWarns = 0;
+
 const getDevId = () => btoa(navigator.userAgent + screen.width).slice(0, 12).toUpperCase();
 const MY_ID = getDevId();
 const now = () => Math.floor(Date.now()/1000);
@@ -211,7 +209,6 @@ function initSnow() {
         s.className = 'snowflake'; s.innerHTML = '❄';
         s.style.left = Math.random() * 100 + 'vw';
         s.style.animationDuration = (Math.random() * 3 + 5) + 's';
-        s.style.opacity = Math.random();
         document.body.appendChild(s);
     }
 }
@@ -234,44 +231,44 @@ async function handleAuth(type) {
         const p = document.getElementById('s-pass').value.trim();
         if(!u || !p) return status.innerText = "Fields empty";
         if(data.users[u]) return status.innerText = "Username taken";
-        
-        const registered = Object.values(data.users).some(x => x.dev === MY_ID);
-        if(registered) return status.innerText = "One account per device limit";
+        if(Object.values(data.users).some(x => x.dev === MY_ID)) return status.innerText = "Device already linked";
 
-        data.users[u] = { pass: p, dev: MY_ID };
+        data.users[u] = { pass: p, dev: MY_ID, warns: 0 };
         await api('PUT', data);
         status.style.color = "var(--success)";
-        status.innerText = "Account Created! Login now.";
+        status.innerText = "Created! Login now.";
         toggleAuth(false);
     } else {
         const u = document.getElementById('l-user').value.trim();
         const p = document.getElementById('l-pass').value.trim();
         if(data.users[u] && data.users[u].pass === p) {
             currentUser = u;
+            currentWarns = data.users[u].warns || 0;
             document.getElementById('authPanel').classList.add('hidden');
             document.getElementById('mainSystem').classList.remove('hidden');
-            document.getElementById('welcomeUser').innerText = `USER: ${u} | DEVICE: ${MY_ID}`;
+            document.getElementById('welcomeUser').innerText = `USER: ${u} | WARNS: ${currentWarns}`;
             startChatLoop();
-        } else {
-            status.innerText = "Invalid login";
-        }
+        } else { status.innerText = "Invalid login"; }
     }
 }
 
 function logout() { location.reload(); }
 
-/* CHAT MODERATION LOGIC */
-function containsBannedWords(text) {
-    const lowerText = text.toLowerCase();
-    return BANNED_WORDS.some(word => lowerText.includes(word));
+/* MODERATION BOT */
+async function addWarning() {
+    const data = await api('GET');
+    data.users[currentUser].warns = (data.users[currentUser].warns || 0) + 1;
+    currentWarns = data.users[currentUser].warns;
+    await api('PUT', data);
+    document.getElementById('welcomeUser').innerText = `USER: ${currentUser} | WARNS: ${currentWarns}`;
+    botMessage("You have been warned. Any more warnings could result in a timeout.");
 }
 
-function triggerBotWarning() {
-    localWarnings++;
+function botMessage(msg) {
     const box = document.getElementById('chat-msgs');
     const warning = document.createElement('div');
     warning.className = 'msg-item bot-msg';
-    warning.innerHTML = `<b class="bot-name">[PRIVATE] RSQ MANAGER</b> You have been warned. Any more warnings could result in a timeout.`;
+    warning.innerHTML = `<b class="bot-name">[PRIVATE] RSQ MANAGER</b> ${msg}`;
     box.appendChild(warning);
     box.scrollTop = box.scrollHeight;
 }
@@ -284,8 +281,6 @@ function startChatLoop() { setInterval(updateChat, 4000); updateChat(); }
 async function updateChat() {
     const data = await api('GET');
     const box = document.getElementById('chat-msgs');
-    
-    // Save current scroll position
     const isAtBottom = box.scrollHeight - box.clientHeight <= box.scrollTop + 1;
 
     box.innerHTML = (data.chat || []).map((m, i) => `
@@ -303,11 +298,23 @@ document.getElementById('sendChat').onclick = async () => {
     const text = inp.value.trim();
     if(!text) return;
 
-    // BOT MODERATION CHECK
-    if(containsBannedWords(text)) {
+    if(currentWarns >= 2) {
+        botMessage("you have been timeout for 5ms");
         inp.value = '';
-        triggerBotWarning();
-        return; 
+        return;
+    }
+
+    if(BANNED_WORDS.some(word => text.toLowerCase().includes(word))) {
+        // User must delete it themselves - local only
+        const box = document.getElementById('chat-msgs');
+        const localItem = document.createElement('div');
+        localItem.className = 'msg-item';
+        localItem.innerHTML = `<b>${currentUser}</b>${text}<span class="del-msg" onclick="this.parentElement.remove()">DEL</span>`;
+        box.appendChild(localItem);
+        box.scrollTop = box.scrollHeight;
+        inp.value = '';
+        await addWarning();
+        return;
     }
 
     const data = await api('GET');
@@ -327,34 +334,7 @@ async function deleteMsg(idx) {
     }
 }
 
-/* KEY GEN */
-document.getElementById('genBtn').onclick = async () => {
-    const rbx = document.getElementById('userid').value.trim();
-    if(!rbx) return;
-    const status = document.getElementById('statusMsg');
-    status.innerText = "Generating...";
-    
-    const data = await api('GET');
-    data.keys ||= {};
-    data.bans ||= [];
-
-    if(data.bans.includes(rbx)) return status.innerText = "🚫 BANNED";
-
-    const existing = Object.entries(data.keys).find(([k, v]) => v.user === currentUser);
-    if(existing) {
-        status.innerText = "RECOVERED EXISTING KEY";
-        document.getElementById('keyOut').innerText = existing[0];
-        return;
-    }
-
-    const key = "RSQ-" + Math.random().toString(36).substr(2, 8).toUpperCase();
-    data.keys[key] = { user: currentUser, rbx: rbx, dev: MY_ID, exp: now() + 86400 };
-    await api('PUT', data);
-    document.getElementById('keyOut').innerText = key;
-    status.innerText = "✅ KEY ACTIVATED";
-};
-
-/* ADMIN */
+/* ADMIN PANEL RENDER */
 document.getElementById('adminBtn').onclick = () => document.getElementById('adminInput').classList.toggle('hidden');
 document.getElementById('adminInput').onchange = function() {
     if(this.value === MASTER_KEY) {
@@ -363,34 +343,25 @@ document.getElementById('adminInput').onchange = function() {
     }
 };
 
-async function nukeAll() {
-    if(!confirm("DELETE EVERYTHING?")) return;
-    await api('PUT', { keys: {}, users: {}, chat: [], bans: [], registry: {} });
-    location.reload();
-}
-
-async function keyAction(act, k) {
-    const data = await api('GET');
-    if(act === 'del') delete data.keys[k];
-    if(act === 'ren') data.keys[k].exp = now() + 86400;
-    if(act === 'inf') data.keys[k].exp = 0;
-    await api('PUT', data);
-    renderAdmin();
-}
-
 async function renderAdmin() {
     const data = await api('GET');
     const term = document.getElementById('adminSearch').value.toUpperCase();
     
     document.getElementById('keyLogs').innerHTML = Object.entries(data.keys || {}).map(([k, v]) => {
         if(!k.includes(term) && !v.user.toUpperCase().includes(term)) return '';
-        return `<div class="msg-item">
-            <b>${k}</b> User: ${v.user} | RBX: ${v.rbx}<br>
-            <button class="mini" onclick="keyAction('del','${k}')">Del</button>
-            <button class="mini" onclick="keyAction('ren','${k}')">24h</button>
-            <button class="mini" onclick="keyAction('inf','${k}')">INF</button>
-        </div>`;
+        return `<div class="msg-item"><b>${k}</b> User: ${v.user} | RBX: ${v.rbx}<br><button class="mini" onclick="keyAction('del','${k}')">Del</button></div>`;
     }).join('');
+
+    document.getElementById('userLogs').innerHTML = Object.entries(data.users || {}).map(([u, v]) => {
+        if(!u.toUpperCase().includes(term)) return '';
+        return `<div class="msg-item"><b>${u}</b> Warns: ${v.warns || 0}<br>Dev: ${v.dev}</div>`;
+    }).join('');
+}
+
+async function nukeAll() {
+    if(!confirm("DELETE EVERYTHING?")) return;
+    await api('PUT', { keys: {}, users: {}, chat: [], bans: [], registry: {} });
+    location.reload();
 }
 </script>
 </body>
