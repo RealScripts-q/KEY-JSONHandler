@@ -82,6 +82,7 @@ button {
 }
 button:hover { transform: translateY(-2px); filter: brightness(1.2); }
 button.danger { background: linear-gradient(135deg, #ff3b30, #ff7b30); }
+button.mini { width: auto; padding: 5px 10px; font-size: 10px; margin: 2px; margin-top: 5px; }
 
 /* Chat Box */
 #chat-toggle {
@@ -132,7 +133,7 @@ button.danger { background: linear-gradient(135deg, #ff3b30, #ff7b30); }
 }
 
 .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
-.log-box { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; height: 300px; overflow-y: auto; border: 1px solid var(--border); }
+.log-box { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; height: 400px; overflow-y: auto; border: 1px solid var(--border); }
 
 .search-bar { margin-bottom: 15px; }
 </style>
@@ -147,7 +148,8 @@ button.danger { background: linear-gradient(135deg, #ff3b30, #ff7b30); }
     
     <input id="userid" placeholder="Roblox UserID">
     <button id="genBtn">Generate Access Key</button>
-    <div id="keyOut" style="text-align:center; margin-top:15px; color:var(--secondary); font-family:monospace;"></div>
+    <div id="statusMsg" style="text-align:center; margin-top:10px; font-size:12px; color:var(--danger);"></div>
+    <div id="keyOut" style="text-align:center; margin-top:10px; color:var(--secondary); font-family:monospace; font-weight:bold;"></div>
 
     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:20px;">
         <button id="adminBtn" class="danger">Admin</button>
@@ -177,23 +179,25 @@ button.danger { background: linear-gradient(135deg, #ff3b30, #ff7b30); }
     <div style="display:flex; justify-content:space-between; align-items:center;">
         <h2>👑 OVERSEER CONTROL</h2>
         <div style="display:flex; gap:10px;">
-            <button onclick="resetRegistry()" class="danger" style="width:auto; margin:0;">Reset Registry</button>
+            <button onclick="nukeAll()" class="danger" style="width:auto; margin:0; background:linear-gradient(to right, #ff3b30, #7b0000);">RESET ALL (NUKE)</button>
+            <button onclick="manualBan()" class="danger" style="width:auto; margin:0; background:orange;">BAN USER</button>
             <button onclick="location.reload()" style="width:auto; margin:0; background:#444;">Exit</button>
         </div>
     </div>
 
     <div class="search-bar">
-        <input id="adminSearch" placeholder="Search by Device ID or User ID..." oninput="filterAdmin()">
+        <input id="adminSearch" placeholder="Search by Device, UserID, or Key..." oninput="filterAdmin()">
     </div>
 
     <div class="admin-grid">
         <div>
-            <h3>Active Keys</h3>
+            <h3>Active Keys & Management</h3>
             <div id="keyLogs" class="log-box"></div>
         </div>
         <div>
-            <h3>User Feedback</h3>
+            <h3>User Feedback & Bans</h3>
             <div id="feedLogs" class="log-box"></div>
+            <div id="banDisplay" style="margin-top:10px; font-size:12px; color:var(--danger);"></div>
         </div>
     </div>
 </div>
@@ -207,6 +211,7 @@ const MASTER_KEY = "roblox";
 /* HELPERS */
 const getDevId = () => btoa(navigator.userAgent + screen.width).slice(0, 12).toUpperCase();
 const MY_ID = getDevId();
+const now = () => Math.floor(Date.now()/1000);
 
 async function api(method, data = null) {
     const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}${method==='GET'?'/latest':''}`, {
@@ -256,18 +261,39 @@ document.getElementById('sendChat').onclick = async () => {
 
 /* AUTH */
 document.getElementById('genBtn').onclick = async () => {
-    const uid = document.getElementById('userid').value;
+    const uid = document.getElementById('userid').value.trim();
     if(!uid) return;
+    
+    const status = document.getElementById('statusMsg');
+    status.innerText = "Checking permissions...";
+    
     const data = await api('GET');
     data.keys = data.keys || {};
+    data.bans = data.bans || [];
     data.registry = data.registry || {};
-    
+
+    if(data.bans.includes(uid)) {
+        status.innerText = "🚫 ACCESS DENIED: USER BANNED";
+        return;
+    }
+
+    // CHECK FOR MULTIPLE KEYS (No new key until old one expires)
+    const existing = Object.entries(data.keys).find(([k, v]) => v.uid === uid && (v.exp > now() || v.exp === 0));
+    if(existing) {
+        status.innerText = "⚠️ ACTIVE KEY ALREADY EXISTS";
+        status.style.color = "var(--secondary)";
+        document.getElementById('keyOut').innerText = existing[0];
+        return;
+    }
+
     const key = "RSQ-" + Math.random().toString(36).substr(2, 8).toUpperCase();
-    data.keys[key] = { uid, dev: MY_ID };
+    data.keys[key] = { uid, dev: MY_ID, exp: now() + 86400 }; // Default 24h
     data.registry[MY_ID] = { last: Date.now() };
     
     await api('PUT', data);
-    document.getElementById('keyOut').innerText = "KEY: " + key;
+    status.innerText = "✅ KEY ACTIVATED";
+    status.style.color = "var(--success)";
+    document.getElementById('keyOut').innerText = key;
 };
 
 /* FEEDBACK */
@@ -282,7 +308,7 @@ async function sendFeedback() {
     toggleFeedback();
 }
 
-/* ADMIN */
+/* ADMIN LOGIC */
 document.getElementById('adminBtn').onclick = () => document.getElementById('adminInput').classList.toggle('hidden');
 document.getElementById('adminInput').onchange = function() {
     if(this.value === MASTER_KEY) {
@@ -291,12 +317,30 @@ document.getElementById('adminInput').onchange = function() {
     }
 };
 
-async function resetRegistry() {
-    if(!confirm("Reset all device logs?")) return;
+async function nukeAll() {
+    if(!confirm("🚨 WARNING: This will PERMANENTLY delete ALL keys, bans, feedback, and logs. Continue?")) return;
+    await api('PUT', { keys: {}, registry: {}, bans: [], feedback: [], chat: [] });
+    alert("System Wiped.");
+    location.reload();
+}
+
+async function manualBan() {
+    const id = prompt("Enter Roblox UserID to ban:");
+    if(!id) return;
     const data = await api('GET');
-    data.registry = {};
+    data.bans = data.bans || [];
+    if(!data.bans.includes(id)) data.bans.push(id);
     await api('PUT', data);
-    alert("Registry Wiped.");
+    alert("User Banned.");
+    renderAdmin();
+}
+
+async function keyAction(action, key) {
+    const data = await api('GET');
+    if(action === 'del') delete data.keys[key];
+    if(action === 'ren') data.keys[key].exp = now() + 86400;
+    if(action === 'inf') data.keys[key].exp = 0;
+    await api('PUT', data);
     renderAdmin();
 }
 
@@ -311,14 +355,27 @@ function filterAdmin() {
     const data = window.currentData;
     
     const keyLogs = document.getElementById('keyLogs');
-    keyLogs.innerHTML = Object.entries(data.keys || [])
+    keyLogs.innerHTML = Object.entries(data.keys || {})
         .filter(([k, v]) => k.includes(term) || v.dev.includes(term) || v.uid.includes(term))
-        .map(([k, v]) => `<div class="msg-item"><b>${k}</b>UID: ${v.uid}<br>DEV: ${v.dev}</div>`).join('');
+        .map(([k, v]) => {
+            const isInf = v.exp === 0;
+            const isExp = !isInf && v.exp < now();
+            const status = isInf ? "INFINITE" : (isExp ? "EXPIRED" : "ACTIVE");
+            return `<div class="msg-item">
+                <b>${k}</b> [${status}]<br>
+                UID: ${v.uid} | DEV: ${v.dev}<br>
+                <button class="mini" style="background:var(--danger)" onclick="keyAction('del','${k}')">Delete</button>
+                <button class="mini" style="background:var(--success)" onclick="keyAction('ren','${k}')">Renew 24h</button>
+                <button class="mini" style="background:purple" onclick="keyAction('inf','${k}')">Make INF</button>
+            </div>`;
+        }).join('');
 
     const feedLogs = document.getElementById('feedLogs');
     feedLogs.innerHTML = (data.feedback || [])
         .filter(f => f.dev.includes(term) || f.msg.toUpperCase().includes(term))
         .map(f => `<div class="msg-item"><b>${f.dev} (${f.time})</b>${f.msg}</div>`).join('');
+        
+    document.getElementById('banDisplay').innerHTML = "<b>Banned UserIDs:</b> " + (data.bans || []).join(', ');
 }
 
 setInterval(updateChat, 5000);
