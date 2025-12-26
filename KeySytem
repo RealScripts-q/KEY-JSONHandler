@@ -1,5 +1,5 @@
 --==================================================
--- RSQ KEY SYSTEM — FINAL LOCAL SCRIPT (WITH WEBHOOK)
+-- RSQ KEY SYSTEM — FINAL ALL-IN-ONE LOCAL SCRIPT
 --==================================================
 
 -- SERVICES
@@ -13,13 +13,13 @@ local USER_ID = tostring(player.UserId)
 --==================================================
 -- CONFIG
 --==================================================
-local JSONBIN_URL =
+local JSON_URL =
 	"https://api.jsonbin.io/v3/b/694c4aefae596e708faef157/latest"
 
-local GET_KEY_URL =
+local WEBSITE_URL =
 	"https://realscripts-q.github.io/KEY-JSONHandler/"
 
-local DISCORD_WEBHOOK = "PUT_WEBHOOK_URL_HERE" -- <<<<<<<<<<<<<<
+local DISCORD_WEBHOOK = "PUT_WEBHOOK_URL_HERE"
 
 local SCRIPT_URLS = {
 	"https://raw.githubusercontent.com/RealScripts-q/KEY-JSONHandler/main/D.lua",
@@ -32,85 +32,89 @@ local CHECK_INTERVAL = 10
 --==================================================
 -- STATE
 --==================================================
-local CurrentKey = nil
+local ActiveKey = nil
 local KeyActive = false
 local ScriptsLoaded = false
 local LastExpire = nil
 
 --==================================================
--- UI (unchanged)
+-- UI
 --==================================================
 local gui = Instance.new("ScreenGui")
 gui.Name = "RSQ_KeySystem"
 gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = true
-gui.Parent = player:WaitForChild("PlayerGui")
+gui.Parent = player.PlayerGui
 
 local card = Instance.new("Frame", gui)
-card.Size = UDim2.new(0, 460, 0, 320)
-card.Position = UDim2.new(0.5, -230, 0.5, -160)
-card.BackgroundColor3 = Color3.fromRGB(20,24,36)
+card.Size = UDim2.new(0, 480, 0, 340)
+card.Position = UDim2.new(0.5, -240, 0.5, -170)
+card.BackgroundColor3 = Color3.fromRGB(18,22,34)
 card.BackgroundTransparency = 1
-Instance.new("UICorner", card).CornerRadius = UDim.new(0,18)
+Instance.new("UICorner", card).CornerRadius = UDim.new(0, 18)
 
 local title = Instance.new("TextLabel", card)
 title.Text = "🔐 RSQ Key System"
 title.Font = Enum.Font.GothamBold
-title.TextSize = 16
+title.TextSize = 18
 title.TextColor3 = Color3.new(1,1,1)
 title.BackgroundTransparency = 1
-title.Size = UDim2.new(1,-40,0,36)
+title.Size = UDim2.new(1,-40,0,40)
 title.Position = UDim2.new(0,20,0,14)
 
 local input = Instance.new("TextBox", card)
 input.PlaceholderText = "Paste your key here"
-input.Size = UDim2.new(1,-40,0,42)
-input.Position = UDim2.new(0,20,0,60)
-input.BackgroundColor3 = Color3.fromRGB(14,18,30)
+input.Size = UDim2.new(1,-40,0,44)
+input.Position = UDim2.new(0,20,0,64)
+input.BackgroundColor3 = Color3.fromRGB(12,16,28)
 input.TextColor3 = Color3.new(1,1,1)
 input.Font = Enum.Font.Gotham
 input.TextSize = 14
-Instance.new("UICorner", input).CornerRadius = UDim.new(0,10)
+Instance.new("UICorner", input).CornerRadius = UDim.new(0,12)
 
-local unlock = Instance.new("TextButton", card)
-unlock.Text = "Unlock / Check Key"
-unlock.Size = UDim2.new(1,-40,0,42)
-unlock.Position = UDim2.new(0,20,0,112)
-unlock.BackgroundColor3 = Color3.fromRGB(0,140,255)
-unlock.Font = Enum.Font.GothamBold
-unlock.TextSize = 15
-unlock.TextColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", unlock).CornerRadius = UDim.new(0,10)
+local checkBtn = Instance.new("TextButton", card)
+checkBtn.Text = "🔓 Check Key"
+checkBtn.Size = UDim2.new(1,-40,0,44)
+checkBtn.Position = UDim2.new(0,20,0,120)
+checkBtn.BackgroundColor3 = Color3.fromRGB(0,140,255)
+checkBtn.Font = Enum.Font.GothamBold
+checkBtn.TextSize = 15
+checkBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", checkBtn).CornerRadius = UDim.new(0,12)
 
 local getKey = Instance.new("TextButton", card)
-getKey.Text = "🌐 Get Key"
+getKey.Text = "🌐 Get Key / Appeal"
 getKey.Size = UDim2.new(1,-40,0,36)
-getKey.Position = UDim2.new(0,20,0,166)
+getKey.Position = UDim2.new(0,20,0,176)
 getKey.BackgroundColor3 = Color3.fromRGB(255,140,0)
 getKey.Font = Enum.Font.GothamBold
 getKey.TextSize = 14
 getKey.TextColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", getKey).CornerRadius = UDim.new(0,10)
+Instance.new("UICorner", getKey).CornerRadius = UDim.new(0,12)
 
 local status = Instance.new("TextLabel", card)
-status.Size = UDim2.new(1,-40,0,80)
-status.Position = UDim2.new(0,20,0,214)
+status.Size = UDim2.new(1,-40,0,90)
+status.Position = UDim2.new(0,20,0,220)
 status.TextWrapped = true
-status.Text = "Enter your key to continue"
+status.TextYAlignment = Enum.TextYAlignment.Top
+status.Text = "Enter your key to continue."
 status.Font = Enum.Font.Gotham
 status.TextSize = 13
 status.TextColor3 = Color3.fromRGB(210,210,210)
 status.BackgroundTransparency = 1
 
+--==================================================
+-- ANIMATIONS
+--==================================================
 local function fadeIn()
 	gui.Enabled = true
-	TweenService:Create(card, TweenInfo.new(0.4), {
+	TweenService:Create(card, TweenInfo.new(0.35), {
 		BackgroundTransparency = 0
 	}):Play()
 end
 
 local function fadeOut()
-	TweenService:Create(card, TweenInfo.new(0.4), {
+	TweenService:Create(card, TweenInfo.new(0.35), {
 		BackgroundTransparency = 1
 	}):Play()
 end
@@ -118,51 +122,54 @@ end
 fadeIn()
 
 --==================================================
--- DATA
+-- HELPERS
 --==================================================
+local function copyLink()
+	pcall(function()
+		setclipboard(WEBSITE_URL)
+	end)
+end
+
 local function fetchData()
 	local ok, res = pcall(function()
-		return HttpService:JSONDecode(game:HttpGet(JSONBIN_URL))
+		return HttpService:JSONDecode(game:HttpGet(JSON_URL))
 	end)
 	if not ok then return nil end
 	return res.record
 end
 
 local function kickBanned()
-	pcall(function()
-		setclipboard(GET_KEY_URL)
-	end)
-
+	copyLink()
 	player:Kick(
 		"You were banned by an admin.\n\n" ..
-		"Go to the link (copied to clipboard) to appeal."
+		"Go to the website (copied to clipboard) to appeal."
 	)
 end
 
 --==================================================
--- WEBHOOK
+-- DISCORD WEBHOOK
 --==================================================
 local function sendWebhook(key, expires)
 	if DISCORD_WEBHOOK == "" then return end
 
-	local thumb =
-		"https://www.roblox.com/headshot-thumbnail/image?userId=" ..
-		USER_ID .. "&width=420&height=420&format=png"
+	local avatar =
+		"https://www.roblox.com/headshot-thumbnail/image?userId="
+		.. USER_ID .. "&width=420&height=420&format=png"
 
-	local expireText =
+	local exp =
 		expires == 0 and "♾️ Infinite"
 		or os.date("!%Y-%m-%d %H:%M:%S UTC", expires)
 
 	local payload = {
 		username = player.Name,
-		avatar_url = thumb,
+		avatar_url = avatar,
 		embeds = {{
-			title = "🔐 Key Used",
+			title = "🔐 Key Activated",
 			color = 0x00A2FF,
 			fields = {
-				{ name = "👤 User", value = player.Name .. " ("..USER_ID..")", inline = false },
-				{ name = "🔑 Key", value = "`"..key.."`", inline = false },
-				{ name = "⏳ Expires", value = expireText, inline = false }
+				{ name = "User", value = player.Name.." ("..USER_ID..")", inline = false },
+				{ name = "Key", value = "`"..key.."`", inline = false },
+				{ name = "Expires", value = exp, inline = false }
 			},
 			timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
 		}}
@@ -178,25 +185,24 @@ local function sendWebhook(key, expires)
 end
 
 --==================================================
--- VALIDATION
+-- KEY VALIDATION
 --==================================================
 local function validateKey(key)
 	local data = fetchData()
-	if not data then return false, "Server error" end
+	if not data then return false, "⚠ Server error" end
 
 	if data.bans and data.bans[USER_ID] then
 		kickBanned()
 		return false
 	end
 
-	if not data.keys or not data.keys[key] then
+	local entry = data.keys and data.keys[key]
+	if not entry then
 		return false, "❌ Invalid key"
 	end
 
-	local entry = data.keys[key]
-
 	if tostring(entry.userId) ~= USER_ID then
-		return false, "❌ Key does not belong to you"
+		return false, "❌ Key not linked to your account"
 	end
 
 	if entry.expires ~= 0 and entry.expires < os.time() then
@@ -205,25 +211,24 @@ local function validateKey(key)
 
 	LastExpire = entry.expires
 	sendWebhook(key, entry.expires)
-
 	return true
 end
 
 --==================================================
--- UNLOCK
+-- BUTTONS
 --==================================================
-unlock.MouseButton1Click:Connect(function()
+checkBtn.MouseButton1Click:Connect(function()
 	if input.Text == "" then return end
 
 	local ok, msg = validateKey(input.Text)
 	if not ok then
-		if msg then status.Text = msg end
+		status.Text = msg
 		return
 	end
 
-	CurrentKey = input.Text
+	ActiveKey = input.Text
 	KeyActive = true
-	status.Text = "✅ Key valid — loading scripts..."
+	status.Text = "✅ Key valid. Unlocking..."
 
 	fadeOut()
 	task.delay(0.4, function()
@@ -240,14 +245,9 @@ unlock.MouseButton1Click:Connect(function()
 	end
 end)
 
---==================================================
--- GET KEY
---==================================================
 getKey.MouseButton1Click:Connect(function()
-	pcall(function()
-		setclipboard(GET_KEY_URL)
-	end)
-	status.Text = "📋 Key website copied to clipboard"
+	copyLink()
+	status.Text = "📋 Website copied to clipboard"
 end)
 
 --==================================================
@@ -265,19 +265,19 @@ task.spawn(function()
 			return
 		end
 
-		if not CurrentKey then continue end
-		local entry = data.keys and data.keys[CurrentKey]
+		if not ActiveKey then continue end
+		local entry = data.keys and data.keys[ActiveKey]
 
 		if not entry then
-			CurrentKey = nil
+			ActiveKey = nil
 			KeyActive = false
 			fadeIn()
-			status.Text = "❌ Key was removed"
+			status.Text = "❌ Key removed by admin"
 			continue
 		end
 
 		if entry.expires ~= 0 and entry.expires < os.time() then
-			CurrentKey = nil
+			ActiveKey = nil
 			KeyActive = false
 			fadeIn()
 			status.Text = "⏰ Key expired"
