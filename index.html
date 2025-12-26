@@ -86,92 +86,77 @@ button.mini { width: auto; padding: 5px 10px; font-size: 10px; margin: 2px; marg
 
 /* Chat Box */
 #chat-toggle {
-    position: fixed;
-    bottom: 25px;
-    right: 25px;
-    width: 55px;
-    height: 55px;
-    border-radius: 50%;
-    background: var(--primary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 1000;
+    position: fixed; bottom: 25px; right: 25px; width: 55px; height: 55px;
+    border-radius: 50%; background: var(--primary); display: flex;
+    align-items: center; justify-content: center; cursor: pointer; z-index: 1000;
 }
 
 #chat-window {
-    position: fixed;
-    bottom: 90px;
-    right: 25px;
-    width: 320px;
-    height: 400px;
-    background: var(--glass);
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--border);
-    border-radius: 15px;
-    display: flex;
-    flex-direction: column;
-    z-index: 999;
-    overflow: hidden;
+    position: fixed; bottom: 90px; right: 25px; width: 320px; height: 450px;
+    background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--border);
+    border-radius: 15px; display: flex; flex-direction: column; z-index: 999; overflow: hidden;
 }
 
 #chat-msgs { flex: 1; overflow-y: auto; padding: 15px; font-size: 13px; }
-.msg-item { margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; }
+.msg-item { margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; position: relative; }
 .msg-item b { color: var(--secondary); font-size: 10px; display: block; }
+.del-msg { position: absolute; top: 5px; right: 8px; color: var(--danger); font-size: 9px; cursor: pointer; font-weight: bold; }
 
 /* Admin Panel */
 .adminFull {
-    position: fixed;
-    inset: 15px;
-    background: #0b0f1a;
-    border-radius: 20px;
-    padding: 25px;
-    z-index: 2000;
-    overflow-y: auto;
-    border: 1px solid var(--border);
+    position: fixed; inset: 15px; background: #0b0f1a; border-radius: 20px;
+    padding: 25px; z-index: 2000; overflow-y: auto; border: 1px solid var(--border);
 }
-
 .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
 .log-box { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; height: 400px; overflow-y: auto; border: 1px solid var(--border); }
-
-.search-bar { margin-bottom: 15px; }
 </style>
 </head>
 <body>
 
 <div id="bg-wrap"></div>
 
-<div id="userPanel" class="panel">
-    <h1 style="text-align:center; margin:0;">RSQ <span style="color:var(--secondary)">ELITE</span></h1>
-    <p style="text-align:center; opacity:0.5; font-size: 11px; letter-spacing: 1px;">HARDWARE AUTHENTICATION</p>
-    
-    <input id="userid" placeholder="Roblox UserID">
-    <button id="genBtn">Generate Access Key</button>
-    <div id="statusMsg" style="text-align:center; margin-top:10px; font-size:12px; color:var(--danger);"></div>
-    <div id="keyOut" style="text-align:center; margin-top:10px; color:var(--secondary); font-family:monospace; font-weight:bold;"></div>
-
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:20px;">
-        <button id="adminBtn" class="danger">Admin</button>
-        <button style="background:none; border: 1px solid var(--border);" onclick="toggleFeedback()">Feedback</button>
+<div id="authPanel" class="panel">
+    <h1 style="text-align:center; margin:0;">RSQ <span style="color:var(--secondary)">GATE</span></h1>
+    <div id="loginView">
+        <input id="l-user" placeholder="Username">
+        <input id="l-pass" type="password" placeholder="Password">
+        <button onclick="handleAuth('login')">Sign In</button>
+        <p style="text-align:center; font-size:12px;">New? <a href="#" onclick="toggleAuth(true)" style="color:var(--secondary)">Create Account</a></p>
     </div>
-    <input id="adminInput" class="hidden" type="password" placeholder="Master Key">
+    <div id="signupView" class="hidden">
+        <input id="s-user" placeholder="Choose Username">
+        <input id="s-pass" type="password" placeholder="Choose Password">
+        <button onclick="handleAuth('signup')">Sign Up</button>
+        <p style="text-align:center; font-size:12px;">Have account? <a href="#" onclick="toggleAuth(false)" style="color:var(--secondary)">Sign In</a></p>
+    </div>
+    <div id="authStatus" style="text-align:center; color:var(--danger); font-size:12px; margin-top:10px;"></div>
 </div>
 
-<div id="feedbackPanel" class="panel hidden">
-    <h2 style="text-align:center">Feedback</h2>
-    <textarea id="feedMsg" placeholder="Report a bug or suggest a feature..." style="height:100px;"></textarea>
-    <button onclick="sendFeedback()">Submit</button>
-    <button onclick="toggleFeedback()" style="background:none;">Close</button>
-</div>
+<div id="mainSystem" class="hidden">
+    <div id="userPanel" class="panel">
+        <h1 style="text-align:center; margin:0;">RSQ <span style="color:var(--secondary)">ELITE</span></h1>
+        <p id="welcomeUser" style="text-align:center; opacity:0.5; font-size: 11px;"></p>
+        
+        <input id="userid" placeholder="Roblox UserID">
+        <button id="genBtn">Generate Access Key</button>
+        <div id="statusMsg" style="text-align:center; margin-top:10px; font-size:12px;"></div>
+        <div id="keyOut" style="text-align:center; margin-top:10px; color:var(--secondary); font-family:monospace; font-weight:bold;"></div>
 
-<div id="chat-toggle">💬</div>
-<div id="chat-window" class="hidden">
-    <div style="padding:10px; background:rgba(255,255,255,0.05); font-size:12px; font-weight:bold;">NETWORK CHAT</div>
-    <div id="chat-msgs"></div>
-    <div style="padding:10px; display:flex; gap:5px;">
-        <input id="chatIn" placeholder="Message..." style="margin:0; font-size:12px;">
-        <button id="sendChat" style="margin:0; width:50px;">➔</button>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:20px;">
+            <button id="adminBtn" class="danger">Admin</button>
+            <button style="background:none; border: 1px solid var(--border);" onclick="logout()">Logout</button>
+        </div>
+        <input id="adminInput" class="hidden" type="password" placeholder="Master Key">
+    </div>
+
+    <div id="chat-toggle">💬</div>
+    <div id="chat-window" class="hidden">
+        <div style="padding:10px; background:rgba(255,255,255,0.05); font-size:12px; font-weight:bold;">NETWORK CHAT</div>
+        <div id="chat-msgs"></div>
+        <div style="padding:10px; display:flex; gap:5px;">
+            <input id="chatIn" placeholder="Message..." style="margin:0; font-size:12px;">
+            <button id="sendChat" style="margin:0; width:50px;">➔</button>
+        </div>
     </div>
 </div>
 
@@ -179,36 +164,24 @@ button.mini { width: auto; padding: 5px 10px; font-size: 10px; margin: 2px; marg
     <div style="display:flex; justify-content:space-between; align-items:center;">
         <h2>👑 OVERSEER CONTROL</h2>
         <div style="display:flex; gap:10px;">
-            <button onclick="nukeAll()" class="danger" style="width:auto; margin:0; background:linear-gradient(to right, #ff3b30, #7b0000);">RESET ALL (NUKE)</button>
+            <button onclick="nukeAll()" class="danger" style="width:auto; margin:0;">RESET ALL (NUKE)</button>
             <button onclick="manualBan()" class="danger" style="width:auto; margin:0; background:orange;">BAN USER</button>
-            <button onclick="location.reload()" style="width:auto; margin:0; background:#444;">Exit</button>
+            <button onclick="document.getElementById('adminPanel').classList.add('hidden')" style="width:auto; margin:0; background:#444;">Exit</button>
         </div>
     </div>
-
-    <div class="search-bar">
-        <input id="adminSearch" placeholder="Search by Device, UserID, or Key..." oninput="filterAdmin()">
-    </div>
-
+    <input id="adminSearch" placeholder="Search Data..." style="margin-bottom:20px;" oninput="renderAdmin()">
     <div class="admin-grid">
-        <div>
-            <h3>Active Keys & Management</h3>
-            <div id="keyLogs" class="log-box"></div>
-        </div>
-        <div>
-            <h3>User Feedback & Bans</h3>
-            <div id="feedLogs" class="log-box"></div>
-            <div id="banDisplay" style="margin-top:10px; font-size:12px; color:var(--danger);"></div>
-        </div>
+        <div><h3>System Keys</h3><div id="keyLogs" class="log-box"></div></div>
+        <div><h3>User Activity</h3><div id="feedLogs" class="log-box"></div><div id="banDisplay"></div></div>
     </div>
 </div>
 
 <script>
-/* CONFIG */
 const BIN_ID = "694c4aefae596e708faef157";
 const JSON_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu";
 const MASTER_KEY = "roblox";
 
-/* HELPERS */
+let currentUser = null;
 const getDevId = () => btoa(navigator.userAgent + screen.width).slice(0, 12).toUpperCase();
 const MY_ID = getDevId();
 const now = () => Math.floor(Date.now()/1000);
@@ -225,90 +198,124 @@ async function api(method, data = null) {
 
 /* SNOW */
 function initSnow() {
-    for(let i=0; i<40; i++) {
+    for(let i=0; i<35; i++) {
         let s = document.createElement('div');
-        s.className = 'snowflake';
-        s.innerHTML = '❄';
+        s.className = 'snowflake'; s.innerHTML = '❄';
         s.style.left = Math.random() * 100 + 'vw';
         s.style.animationDuration = (Math.random() * 3 + 5) + 's';
-        s.style.animationDelay = Math.random() * 5 + 's';
         s.style.opacity = Math.random();
         document.body.appendChild(s);
     }
 }
 initSnow();
 
+/* AUTH FLOW */
+function toggleAuth(isSignup) {
+    document.getElementById('signupView').classList.toggle('hidden', !isSignup);
+    document.getElementById('loginView').classList.toggle('hidden', isSignup);
+}
+
+async function handleAuth(type) {
+    const status = document.getElementById('authStatus');
+    status.innerText = "Syncing...";
+    const data = await api('GET');
+    data.users ||= {};
+
+    if(type === 'signup') {
+        const u = document.getElementById('s-user').value.trim();
+        const p = document.getElementById('s-pass').value.trim();
+        if(!u || !p) return status.innerText = "Fields empty";
+        if(data.users[u]) return status.innerText = "Username taken";
+        
+        const registered = Object.values(data.users).some(x => x.dev === MY_ID);
+        if(registered) return status.innerText = "One account per device limit";
+
+        data.users[u] = { pass: p, dev: MY_ID };
+        await api('PUT', data);
+        status.style.color = "var(--success)";
+        status.innerText = "Account Created! Login now.";
+        toggleAuth(false);
+    } else {
+        const u = document.getElementById('l-user').value.trim();
+        const p = document.getElementById('l-pass').value.trim();
+        if(data.users[u] && data.users[u].pass === p) {
+            currentUser = u;
+            document.getElementById('authPanel').classList.add('hidden');
+            document.getElementById('mainSystem').classList.remove('hidden');
+            document.getElementById('welcomeUser').innerText = `USER: ${u} | DEVICE: ${MY_ID}`;
+            startChatLoop();
+        } else {
+            status.innerText = "Invalid login";
+        }
+    }
+}
+
+function logout() { location.reload(); }
+
 /* CHAT */
 document.getElementById('chat-toggle').onclick = () => document.getElementById('chat-window').classList.toggle('hidden');
+
+function startChatLoop() { setInterval(updateChat, 4000); updateChat(); }
 
 async function updateChat() {
     const data = await api('GET');
     const box = document.getElementById('chat-msgs');
-    box.innerHTML = (data.chat || []).map(m => `<div class="msg-item"><b>DEV-${m.dev}</b>${m.txt}</div>`).join('');
-    box.scrollTop = box.scrollHeight;
+    box.innerHTML = (data.chat || []).map((m, i) => `
+        <div class="msg-item">
+            <b>${m.user}</b>${m.txt}
+            ${m.user === currentUser ? `<span class="del-msg" onclick="deleteMsg(${i})">DEL</span>` : ''}
+        </div>
+    `).join('');
 }
 
 document.getElementById('sendChat').onclick = async () => {
     const inp = document.getElementById('chatIn');
     if(!inp.value.trim()) return;
     const data = await api('GET');
-    data.chat = data.chat || [];
-    data.chat.push({ dev: MY_ID, txt: inp.value.trim() });
+    data.chat ||= [];
+    data.chat.push({ user: currentUser, txt: inp.value.trim() });
     await api('PUT', data);
     inp.value = '';
     updateChat();
 };
 
-/* AUTH */
+async function deleteMsg(idx) {
+    const data = await api('GET');
+    if(data.chat[idx] && data.chat[idx].user === currentUser) {
+        data.chat.splice(idx, 1);
+        await api('PUT', data);
+        updateChat();
+    }
+}
+
+/* KEY GEN */
 document.getElementById('genBtn').onclick = async () => {
-    const uid = document.getElementById('userid').value.trim();
-    if(!uid) return;
-    
+    const rbx = document.getElementById('userid').value.trim();
+    if(!rbx) return;
     const status = document.getElementById('statusMsg');
-    status.innerText = "Checking permissions...";
+    status.innerText = "Generating...";
     
     const data = await api('GET');
-    data.keys = data.keys || {};
-    data.bans = data.bans || [];
-    data.registry = data.registry || {};
+    data.keys ||= {};
+    data.bans ||= [];
 
-    if(data.bans.includes(uid)) {
-        status.innerText = "🚫 ACCESS DENIED: USER BANNED";
-        return;
-    }
+    if(data.bans.includes(rbx)) return status.innerText = "🚫 BANNED";
 
-    // CHECK FOR MULTIPLE KEYS (No new key until old one expires)
-    const existing = Object.entries(data.keys).find(([k, v]) => v.uid === uid && (v.exp > now() || v.exp === 0));
+    const existing = Object.entries(data.keys).find(([k, v]) => v.user === currentUser);
     if(existing) {
-        status.innerText = "⚠️ ACTIVE KEY ALREADY EXISTS";
-        status.style.color = "var(--secondary)";
+        status.innerText = "RECOVERED EXISTING KEY";
         document.getElementById('keyOut').innerText = existing[0];
         return;
     }
 
     const key = "RSQ-" + Math.random().toString(36).substr(2, 8).toUpperCase();
-    data.keys[key] = { uid, dev: MY_ID, exp: now() + 86400 }; // Default 24h
-    data.registry[MY_ID] = { last: Date.now() };
-    
+    data.keys[key] = { user: currentUser, rbx: rbx, dev: MY_ID, exp: now() + 86400 };
     await api('PUT', data);
-    status.innerText = "✅ KEY ACTIVATED";
-    status.style.color = "var(--success)";
     document.getElementById('keyOut').innerText = key;
+    status.innerText = "✅ KEY ACTIVATED";
 };
 
-/* FEEDBACK */
-function toggleFeedback() { document.getElementById('feedbackPanel').classList.toggle('hidden'); }
-async function sendFeedback() {
-    const msg = document.getElementById('feedMsg').value;
-    const data = await api('GET');
-    data.feedback = data.feedback || [];
-    data.feedback.push({ dev: MY_ID, msg, time: new Date().toLocaleString() });
-    await api('PUT', data);
-    alert("Sent!");
-    toggleFeedback();
-}
-
-/* ADMIN LOGIC */
+/* ADMIN */
 document.getElementById('adminBtn').onclick = () => document.getElementById('adminInput').classList.toggle('hidden');
 document.getElementById('adminInput').onchange = function() {
     if(this.value === MASTER_KEY) {
@@ -318,68 +325,34 @@ document.getElementById('adminInput').onchange = function() {
 };
 
 async function nukeAll() {
-    if(!confirm("🚨 WARNING: This will PERMANENTLY delete ALL keys, bans, feedback, and logs. Continue?")) return;
-    await api('PUT', { keys: {}, registry: {}, bans: [], feedback: [], chat: [] });
-    alert("System Wiped.");
+    if(!confirm("DELETE EVERYTHING?")) return;
+    await api('PUT', { keys: {}, users: {}, chat: [], bans: [], registry: {} });
     location.reload();
 }
 
-async function manualBan() {
-    const id = prompt("Enter Roblox UserID to ban:");
-    if(!id) return;
+async function keyAction(act, k) {
     const data = await api('GET');
-    data.bans = data.bans || [];
-    if(!data.bans.includes(id)) data.bans.push(id);
-    await api('PUT', data);
-    alert("User Banned.");
-    renderAdmin();
-}
-
-async function keyAction(action, key) {
-    const data = await api('GET');
-    if(action === 'del') delete data.keys[key];
-    if(action === 'ren') data.keys[key].exp = now() + 86400;
-    if(action === 'inf') data.keys[key].exp = 0;
+    if(act === 'del') delete data.keys[k];
+    if(act === 'ren') data.keys[k].exp = now() + 86400;
+    if(act === 'inf') data.keys[k].exp = 0;
     await api('PUT', data);
     renderAdmin();
 }
 
 async function renderAdmin() {
     const data = await api('GET');
-    window.currentData = data;
-    filterAdmin();
-}
-
-function filterAdmin() {
     const term = document.getElementById('adminSearch').value.toUpperCase();
-    const data = window.currentData;
     
-    const keyLogs = document.getElementById('keyLogs');
-    keyLogs.innerHTML = Object.entries(data.keys || {})
-        .filter(([k, v]) => k.includes(term) || v.dev.includes(term) || v.uid.includes(term))
-        .map(([k, v]) => {
-            const isInf = v.exp === 0;
-            const isExp = !isInf && v.exp < now();
-            const status = isInf ? "INFINITE" : (isExp ? "EXPIRED" : "ACTIVE");
-            return `<div class="msg-item">
-                <b>${k}</b> [${status}]<br>
-                UID: ${v.uid} | DEV: ${v.dev}<br>
-                <button class="mini" style="background:var(--danger)" onclick="keyAction('del','${k}')">Delete</button>
-                <button class="mini" style="background:var(--success)" onclick="keyAction('ren','${k}')">Renew 24h</button>
-                <button class="mini" style="background:purple" onclick="keyAction('inf','${k}')">Make INF</button>
-            </div>`;
-        }).join('');
-
-    const feedLogs = document.getElementById('feedLogs');
-    feedLogs.innerHTML = (data.feedback || [])
-        .filter(f => f.dev.includes(term) || f.msg.toUpperCase().includes(term))
-        .map(f => `<div class="msg-item"><b>${f.dev} (${f.time})</b>${f.msg}</div>`).join('');
-        
-    document.getElementById('banDisplay').innerHTML = "<b>Banned UserIDs:</b> " + (data.bans || []).join(', ');
+    document.getElementById('keyLogs').innerHTML = Object.entries(data.keys || {}).map(([k, v]) => {
+        if(!k.includes(term) && !v.user.toUpperCase().includes(term)) return '';
+        return `<div class="msg-item">
+            <b>${k}</b> User: ${v.user} | RBX: ${v.rbx}<br>
+            <button class="mini" onclick="keyAction('del','${k}')">Del</button>
+            <button class="mini" onclick="keyAction('ren','${k}')">24h</button>
+            <button class="mini" onclick="keyAction('inf','${k}')">INF</button>
+        </div>`;
+    }).join('');
 }
-
-setInterval(updateChat, 5000);
-updateChat();
 </script>
 </body>
 </html>
