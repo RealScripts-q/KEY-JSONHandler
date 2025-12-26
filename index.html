@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>RSQ Key System | Elite Premium</title>
+<title>RSQ Key System | Elite Ultra</title>
 
 <style>
 :root {
@@ -17,15 +17,9 @@
 }
 
 body {
-  margin: 0;
-  background: var(--bg);
-  background-image: 
-    radial-gradient(circle at 15% 15%, rgba(79, 124, 255, 0.08), transparent),
-    radial-gradient(circle at 85% 85%, rgba(63, 210, 255, 0.08), transparent);
+  margin: 0; background: var(--bg);
   font-family: 'Inter', system-ui, sans-serif;
-  color: var(--text);
-  height: 100vh;
-  overflow: hidden;
+  color: var(--text); height: 100vh; overflow: hidden;
 }
 
 .hidden { display: none !important; }
@@ -33,35 +27,21 @@ body {
 #interactionGate {
     position: fixed; inset: 0; z-index: 10000;
     background: rgba(11, 14, 20, 0.8);
-    backdrop-filter: blur(60px); -webkit-backdrop-filter: blur(60px);
-    display: flex; align-items: center; justify-content: center;
-}
-
-@keyframes panelFadeIn {
-  from { opacity: 0; transform: scale(0.95) translateY(10px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+    backdrop-filter: blur(60px); display: flex; align-items: center; justify-content: center;
 }
 
 .animate-in { animation: panelFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+@keyframes panelFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
 .panel {
-  width: 520px;
-  background: var(--panel-bg);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 28px;
-  padding: 35px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
-  margin: auto;
-  margin-top: 10vh;
+  width: 520px; background: var(--panel-bg); backdrop-filter: var(--blur);
+  border: 1px solid rgba(255,255,255,0.08); border-radius: 28px;
+  padding: 35px; margin: auto; margin-top: 10vh;
 }
 
 .adminFull {
-  position: fixed; inset: 0;
-  background: rgba(11, 14, 20, 0.96);
-  backdrop-filter: var(--blur);
-  padding: 40px; overflow-y: auto; z-index: 100;
+  position: fixed; inset: 0; background: rgba(11, 14, 20, 0.96);
+  backdrop-filter: var(--blur); padding: 40px; overflow-y: auto; z-index: 100;
 }
 
 button, input, textarea {
@@ -72,15 +52,16 @@ button, input, textarea {
 
 input, textarea { background: rgba(0, 0, 0, 0.4); color: white; }
 button { background: var(--accent); color: white; font-weight: 700; cursor: pointer; border: none; text-transform: uppercase; }
-button:hover { filter: brightness(1.2); transform: translateY(-1px); }
+button:hover { filter: brightness(1.2); }
+button:disabled { opacity: 0.3; cursor: not-allowed; }
+
 button.danger { background: var(--danger); }
 button.secondary { background: var(--secondary); }
 button.success { background: var(--success); }
 
 .key-card {
-  background: rgba(255,255,255,0.03);
-  padding: 15px; border-radius: 16px; margin-bottom: 12px;
-  border: 1px solid rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.03); padding: 15px; border-radius: 16px; 
+  margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.05);
 }
 
 .key-text {
@@ -95,16 +76,16 @@ button.success { background: var(--success); }
 <body>
 
 <div id="interactionGate" class="hidden">
-    <div class="animate-in" style="text-align: center;">
-        <h1 style="font-weight: 900;">AUTHENTICATION REQUIRED</h1>
-        <button onclick="authorizeDevice()" style="width: 250px;">INITIALIZE SESSION</button>
+    <div class="animate-in">
+        <h1 style="font-weight: 900;">AUTHENTICATION</h1>
+        <button onclick="authorizeDevice()" style="width: 250px;">INITIALIZE</button>
     </div>
 </div>
 
 <div id="timeoutOverlay" class="blocked-overlay hidden">
     <div class="animate-in">
-        <h1 style="color: #ff3b30; font-size: 48px; margin: 0;">🚫 SYSTEM TIMEOUT</h1>
-        <p style="opacity: 0.7;">Your hardware has been restricted for 24 hours.</p>
+        <h1 id="timeoutTitle" style="color: #ff3b30; font-size: 48px; margin: 0;">🚫 RESTRICTED</h1>
+        <p id="timeoutMsg">Your hardware is currently locked.</p>
         <p id="displaySiteId" style="font-family: monospace; color: #3fd2ff; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px;"></p>
     </div>
 </div>
@@ -125,8 +106,9 @@ button.success { background: var(--success); }
 
 <div id="feedbackPanel" class="panel hidden">
   <h2>📨 BAN APPEAL</h2>
+  <input id="fbUser" placeholder="Username/ID">
   <textarea id="fbMsg" placeholder="Reason for appeal..." style="height:120px;"></textarea>
-  <button onclick="submitAppeal()">SUBMIT</button>
+  <button id="fbSubmit" onclick="submitAppeal()">SUBMIT APPEAL</button>
   <button style="background:none;" onclick="changePanel(feedbackPanel, userPanel)">CANCEL</button>
 </div>
 
@@ -135,7 +117,7 @@ button.success { background: var(--success); }
       <h1 style="font-weight:900;">👑 SYSTEM OVERSEER</h1>
       <button onclick="exitAdmin()" style="width:auto; padding:0 30px;">EXIT</button>
     </div>
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:30px; margin-top:30px;">
+    <div style="display:grid; grid-template-columns: 1.5fr 1fr; gap:30px; margin-top:30px;">
       <div>
         <h3>🔑 ACTIVE KEYS</h3>
         <div id="keyLogs"></div>
@@ -143,10 +125,10 @@ button.success { background: var(--success); }
         <div id="idRegistryLogs"></div>
       </div>
       <div>
-        <h3>⏳ ACTIVE TIMEOUTS (24H)</h3>
+        <h3>⏳ TIMEOUTS / BANS</h3>
         <div id="timeoutLogs"></div>
-        <h3 style="margin-top:20px;">🚫 PERMA BANS</h3>
-        <div id="banLogs"></div>
+        <h3 style="margin-top:20px;">📋 APPEALS</h3>
+        <div id="appealLogs"></div>
       </div>
     </div>
 </div>
@@ -160,7 +142,7 @@ let SESSION_DEVICE_ID = null;
 const now = () => Math.floor(Date.now()/1000);
 
 function getFingerprint() {
-    return btoa(navigator.userAgent + screen.width + navigator.language).slice(0, 32);
+    return btoa(navigator.userAgent + screen.width).slice(0, 32);
 }
 
 async function getData(){ const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`); return (await r.json()).record || {}; }
@@ -188,9 +170,13 @@ async function authorizeDevice() {
 
 async function bootApp() {
     const data = await getData();
-    if(data.timeouts && data.timeouts[SESSION_DEVICE_ID] > now()) {
+    const isTimedOut = data.timeouts && data.timeouts[SESSION_DEVICE_ID] > now();
+    const isBanned = Object.values(data.keys || {}).some(k => k.device === SESSION_DEVICE_ID && data.bans && data.bans[k.userId]);
+
+    if(isTimedOut || isBanned) {
         timeoutOverlay.classList.remove("hidden");
         displaySiteId.textContent = SESSION_DEVICE_ID;
+        timeoutTitle.textContent = isBanned ? "🚫 PERMANENT BAN" : "⏳ SYSTEM TIMEOUT";
         return;
     }
     document.getElementById('interactionGate').classList.add('hidden');
@@ -200,45 +186,47 @@ async function bootApp() {
 genBtn.onclick = async () => {
     const uid = userid.value.trim();
     if(!uid) return;
-    status.textContent = "⌛ Checking Authorization...";
     const data = await getData();
-    if(data.bans && data.bans[uid]) { status.textContent = "🚫 USER IS BANNED"; return; }
+    if(data.bans && data.bans[uid]) { status.textContent = "🚫 USER BANNED"; return; }
     
     const key = "RSQ-" + Math.random().toString(36).toUpperCase().slice(2,15);
     data.keys ||= {};
     data.keys[key] = { userId: uid, expires: now() + 86400, device: SESSION_DEVICE_ID };
     await saveData(data);
     keyOut.textContent = key; keyOut.style.display = "block";
-    status.textContent = "✅ SESSION SECURED";
+    status.textContent = "✅ ACTIVE";
 };
 
-/* MASTER ADMIN COMMANDS WITH AUTO-TIMEOUT */
+async function submitAppeal() {
+  const data = await getData();
+  data.appeals ||= [];
+  data.appeals.push({ user: fbUser.value, msg: fbMsg.value, device: SESSION_DEVICE_ID });
+  await saveData(data);
+  alert("Appeal Sent!");
+  changePanel(feedbackPanel, userPanel);
+}
+
 window.executeCommand = async (cmd, target) => {
     const data = await getData();
-    data.timeouts ||= {};
-    data.bans ||= {};
+    data.timeouts ||= {}; data.bans ||= {};
 
     if(cmd === 'remove') {
-        const dId = data.keys[target].device;
-        data.timeouts[dId] = now() + 86400; // 24H Timeout
+        data.timeouts[data.keys[target].device] = now() + 10; // 10s Test
         delete data.keys[target];
     } 
     else if(cmd === 'ban') {
         data.bans[target] = true;
-        // Lockout all devices associated with this user
-        Object.values(data.keys).forEach(k => { if(k.userId === target) data.timeouts[k.device] = now() + 86400; });
+        Object.values(data.keys).forEach(k => { if(k.userId === target) data.timeouts[k.device] = 9999999999; });
     }
-    else if(cmd === 'renew') {
-        data.keys[target].expires = now() + 86400;
+    else if(cmd === 'unban') {
+        delete data.bans[target];
+        Object.values(data.keys).forEach(k => { if(k.userId === target) delete data.timeouts[k.device]; });
     }
-    else if(cmd === 'inf') {
-        data.keys[target].expires = 9999999999;
+    else if(cmd === 'untimeout') {
+        delete data.timeouts[target];
     }
-    else if(cmd === 'purge') {
-        const dId = data.registry[target];
-        data.timeouts[dId] = now() + 86400;
-        delete data.registry[target];
-    }
+    else if(cmd === 'renew') { data.keys[target].expires = now() + 86400; }
+    else if(cmd === 'inf') { data.keys[target].expires = 9999999999; }
 
     await saveData(data);
     refreshAdmin();
@@ -246,35 +234,36 @@ window.executeCommand = async (cmd, target) => {
 
 async function refreshAdmin() {
     const data = await getData();
-    
     const kLogs = document.getElementById("keyLogs"); kLogs.innerHTML = "";
     Object.entries(data.keys || {}).forEach(([k, v]) => {
         kLogs.innerHTML += `<div class="key-card">
-            <b>User: ${v.userId}</b> | <small>${v.expires > 5000000000 ? 'INF' : '24H'}</small><br>
-            <code class="key-text">${k}</code>
+            <b>User: ${v.userId}</b><br><code class="key-text">${k}</code>
             <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:5px; margin-top:8px;">
-                <button class="danger" style="font-size:8px; padding:5px;" onclick="executeCommand('remove','${k}')">TIMEOUT</button>
-                <button class="danger" style="font-size:8px; padding:5px;" onclick="executeCommand('ban','${v.userId}')">BAN</button>
-                <button class="success" style="font-size:8px; padding:5px;" onclick="executeCommand('renew','${k}')">RENEW</button>
-                <button class="success" style="font-size:8px; padding:5px;" onclick="executeCommand('inf','${k}')">INF</button>
+                <button class="danger" style="font-size:8px;" onclick="executeCommand('remove','${k}')">TIMEOUT</button>
+                <button class="danger" style="font-size:8px;" onclick="executeCommand('ban','${v.userId}')">BAN</button>
+                <button class="success" style="font-size:8px;" onclick="executeCommand('renew','${k}')">RENEW</button>
+                <button class="success" style="font-size:8px;" onclick="executeCommand('inf','${k}')">INF</button>
             </div>
         </div>`;
     });
 
     const tLogs = document.getElementById("timeoutLogs"); tLogs.innerHTML = "";
     Object.entries(data.timeouts || {}).forEach(([id, time]) => {
-        if(time > now()) tLogs.innerHTML += `<div class="key-card" style="border-left: 4px solid red;"><code>${id}</code></div>`;
+        const type = time > 5000000000 ? "PERMA" : "TEMP";
+        tLogs.innerHTML += `<div class="key-card"><code>${id}</code> (${type})
+        <button class="success" style="font-size:8px;" onclick="executeCommand('untimeout','${id}')">UN-TIMEOUT</button></div>`;
     });
 
-    const rLogs = document.getElementById("idRegistryLogs"); rLogs.innerHTML = "";
-    Object.entries(data.registry || {}).forEach(([fp, did]) => {
-        rLogs.innerHTML += `<div class="key-card"><code>${did}</code><button class="danger" style="font-size:8px; margin-top:5px;" onclick="executeCommand('purge','${fp}')">PURGE & TIMEOUT</button></div>`;
+    const aLogs = document.getElementById("appealLogs"); aLogs.innerHTML = "";
+    (data.appeals || []).forEach(a => {
+        aLogs.innerHTML += `<div class="key-card"><b>${a.user}:</b> ${a.msg}<br>
+        <button class="success" style="font-size:8px;" onclick="executeCommand('unban','${a.user}')">UNBAN USER</button></div>`;
     });
 }
 
 adminBtn.onclick = () => adminInput.classList.toggle("hidden");
 adminInput.onchange = () => { if(adminInput.value === ADMIN_MASTER_KEY) { changePanel(userPanel, adminPanel); refreshAdmin(); } };
-function changePanel(o, n) { o.classList.add("hidden"); n.classList.remove("hidden"); n.classList.add("animate-in"); }
+function changePanel(o, n) { o.classList.add("hidden"); n.classList.remove("hidden"); }
 function exitAdmin() { changePanel(adminPanel, userPanel); adminInput.value = ""; }
 </script>
 </body>
