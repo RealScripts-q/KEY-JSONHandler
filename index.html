@@ -132,34 +132,24 @@ hr { opacity:.2 }
 </div>
 
 <script>
-/* ================= CONFIG ================= */
+/* CONFIG */
 const BIN_ID = "694c4aefae596e708faef157";
 const JSONBIN_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu";
 const ADMIN_MASTER_KEY = "roblox";
 const KEY_LIFE = 86400;
 
-/* ================= HELPERS ================= */
+/* HELPERS */
 const now = () => Math.floor(Date.now()/1000);
 const makeKey = () =>
   "RSQ-" + crypto.randomUUID().replace(/-/g,"").slice(0,24).toUpperCase();
 
 function copy(text){
   navigator.clipboard.writeText(text).then(()=>{
-    if(!status.textContent.includes("banned")){
-      status.textContent += " 📋 Copied to clipboard";
-    }
+    status.textContent += " 📋 Copied to clipboard";
   });
 }
 
-/* 🚫 HARD BAN MESSAGE (FIX) */
-function showBanMessage(exp){
-  status.textContent =
-    "🚫 You were banned by an admin until " +
-    new Date(exp * 1000).toLocaleString();
-  keyOut.textContent = "";
-}
-
-/* ================= JSONBIN ================= */
+/* JSONBIN */
 async function getData(){
   const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
   return (await r.json()).record || {};
@@ -176,13 +166,11 @@ async function saveData(data){
   });
 }
 
-/* ================= USER FLOW ================= */
+/* USER FLOW */
 genBtn.onclick = async ()=>{
   const uid = userid.value.trim();
-  keyOut.textContent="";
-  if(!status.textContent.includes("banned")){
-    status.textContent="";
-  }
+  status.textContent = "";
+  keyOut.textContent = "";
 
   if(!/^\d+$/.test(uid)){
     status.textContent="❌ Invalid UserId";
@@ -192,25 +180,21 @@ genBtn.onclick = async ()=>{
   const data = await getData();
   data.keys ||= {};
   data.bans ||= {};
-  data.messages ||= {};
 
   /* 🚫 BAN CHECK (FIXED) */
   if(data.bans[uid] && data.bans[uid] > now()){
-    showBanMessage(data.bans[uid]);
+    status.textContent =
+      "🚫 You were banned by an admin until " +
+      new Date(data.bans[uid]*1000).toLocaleString();
     return;
   }
 
-  if(data.messages[uid]){
-    status.textContent = data.messages[uid];
-    delete data.messages[uid];
-    await saveData(data);
-  }
-
+  /* FIND EXISTING KEY */
   for(const k in data.keys){
     const d = data.keys[k];
     if(d.userId == uid){
       if(d.expires === 0){
-        status.textContent="👑 Your key was made infinite by an admin";
+        status.textContent="👑 Your key is infinite";
         keyOut.textContent=k;
         copy(k);
         return;
@@ -228,6 +212,7 @@ genBtn.onclick = async ()=>{
     }
   }
 
+  /* CREATE NEW KEY */
   const key = makeKey();
   data.keys[key] = {
     userId:Number(uid),
@@ -243,7 +228,7 @@ genBtn.onclick = async ()=>{
   copy(key);
 };
 
-/* ================= ADMIN LOGIN ================= */
+/* ADMIN LOGIN */
 adminBtn.onclick = ()=>adminInput.classList.toggle("hidden");
 
 adminInput.onchange = ()=>{
@@ -256,17 +241,16 @@ adminInput.onchange = ()=>{
   refreshAdmin();
 };
 
-/* ================= ADMIN ================= */
+/* ADMIN */
 async function refreshAdmin(){
   const data = await getData();
   renderKeys(data);
   renderBans(data);
 }
 
-async function renderKeys(data){
+function renderKeys(data){
   keyLogs.innerHTML="";
   data.keys ||= {};
-  data.messages ||= {};
 
   for(const k in data.keys){
     const d = data.keys[k];
@@ -283,7 +267,6 @@ Expires: ${d.expires===0?"Never":new Date(d.expires*1000).toLocaleString()}
     renew.textContent="Renew 24h";
     renew.onclick=async()=>{
       d.expires = now()+KEY_LIFE;
-      data.messages[d.userId]="🔄 Your key was renewed by an admin";
       await saveData(data);
       refreshAdmin();
     };
@@ -293,7 +276,6 @@ Expires: ${d.expires===0?"Never":new Date(d.expires*1000).toLocaleString()}
     inf.className="secondary";
     inf.onclick=async()=>{
       d.expires = 0;
-      data.messages[d.userId]="👑 Your key was made infinite by an admin";
       await saveData(data);
       refreshAdmin();
     };
@@ -302,7 +284,6 @@ Expires: ${d.expires===0?"Never":new Date(d.expires*1000).toLocaleString()}
     del.textContent="Delete Key";
     del.className="danger";
     del.onclick=async()=>{
-      data.messages[d.userId]="🗑️ Your key was removed by an admin";
       delete data.keys[k];
       await saveData(data);
       refreshAdmin();
@@ -313,7 +294,7 @@ Expires: ${d.expires===0?"Never":new Date(d.expires*1000).toLocaleString()}
   }
 }
 
-/* ================= BAN SYSTEM ================= */
+/* BAN SYSTEM */
 async function banUser(){
   const uid = banUserId.value.trim();
   const dur = Number(banDuration.value);
@@ -321,10 +302,7 @@ async function banUser(){
 
   const data = await getData();
   data.bans ||= {};
-  data.messages ||= {};
-
   data.bans[uid] = now()+dur;
-  data.messages[uid] = "🚫 You were banned by an admin";
 
   await saveData(data);
   refreshAdmin();
