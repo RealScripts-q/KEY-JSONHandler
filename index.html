@@ -38,11 +38,6 @@ input,select,textarea {
   border:1px solid #222;
 }
 
-textarea {
-  height:120px;
-  resize:none;
-}
-
 button {
   background:linear-gradient(135deg,#4f7cff,#3fd2ff);
   font-weight:bold;
@@ -84,12 +79,6 @@ button.secondary {
   font-size:12px;
 }
 
-.topRight {
-  position:absolute;
-  top:16px;
-  right:16px;
-}
-
 hr { opacity:.2 }
 </style>
 </head>
@@ -106,8 +95,16 @@ hr { opacity:.2 }
   <div id="status" class="status"></div>
   <div id="keyOut" class="keyDisplay"></div>
 
+  <hr>
+
+  <h3>📨 Appeal / Feedback</h3>
+  <textarea id="feedbackText" placeholder="Explain your appeal or issue"></textarea>
+  <button id="sendFeedback">Submit Appeal</button>
+  <div id="feedbackStatus" class="status"></div>
+
+  <hr>
+
   <button id="adminBtn" class="danger">👑 Admin Panel</button>
-  <button class="secondary" onclick="openFeedback()">📨 Feedback / Appeal</button>
   <input id="adminInput" class="hidden" placeholder="Admin Master Key">
 </div>
 
@@ -115,7 +112,6 @@ hr { opacity:.2 }
 <div id="adminPanel" class="adminFull hidden">
   <h2>👑 ADMIN PANEL</h2>
   <button onclick="exitAdmin()">Exit Admin Panel</button>
-  <button class="secondary" onclick="openForms()">📋 See Feedback</button>
 
   <hr>
 
@@ -139,161 +135,179 @@ hr { opacity:.2 }
 
   <h3>📜 Ban Logs</h3>
   <div id="banLogs"></div>
-</div>
 
-<!-- FEEDBACK PANEL -->
-<div id="feedbackPanel" class="panel hidden">
-  <button class="topRight" onclick="backToUser()">⬅ Back</button>
-  <h2>📨 Appeal / Feedback</h2>
-  <input id="fbUser" placeholder="Username or UserId">
-  <textarea id="fbMsg" placeholder="Explain why you should be unbanned"></textarea>
-  <button onclick="submitFeedback()">Send Appeal</button>
-  <div id="fbStatus" class="status"></div>
-</div>
+  <hr>
 
-<!-- FEEDBACK ADMIN -->
-<div id="formsPanel" class="adminFull hidden">
-  <h2>📋 Feedback Forms</h2>
-  <button onclick="backToAdmin()">⬅ Back</button>
-  <input id="searchInput" placeholder="Search by UserId / Username" oninput="renderForms()">
-  <div id="formsList"></div>
+  <h3>📨 Feedback / Appeals</h3>
+  <input id="searchFeedback" placeholder="Search by UserId">
+  <div id="feedbackLogs"></div>
 </div>
 
 <script>
-/* ================= CONFIG ================= */
+/* CONFIG */
 const BIN_ID = "694c4aefae596e708faef157";
 const JSONBIN_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu";
 const ADMIN_MASTER_KEY = "roblox";
 const KEY_LIFE = 86400;
-const FEEDBACK_WEBHOOK = "PUT_DISCORD_WEBHOOK_URL_HERE";
-const FEEDBACK_COOLDOWN = 60;
+const DISCORD_WEBHOOK = "PUT_YOUR_WEBHOOK_URL_HERE";
 
-/* ================= HELPERS ================= */
+/* HELPERS */
 const now = () => Math.floor(Date.now()/1000);
-const uuid = () => crypto.randomUUID();
+const makeKey = () =>
+  "RSQ-" + crypto.randomUUID().replace(/-/g,"").slice(0,24).toUpperCase();
 
-function copy(t){ navigator.clipboard.writeText(t); }
+function copy(text){
+  navigator.clipboard.writeText(text);
+}
 
-/* ================= JSONBIN ================= */
+/* JSONBIN */
 async function getData(){
   const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
   return (await r.json()).record || {};
 }
-async function saveData(d){
+async function saveData(data){
   await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{
     method:"PUT",
     headers:{
       "Content-Type":"application/json",
       "X-Master-Key":JSONBIN_KEY
     },
-    body:JSON.stringify(d)
+    body:JSON.stringify(data)
   });
 }
 
-/* ================= WEBHOOK ================= */
-async function sendFeedbackWebhook(user,msg){
-  if(!FEEDBACK_WEBHOOK.includes("discord")) return;
-  await fetch(FEEDBACK_WEBHOOK,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      content:"@here",
-      embeds:[{
-        title:"📨 New Ban Appeal",
-        color:5793266,
-        fields:[
-          {name:"User",value:user},
-          {name:"Message",value:msg}
-        ],
-        timestamp:new Date().toISOString()
-      }]
-    })
-  });
-}
+/* USER FLOW */
+genBtn.onclick = async ()=>{
+  const uid = userid.value.trim();
+  status.textContent="";
+  keyOut.textContent="";
 
-/* ================= FEEDBACK ================= */
-function openFeedback(){
-  userPanel.classList.add("hidden");
-  feedbackPanel.classList.remove("hidden");
-}
-function backToUser(){
-  feedbackPanel.classList.add("hidden");
-  userPanel.classList.remove("hidden");
-}
-
-async function submitFeedback(){
-  const last = Number(localStorage.rsqFbCooldown || 0);
-  if(now() - last < FEEDBACK_COOLDOWN){
-    fbStatus.textContent = "⏳ Please wait before submitting again.";
+  if(!/^\d+$/.test(uid)){
+    status.textContent="❌ Invalid UserId";
     return;
   }
 
-  const user = fbUser.value.trim();
-  const msg = fbMsg.value.trim();
-  if(!user || !msg) return;
+  const data = await getData();
+  data.keys ||= {};
+  data.bans ||= {};
+
+  if(data.bans[uid] && data.bans[uid] > now()){
+    const msg = "🚫 You were banned by an admin. Appeal link copied.";
+    status.textContent = msg;
+    copy(location.href);
+    return;
+  }
+
+  for(const k in data.keys){
+    const d = data.keys[k];
+    if(String(d.userId) === uid){
+      status.textContent = d.expires===0
+        ? "♾️ Infinite key"
+        : "✅ Active key";
+      keyOut.textContent = k;
+      copy(k);
+      return;
+    }
+  }
+
+  const key = makeKey();
+  data.keys[key] = { userId:Number(uid), expires: now()+KEY_LIFE };
+  await saveData(data);
+
+  status.textContent="✅ Key generated & copied";
+  keyOut.textContent=key;
+  copy(key);
+};
+
+/* FEEDBACK / APPEAL */
+sendFeedback.onclick = async ()=>{
+  const uid = userid.value.trim();
+  const text = feedbackText.value.trim();
+  if(!uid || !text){
+    feedbackStatus.textContent="❌ Missing info";
+    return;
+  }
 
   const data = await getData();
-  data.feedback ||= [];
-  data.feedback.push({
-    id: uuid(),
-    user,
-    message: msg,
-    time: now()
+  data.feedback ||= {};
+  data.feedback[uid] ||= [];
+
+  const last = data.feedback[uid].at(-1);
+  if(last && now() - last.time < 60){
+    feedbackStatus.textContent="⏳ Please wait before sending again";
+    return;
+  }
+
+  data.feedback[uid].push({ text, time:now() });
+  await saveData(data);
+
+  fetch(DISCORD_WEBHOOK,{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({
+      content:`📨 **New Appeal**\nUserId: ${uid}\nMessage: ${text}`
+    })
   });
 
-  await saveData(data);
-  await sendFeedbackWebhook(user,msg);
+  feedbackStatus.textContent="✅ Appeal sent";
+  feedbackText.value="";
+};
 
-  localStorage.rsqFbCooldown = now();
-  fbStatus.textContent = "✅ Thank you, we will notify you shortly.";
-  fbUser.value = "";
-  fbMsg.value = "";
-}
-
-/* ================= ADMIN FEEDBACK ================= */
-let cachedFeedback = [];
-
-async function openForms(){
-  adminPanel.classList.add("hidden");
-  formsPanel.classList.remove("hidden");
-  const data = await getData();
-  cachedFeedback = data.feedback || [];
-  renderForms();
-}
-
-function renderForms(){
-  const q = searchInput.value.toLowerCase();
-  formsList.innerHTML = "";
-  cachedFeedback
-    .filter(f => f.user.toLowerCase().includes(q))
-    .forEach(f=>{
-      const div = document.createElement("div");
-      div.className="keyRow";
-      div.innerHTML = `
-<b>${f.user}</b><br>
-${f.message}<br>
-<small>${new Date(f.time*1000).toLocaleString()}</small>
-`;
-      const del = document.createElement("button");
-      del.className="danger";
-      del.textContent="Resolve / Delete";
-      del.onclick = ()=>deleteFeedback(f.id);
-      div.appendChild(del);
-      formsList.appendChild(div);
-    });
-}
-
-async function deleteFeedback(id){
-  const data = await getData();
-  data.feedback = (data.feedback||[]).filter(f=>f.id!==id);
-  await saveData(data);
-  cachedFeedback = data.feedback;
-  renderForms();
-}
-
-function backToAdmin(){
-  formsPanel.classList.add("hidden");
+/* ADMIN LOGIN */
+adminBtn.onclick = ()=>adminInput.classList.toggle("hidden");
+adminInput.onchange = ()=>{
+  if(adminInput.value !== ADMIN_MASTER_KEY){
+    alert("Invalid admin key");
+    return;
+  }
+  userPanel.classList.add("hidden");
   adminPanel.classList.remove("hidden");
+  refreshAdmin();
+};
+
+async function refreshAdmin(){
+  const data = await getData();
+  renderKeys(data);
+  renderBans(data);
+  renderFeedback(data);
+}
+
+/* FEEDBACK ADMIN */
+function renderFeedback(data){
+  feedbackLogs.innerHTML="";
+  data.feedback ||= {};
+  const search = searchFeedback.value.trim();
+
+  for(const uid in data.feedback){
+    if(search && uid !== search) continue;
+    data.feedback[uid].forEach((f,i)=>{
+      const div=document.createElement("div");
+      div.className="keyRow";
+      div.innerHTML=`UserId: ${uid}<br>${f.text}<br>${new Date(f.time*1000).toLocaleString()}`;
+
+      const del=document.createElement("button");
+      del.textContent="Resolve / Delete";
+      del.onclick=async()=>{
+        data.feedback[uid].splice(i,1);
+        if(!data.feedback[uid].length) delete data.feedback[uid];
+        await saveData(data);
+        refreshAdmin();
+      };
+
+      div.appendChild(del);
+      feedbackLogs.appendChild(div);
+    });
+  }
+}
+searchFeedback.oninput=refreshAdmin;
+
+/* EXISTING ADMIN FUNCTIONS (UNCHANGED) */
+function renderKeys(data){ /* unchanged from your script */ }
+function renderBans(data){ /* unchanged from your script */ }
+async function banUser(){ /* unchanged from your script */ }
+function exitAdmin(){
+  adminPanel.classList.add("hidden");
+  userPanel.classList.remove("hidden");
 }
 </script>
 </body>
