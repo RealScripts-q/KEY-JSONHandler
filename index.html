@@ -2,269 +2,340 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>RSQ Key System | Elite Ultra</title>
+<title>RSQ Key System | Ultra Update</title>
 
 <style>
-:root {
-  --bg: #0b0e14;
-  --panel-bg: rgba(20, 24, 34, 0.75);
-  --accent: linear-gradient(135deg, #4f7cff, #3fd2ff);
-  --danger: linear-gradient(135deg, #ff3b30, #ff453a);
-  --secondary: linear-gradient(135deg, #ff8a00, #ffb300);
-  --success: linear-gradient(135deg, #28cd41, #34c759);
-  --text: #ffffff;
-  --blur: blur(25px);
-}
-
 body {
-  margin: 0; background: var(--bg);
-  font-family: 'Inter', system-ui, sans-serif;
-  color: var(--text); height: 100vh; overflow: hidden;
+  margin:0;
+  background:#0b0e14;
+  font-family:system-ui;
+  color:white;
 }
+.hidden { display:none !important; }
 
-.hidden { display: none !important; }
-
-#interactionGate {
-    position: fixed; inset: 0; z-index: 10000;
-    background: rgba(11, 14, 20, 0.8);
-    backdrop-filter: blur(60px); display: flex; align-items: center; justify-content: center;
+/* Global Lockout Overlay */
+#lockoutOverlay {
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.95);
+  z-index:9999;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
 }
-
-.animate-in { animation: panelFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-@keyframes panelFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
 .panel {
-  width: 520px; background: var(--panel-bg); backdrop-filter: var(--blur);
-  border: 1px solid rgba(255,255,255,0.08); border-radius: 28px;
-  padding: 35px; margin: auto; margin-top: 10vh;
+  width:520px;
+  background:#141822;
+  border-radius:18px;
+  padding:22px;
+  box-shadow:0 0 60px rgba(0,120,255,.3);
+  margin:auto;
+  margin-top:10vh;
 }
 
-.adminFull {
-  position: fixed; inset: 0; background: rgba(11, 14, 20, 0.96);
-  backdrop-filter: var(--blur); padding: 40px; overflow-y: auto; z-index: 100;
+button,input,select,textarea {
+  width:100%;
+  padding:12px;
+  margin-top:8px;
+  border-radius:8px;
+  border:none;
+  font-size:14px;
 }
 
-button, input, textarea {
-  width: 100%; padding: 14px; margin-top: 12px;
-  border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
-  font-size: 14px; box-sizing: border-box; transition: 0.2s;
+input,select,textarea {
+  background:#0b0f18;
+  color:white;
+  border:1px solid #222;
 }
 
-input, textarea { background: rgba(0, 0, 0, 0.4); color: white; }
-button { background: var(--accent); color: white; font-weight: 700; cursor: pointer; border: none; text-transform: uppercase; }
-button:hover { filter: brightness(1.2); }
+button {
+  background:linear-gradient(135deg,#4f7cff,#3fd2ff);
+  font-weight:bold;
+  cursor:pointer;
+  text-transform: uppercase;
+}
+button:hover { filter: brightness(1.1); }
 button:disabled { opacity: 0.3; cursor: not-allowed; }
 
-button.danger { background: var(--danger); }
-button.secondary { background: var(--secondary); }
-button.success { background: var(--success); }
+button.danger { background:linear-gradient(135deg,#ff3b30,#ff453a); }
+button.secondary { background:linear-gradient(135deg,#ff8a00,#ffb300); }
+button.success { background:linear-gradient(135deg,#28cd41,#34c759); }
 
-.key-card {
-  background: rgba(255,255,255,0.03); padding: 15px; border-radius: 16px; 
-  margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.05);
+.status { text-align:center; margin-top:8px; font-size:13px; }
+.keyDisplay { text-align:center; margin-top:6px; font-size:13px; color:#3fd2ff; word-break:break-all; }
+
+.adminFull {
+  position:fixed;
+  inset:0;
+  background:#0b0e14;
+  padding:20px;
+  overflow:auto;
+  z-index: 100;
 }
 
-.key-text {
-  font-family: monospace; color: #3fd2ff; font-size: 11px;
-  background: rgba(0,0,0,0.4); padding: 8px; border-radius: 6px; word-break: break-all;
+.keyRow {
+  background:#111625;
+  border-radius:10px;
+  padding:12px;
+  margin-bottom:12px;
+  border: 1px solid rgba(255,255,255,0.05);
 }
 
-.blocked-overlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; align-items: center; justify-content: center; text-align: center; }
+hr { opacity:.1; margin: 20px 0; }
 </style>
 </head>
 
 <body>
 
-<div id="interactionGate" class="hidden">
-    <div class="animate-in">
-        <h1 style="font-weight: 900;">AUTHENTICATION</h1>
-        <button onclick="authorizeDevice()" style="width: 250px;">INITIALIZE</button>
-    </div>
+<div id="lockoutOverlay" class="hidden">
+    <h1 style="color:#ff3b30; font-size:40px;">🚫 ACCESS RESTRICTED</h1>
+    <p id="lockoutReason">System Lock Active</p>
+    <p id="myDeviceIdDisplay" style="font-family:monospace; background:#222; padding:10px; border-radius:5px; color:#3fd2ff;"></p>
 </div>
 
-<div id="timeoutOverlay" class="blocked-overlay hidden">
-    <div class="animate-in">
-        <h1 id="timeoutTitle" style="color: #ff3b30; font-size: 48px; margin: 0;">🚫 RESTRICTED</h1>
-        <p id="timeoutMsg">Your hardware is currently locked.</p>
-        <p id="displaySiteId" style="font-family: monospace; color: #3fd2ff; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px;"></p>
-    </div>
-</div>
+<div id="userPanel" class="panel">
+  <h2 style="text-align:center">🔐 RSQ Key System</h2>
 
-<div id="userPanel" class="panel animate-in hidden">
-  <h2 style="text-align:center;">🔐 RSQ ELITE SYSTEM</h2>
   <input id="userid" placeholder="Roblox UserId">
-  <button id="genBtn">GENERATE / RECOVER</button>
-  <div id="status" style="text-align:center; margin-top:10px; font-size:12px; color:#666;">Ready</div>
-  <div id="keyOut" class="key-text" style="margin-top:10px; display:none; text-align:center;"></div>
-  
-  <div style="margin-top:20px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-    <button id="adminBtn" class="danger" style="font-size:11px;">👑 ADMIN</button>
-    <button class="secondary" style="font-size:11px;" onclick="changePanel(userPanel, feedbackPanel)">📨 APPEAL</button>
+  <button id="genBtn">Generate / Recover Key</button>
+
+  <div id="status" class="status"></div>
+  <div id="keyOut" class="keyDisplay"></div>
+
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:15px;">
+    <button id="adminBtn" class="danger">👑 Admin</button>
+    <button id="appealBtn" class="secondary" onclick="showAppeal()">📨 Appeal</button>
   </div>
-  <input id="adminInput" class="hidden" placeholder="Master Access Key">
+  <input id="adminInput" class="hidden" placeholder="Admin Master Key">
 </div>
 
-<div id="feedbackPanel" class="panel hidden">
-  <h2>📨 BAN APPEAL</h2>
-  <input id="fbUser" placeholder="Username/ID">
-  <textarea id="fbMsg" placeholder="Reason for appeal..." style="height:120px;"></textarea>
-  <button id="fbSubmit" onclick="submitAppeal()">SUBMIT APPEAL</button>
-  <button style="background:none;" onclick="changePanel(feedbackPanel, userPanel)">CANCEL</button>
+<div id="appealPanel" class="panel hidden">
+    <h2 style="text-align:center">📨 SUBMIT APPEAL</h2>
+    <input id="appealUser" placeholder="Roblox Username/ID">
+    <textarea id="appealMsg" placeholder="Why should you be unbanned?" style="height:100px; resize:none;"></textarea>
+    <button onclick="submitAppeal()" class="success">Submit Appeal</button>
+    <button onclick="hideAppeal()" style="background:none; border:1px solid #444;">Cancel</button>
 </div>
 
 <div id="adminPanel" class="adminFull hidden">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <h1 style="font-weight:900;">👑 SYSTEM OVERSEER</h1>
-      <button onclick="exitAdmin()" style="width:auto; padding:0 30px;">EXIT</button>
-    </div>
-    <div style="display:grid; grid-template-columns: 1.5fr 1fr; gap:30px; margin-top:30px;">
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h2>👑 SYSTEM OVERSEER</h2>
+      <button onclick="exitAdmin()" style="width:auto; padding:10px 30px;">EXIT ADMIN</button>
+  </div>
+
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:30px; margin-top:20px;">
       <div>
-        <h3>🔑 ACTIVE KEYS</h3>
-        <div id="keyLogs"></div>
-        <h3>🖥️ REGISTRY</h3>
-        <div id="idRegistryLogs"></div>
+          <h3>🔑 KEY LOGS & CONTROLS</h3>
+          <div id="keyLogs"></div>
+          
+          <h3>🖥️ DEVICE REGISTRY</h3>
+          <div id="deviceLogs"></div>
       </div>
+      
       <div>
-        <h3>⏳ TIMEOUTS / BANS</h3>
-        <div id="timeoutLogs"></div>
-        <h3 style="margin-top:20px;">📋 APPEALS</h3>
-        <div id="appealLogs"></div>
+          <h3>⏳ TIMEOUTS & BANS</h3>
+          <div id="banLogs"></div>
+          
+          <h3 style="margin-top:20px;">📋 PENDING APPEALS</h3>
+          <div id="adminAppeals"></div>
       </div>
-    </div>
+  </div>
 </div>
 
 <script>
+/* CONFIG */
 const BIN_ID = "694c4aefae596e708faef157";
 const JSONBIN_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu";
 const ADMIN_MASTER_KEY = "roblox";
+const KEY_LIFE = 86400;
+const TEST_TIMEOUT = 10; // 10 Seconds for testing
 
-let SESSION_DEVICE_ID = null;
+/* HELPERS */
 const now = () => Math.floor(Date.now()/1000);
+const makeKey = () => "RSQ-" + crypto.randomUUID().replace(/-/g,"").slice(0,24).toUpperCase();
 
-function getFingerprint() {
-    return btoa(navigator.userAgent + screen.width).slice(0, 32);
+// DEVICE FINGERPRINT GETTER
+function getDeviceId() {
+    return btoa(navigator.userAgent + screen.width + navigator.language).slice(0, 16).toUpperCase();
+}
+const MY_DEVICE_ID = getDeviceId();
+
+async function getData(){
+  const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
+  return (await r.json()).record || {};
 }
 
-async function getData(){ const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`); return (await r.json()).record || {}; }
-async function saveData(data){ await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, { method:"PUT", headers:{"Content-Type":"application/json", "X-Master-Key":JSONBIN_KEY}, body:JSON.stringify(data) }); }
+async function saveData(data){
+  await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{
+    method:"PUT",
+    headers:{"Content-Type":"application/json","X-Master-Key":JSONBIN_KEY},
+    body:JSON.stringify(data)
+  });
+}
 
-window.onload = async () => {
+/* INITIAL SECURITY CHECK */
+async function checkSecurity() {
     const data = await getData();
-    const fp = getFingerprint();
-    if(data.registry && data.registry[fp]) {
-        SESSION_DEVICE_ID = data.registry[fp];
-        bootApp();
-    } else {
-        document.getElementById('interactionGate').classList.remove('hidden');
+    data.timeouts ||= {};
+    data.bans ||= {};
+    data.registry ||= {};
+
+    // Auto-register device
+    data.registry[MY_DEVICE_ID] = true;
+
+    const isTimedOut = data.timeouts[MY_DEVICE_ID] && data.timeouts[MY_DEVICE_ID] > now();
+    const isBanned = Object.values(data.keys || {}).some(k => k.deviceId === MY_DEVICE_ID && data.bans[k.userId]);
+
+    if (isTimedOut || isBanned) {
+        lockoutOverlay.classList.remove("hidden");
+        myDeviceIdDisplay.textContent = "DEVICE ID: " + MY_DEVICE_ID;
+        lockoutReason.textContent = isBanned ? "PERMANENT HARDWARE BAN" : "TEMPORARY TIMEOUT ACTIVE";
+        return true;
     }
+    return false;
+}
+
+window.onload = checkSecurity;
+
+/* USER FLOW */
+genBtn.onclick = async ()=>{
+  if(await checkSecurity()) return;
+  const uid = userid.value.trim();
+  if(!/^\d+$/.test(uid)) return;
+
+  const data = await getData();
+  data.keys ||= {};
+  data.bans ||= {};
+
+  if(data.bans[uid]){
+    status.textContent = "🚫 Access Denied: User Banned";
+    return;
+  }
+
+  const key = makeKey();
+  data.keys[key] = {
+    userId: uid,
+    deviceId: MY_DEVICE_ID,
+    expires: now() + KEY_LIFE
+  };
+
+  await saveData(data);
+  keyOut.textContent = key;
+  status.textContent = "✅ Key Active";
 };
 
-async function authorizeDevice() {
-    const data = await getData();
-    const fp = getFingerprint();
-    SESSION_DEVICE_ID = "RSQ-ID-" + Math.random().toString(36).toUpperCase().slice(2,12);
-    data.registry ||= {}; data.registry[fp] = SESSION_DEVICE_ID;
-    await saveData(data);
-    bootApp();
-}
-
-async function bootApp() {
-    const data = await getData();
-    const isTimedOut = data.timeouts && data.timeouts[SESSION_DEVICE_ID] > now();
-    const isBanned = Object.values(data.keys || {}).some(k => k.device === SESSION_DEVICE_ID && data.bans && data.bans[k.userId]);
-
-    if(isTimedOut || isBanned) {
-        timeoutOverlay.classList.remove("hidden");
-        displaySiteId.textContent = SESSION_DEVICE_ID;
-        timeoutTitle.textContent = isBanned ? "🚫 PERMANENT BAN" : "⏳ SYSTEM TIMEOUT";
-        return;
-    }
-    document.getElementById('interactionGate').classList.add('hidden');
-    document.getElementById('userPanel').classList.remove('hidden');
-}
-
-genBtn.onclick = async () => {
-    const uid = userid.value.trim();
-    if(!uid) return;
-    const data = await getData();
-    if(data.bans && data.bans[uid]) { status.textContent = "🚫 USER BANNED"; return; }
-    
-    const key = "RSQ-" + Math.random().toString(36).toUpperCase().slice(2,15);
-    data.keys ||= {};
-    data.keys[key] = { userId: uid, expires: now() + 86400, device: SESSION_DEVICE_ID };
-    await saveData(data);
-    keyOut.textContent = key; keyOut.style.display = "block";
-    status.textContent = "✅ ACTIVE";
-};
+/* APPEALS */
+function showAppeal() { userPanel.classList.add("hidden"); appealPanel.classList.remove("hidden"); }
+function hideAppeal() { appealPanel.classList.add("hidden"); userPanel.classList.remove("hidden"); }
 
 async function submitAppeal() {
-  const data = await getData();
-  data.appeals ||= [];
-  data.appeals.push({ user: fbUser.value, msg: fbMsg.value, device: SESSION_DEVICE_ID });
-  await saveData(data);
-  alert("Appeal Sent!");
-  changePanel(feedbackPanel, userPanel);
+    const data = await getData();
+    data.appeals ||= [];
+    data.appeals.push({ 
+        user: appealUser.value, 
+        msg: appealMsg.value, 
+        deviceId: MY_DEVICE_ID,
+        time: now()
+    });
+    await saveData(data);
+    alert("Appeal Submitted");
+    hideAppeal();
 }
 
-window.executeCommand = async (cmd, target) => {
-    const data = await getData();
-    data.timeouts ||= {}; data.bans ||= {};
+/* ADMIN LOGIC */
+adminBtn.onclick = ()=>adminInput.classList.toggle("hidden");
+adminInput.onchange = ()=>{
+  if(adminInput.value === ADMIN_MASTER_KEY){
+    userPanel.classList.add("hidden");
+    adminPanel.classList.remove("hidden");
+    refreshAdmin();
+  }
+};
 
-    if(cmd === 'remove') {
-        data.timeouts[data.keys[target].device] = now() + 10; // 10s Test
+async function adminCmd(type, target) {
+    const data = await getData();
+    data.timeouts ||= {};
+    data.bans ||= {};
+
+    if(type === 'timeout') {
+        const dId = data.keys[target].deviceId;
+        data.timeouts[dId] = now() + TEST_TIMEOUT;
         delete data.keys[target];
-    } 
-    else if(cmd === 'ban') {
+    }
+    else if(type === 'ban') {
         data.bans[target] = true;
-        Object.values(data.keys).forEach(k => { if(k.userId === target) data.timeouts[k.device] = 9999999999; });
+        // Perm timeout for all devices linked to this ID
+        Object.values(data.keys).forEach(k => { if(k.userId === target) data.timeouts[k.deviceId] = 9999999999; });
     }
-    else if(cmd === 'unban') {
+    else if(type === 'unban') {
         delete data.bans[target];
-        Object.values(data.keys).forEach(k => { if(k.userId === target) delete data.timeouts[k.device]; });
+        // Remove infinite timeout
+        Object.keys(data.timeouts).forEach(d => { if(data.timeouts[d] > 5000000000) delete data.timeouts[d]; });
     }
-    else if(cmd === 'untimeout') {
+    else if(type === 'untimeout') {
         delete data.timeouts[target];
     }
-    else if(cmd === 'renew') { data.keys[target].expires = now() + 86400; }
-    else if(cmd === 'inf') { data.keys[target].expires = 9999999999; }
+    else if(type === 'renew') { data.keys[target].expires = now() + KEY_LIFE; }
+    else if(type === 'inf') { data.keys[target].expires = 0; }
 
     await saveData(data);
     refreshAdmin();
-};
-
-async function refreshAdmin() {
-    const data = await getData();
-    const kLogs = document.getElementById("keyLogs"); kLogs.innerHTML = "";
-    Object.entries(data.keys || {}).forEach(([k, v]) => {
-        kLogs.innerHTML += `<div class="key-card">
-            <b>User: ${v.userId}</b><br><code class="key-text">${k}</code>
-            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:5px; margin-top:8px;">
-                <button class="danger" style="font-size:8px;" onclick="executeCommand('remove','${k}')">TIMEOUT</button>
-                <button class="danger" style="font-size:8px;" onclick="executeCommand('ban','${v.userId}')">BAN</button>
-                <button class="success" style="font-size:8px;" onclick="executeCommand('renew','${k}')">RENEW</button>
-                <button class="success" style="font-size:8px;" onclick="executeCommand('inf','${k}')">INF</button>
-            </div>
-        </div>`;
-    });
-
-    const tLogs = document.getElementById("timeoutLogs"); tLogs.innerHTML = "";
-    Object.entries(data.timeouts || {}).forEach(([id, time]) => {
-        const type = time > 5000000000 ? "PERMA" : "TEMP";
-        tLogs.innerHTML += `<div class="key-card"><code>${id}</code> (${type})
-        <button class="success" style="font-size:8px;" onclick="executeCommand('untimeout','${id}')">UN-TIMEOUT</button></div>`;
-    });
-
-    const aLogs = document.getElementById("appealLogs"); aLogs.innerHTML = "";
-    (data.appeals || []).forEach(a => {
-        aLogs.innerHTML += `<div class="key-card"><b>${a.user}:</b> ${a.msg}<br>
-        <button class="success" style="font-size:8px;" onclick="executeCommand('unban','${a.user}')">UNBAN USER</button></div>`;
-    });
 }
 
-adminBtn.onclick = () => adminInput.classList.toggle("hidden");
-adminInput.onchange = () => { if(adminInput.value === ADMIN_MASTER_KEY) { changePanel(userPanel, adminPanel); refreshAdmin(); } };
-function changePanel(o, n) { o.classList.add("hidden"); n.classList.remove("hidden"); }
-function exitAdmin() { changePanel(adminPanel, userPanel); adminInput.value = ""; }
+async function refreshAdmin(){
+  const data = await getData();
+  
+  // Render Keys
+  keyLogs.innerHTML = "";
+  Object.entries(data.keys || {}).forEach(([k, v]) => {
+      const div = document.createElement("div");
+      div.className = "keyRow";
+      div.innerHTML = `<b>${k}</b><br>UID: ${v.userId} | DEV: ${v.deviceId}<br>`;
+      
+      const row = document.createElement("div");
+      row.style.display = "grid"; row.style.gridTemplateColumns = "1fr 1fr 1fr 1fr"; row.style.gap="5px";
+      
+      const btnT = document.createElement("button"); btnT.className="danger"; btnT.textContent="T.O"; btnT.onclick=()=>adminCmd('timeout', k);
+      const btnB = document.createElement("button"); btnB.className="danger"; btnB.textContent="BAN"; btnB.onclick=()=>adminCmd('ban', v.userId);
+      const btnR = document.createElement("button"); btnR.className="success"; btnR.textContent="REN"; btnR.onclick=()=>adminCmd('renew', k);
+      const btnI = document.createElement("button"); btnI.className="success"; btnI.textContent="INF"; btnI.onclick=()=>adminCmd('inf', k);
+      
+      row.append(btnT, btnB, btnR, btnI);
+      div.appendChild(row);
+      keyLogs.appendChild(div);
+  });
+
+  // Render Timeouts/Bans
+  banLogs.innerHTML = "";
+  Object.entries(data.bans || {}).forEach(([uid, val]) => {
+      const div = document.createElement("div");
+      div.className = "keyRow";
+      div.innerHTML = `🚫 BANNED: ${uid} <button onclick="adminCmd('unban','${uid}')" class="success" style="width:auto; float:right; padding:5px 10px;">UNBAN</button>`;
+      banLogs.appendChild(div);
+  });
+  Object.entries(data.timeouts || {}).forEach(([did, time]) => {
+      if(time > now() && time < 5000000000) {
+          const div = document.createElement("div");
+          div.className = "keyRow";
+          div.innerHTML = `⏳ TIMEOUT: ${did} <button onclick="adminCmd('untimeout','${did}')" class="success" style="width:auto; float:right; padding:5px 10px;">LIFT</button>`;
+          banLogs.appendChild(div);
+      }
+  });
+
+  // Render Appeals
+  adminAppeals.innerHTML = "";
+  (data.appeals || []).forEach((a, index) => {
+      const div = document.createElement("div");
+      div.className = "keyRow";
+      div.innerHTML = `<b>${a.user}</b>: ${a.msg}<br><small>Device: ${a.deviceId}</small>`;
+      adminAppeals.appendChild(div);
+  });
+}
+
+function exitAdmin(){ adminPanel.classList.add("hidden"); userPanel.classList.remove("hidden"); }
 </script>
 </body>
 </html>
