@@ -17,14 +17,14 @@ body {
 }
 
 .panel {
-  width:480px;
+  width:520px;
   background:#141822;
   border-radius:18px;
   padding:22px;
-  box-shadow:0 0 50px rgba(0,120,255,.25);
+  box-shadow:0 0 60px rgba(0,120,255,.3);
 }
 
-h1 { text-align:center; margin:0 0 6px; }
+h1 { text-align:center; margin:0; }
 p { text-align:center; font-size:13px; color:#aaa; }
 
 input, button {
@@ -86,11 +86,11 @@ button.danger {
 .hidden { display:none; }
 
 .adminPanel {
-  margin-top:15px;
+  margin-top:16px;
   background:#0b0f18;
   border-radius:12px;
   padding:10px;
-  max-height:260px;
+  max-height:280px;
   overflow:auto;
   display:none;
 }
@@ -100,6 +100,7 @@ button.danger {
   padding:8px 0;
   font-size:12px;
 }
+.keyRow:last-child { border:none; }
 .keyRow button {
   margin-top:6px;
   width:100%;
@@ -110,9 +111,9 @@ button.danger {
 <body>
 <div class="panel">
   <h1>🔐 RSQ Key System</h1>
-  <p>Normal users generate keys · Admins manage everything</p>
+  <p>Generate keys · Track expiry · Admin live control</p>
 
-  <!-- NORMAL USER -->
+  <!-- USER -->
   <input id="userid" placeholder="Roblox UserId">
   <button id="genBtn">Generate Key</button>
 
@@ -120,15 +121,14 @@ button.danger {
   <div id="status" class="status"></div>
   <div id="timer" class="timer"></div>
 
-  <button class="secondary" id="checkBtn">Key Expire Time</button>
+  <button id="checkBtn" class="secondary">Key Expire Time</button>
   <input id="checkKey" class="hidden" placeholder="Paste your key">
 
   <hr style="margin:18px 0;opacity:.2">
 
   <!-- ADMIN -->
-  <button class="danger" id="adminBtn">👑 Admin Panel</button>
+  <button id="adminBtn" class="danger">👑 Admin Panel</button>
   <input id="adminInput" class="hidden" placeholder="Paste admin master key">
-
   <div id="adminPanel" class="adminPanel"></div>
 </div>
 
@@ -155,7 +155,7 @@ function startTimer(exp) {
   timerInt = setInterval(() => {
     const r = exp - now();
     if (r <= 0) {
-      timer.textContent = "❌ EXPIRED";
+      timer.textContent = "❌ Your key has expired";
       clearInterval(timerInt);
       return;
     }
@@ -181,7 +181,7 @@ async function saveKeys(keys) {
   });
 }
 
-/* ================= GENERATE KEY ================= */
+/* ================= USER FLOW ================= */
 genBtn.onclick = async () => {
   const uid = userid.value.trim();
   if (!/^\d+$/.test(uid)) {
@@ -190,7 +190,6 @@ genBtn.onclick = async () => {
   }
 
   const keys = await getKeys();
-
   for (const k in keys) {
     const d = keys[k];
     if (d.userId == uid && d.expires > now()) {
@@ -206,8 +205,8 @@ genBtn.onclick = async () => {
   const key = makeKey();
   const exp = now()+KEY_LIFE;
   keys[key] = { userId:Number(uid), created:now(), expires:exp };
-
   await saveKeys(keys);
+
   navigator.clipboard.writeText(key);
   keyBox.style.display="block";
   keyBox.textContent = key;
@@ -231,7 +230,7 @@ checkKey.oninput = async () => {
   }
   if (d.expires <= now()) {
     setStatus("⚠️ Key expired","warn");
-    timer.textContent="❌ EXPIRED";
+    timer.textContent="❌ Your key has expired";
     return;
   }
   setStatus("✅ Key valid","ok");
@@ -239,6 +238,8 @@ checkKey.oninput = async () => {
 };
 
 /* ================= ADMIN ================= */
+let adminActive = false;
+
 adminBtn.onclick = () => adminInput.classList.toggle("hidden");
 
 adminInput.onchange = async () => {
@@ -246,20 +247,28 @@ adminInput.onchange = async () => {
     setStatus("❌ Invalid admin key","err");
     return;
   }
-
+  adminActive = true;
   setStatus("👑 Admin access granted","ok");
   adminPanel.style.display="block";
-  adminPanel.innerHTML="";
+  renderAdmin();
+};
+
+async function renderAdmin() {
+  if (!adminActive) return;
+  adminPanel.innerHTML = "";
   const keys = await getKeys();
 
   for (const k in keys) {
     const d = keys[k];
+    const expired = d.expires <= now();
+
     const div = document.createElement("div");
-    div.className="keyRow";
+    div.className = "keyRow";
     div.innerHTML = `
 <b>${k}</b><br>
 UserId: ${d.userId}<br>
-Expires: ${d.expires <= now() ? "EXPIRED" : new Date(d.expires*1000).toLocaleString()}
+Status: ${expired ? "❌ EXPIRED" : "✅ ACTIVE"}<br>
+Expires: ${expired ? "—" : new Date(d.expires*1000).toLocaleString()}
     `;
 
     const renew = document.createElement("button");
@@ -268,6 +277,7 @@ Expires: ${d.expires <= now() ? "EXPIRED" : new Date(d.expires*1000).toLocaleStr
       d.expires = now()+KEY_LIFE;
       await saveKeys(keys);
       setStatus("Key renewed","ok");
+      renderAdmin();
     };
 
     const del = document.createElement("button");
@@ -276,15 +286,15 @@ Expires: ${d.expires <= now() ? "EXPIRED" : new Date(d.expires*1000).toLocaleStr
     del.onclick = async ()=>{
       delete keys[k];
       await saveKeys(keys);
-      div.remove();
       setStatus("Key deleted","warn");
+      renderAdmin();
     };
 
     div.appendChild(renew);
     div.appendChild(del);
     adminPanel.appendChild(div);
   }
-};
+}
 </script>
 </body>
 </html>
