@@ -12,7 +12,7 @@
   --danger: linear-gradient(135deg, #ff3b30, #ff453a);
   --secondary: linear-gradient(135deg, #ff8a00, #ffb300);
   --text: #ffffff;
-  --blur: blur(16px);
+  --blur: blur(20px);
 }
 
 body {
@@ -29,7 +29,23 @@ body {
 
 .hidden { display: none !important; }
 
-/* Advanced Animations */
+/* 1-TIME INTERACTION GATE */
+#interactionGate {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(11, 14, 20, 0.85);
+    backdrop-filter: blur(45px);
+    -webkit-backdrop-filter: blur(45px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.5s ease;
+}
+
+.gate-content { text-align: center; max-width: 450px; padding: 40px; }
+
+/* Animations */
 @keyframes panelFadeIn {
   from { opacity: 0; transform: scale(0.96) translateY(10px); filter: blur(10px); }
   to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0px); }
@@ -47,7 +63,6 @@ body {
   width: 520px;
   background: var(--panel-bg);
   backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 28px;
   padding: 35px;
@@ -78,8 +93,6 @@ button, input, select, textarea {
 }
 
 input, select, textarea { background: rgba(0, 0, 0, 0.4); color: white; }
-input:focus { border-color: #4f7cff; outline: none; background: rgba(0,0,0,0.6); }
-
 button {
   background: var(--accent);
   color: white;
@@ -120,6 +133,14 @@ button.secondary { background: var(--secondary); }
 
 <body>
 
+<div id="interactionGate" class="hidden">
+    <div class="gate-content animate-in">
+        <h1 style="font-weight: 900; letter-spacing: -1px; margin-bottom: 10px;">AUTHORIZATION REQUIRED</h1>
+        <p style="opacity: 0.7; margin-bottom: 30px; line-height: 1.5;">To prevent botting and secure your access, please click below to initialize your unique Device ID.</p>
+        <button onclick="authorizeDevice()" style="padding: 20px; font-size: 16px; box-shadow: 0 10px 20px rgba(63, 210, 255, 0.2);">INITIALIZE SYSTEM</button>
+    </div>
+</div>
+
 <div id="timeoutOverlay" class="blocked-overlay hidden">
     <div class="animate-in">
         <h1 style="color: #ff3b30; font-size: 50px; margin: 0;">🚫 SYSTEM TIMEOUT</h1>
@@ -133,7 +154,7 @@ button.secondary { background: var(--secondary); }
   <input id="userid" placeholder="Enter Roblox UserId">
   <button id="genBtn">GENERATE / RECOVER ACCESS</button>
 
-  <div id="status" style="text-align:center; margin-top:15px; font-size:13px; color:#888;">Checking System...</div>
+  <div id="status" style="text-align:center; margin-top:15px; font-size:13px; color:#888; height: 16px;"></div>
   <div id="keyOut" class="key-text" style="margin-top:10px; display:none; text-align:center;"></div>
 
   <div style="margin-top:25px; display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
@@ -186,13 +207,13 @@ button.secondary { background: var(--secondary); }
       <div id="formsList" style="margin-top:20px;"></div>
     </div>
 
-    <div id="formsDetailView" class="hidden animate-in" style="background: rgba(255,255,255,0.02); border-radius: 24px; min-height: 60vh; position: relative; border: 1px solid rgba(255,255,255,0.05);">
+    <div id="formsDetailView" class="hidden animate-in" style="background: rgba(255,255,255,0.02); border-radius: 24px; min-height: 400px; position: relative; border: 1px solid rgba(255,255,255,0.05);">
         <div style="padding:30px;">
             <h2 id="detailUser" style="margin:0; color:#3fd2ff;"></h2>
             <div id="detailTime" style="font-size:12px; opacity:0.5; margin-top:5px;"></div>
         </div>
-        <div style="display:flex; align-items:center; justify-content:center; text-align:center; padding:40px 60px;">
-            <p id="detailMessage" style="font-size:20px; line-height:1.6; max-width:85%;"></p>
+        <div style="padding:40px 60px;">
+            <p id="detailMessage" style="font-size:20px; line-height:1.6;"></p>
         </div>
         <div style="padding:25px; display:flex; gap:15px; justify-content:flex-end; background:rgba(0,0,0,0.3); border-radius:0 0 24px 24px; position: absolute; bottom: 0; width: 100%;">
             <button style="width:auto; background:rgba(255,255,255,0.1); padding:10px 30px;" onclick="closeDetail()">CLOSE</button>
@@ -207,24 +228,36 @@ button.secondary { background: var(--secondary); }
 const BIN_ID = "694c4aefae596e708faef157";
 const JSONBIN_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu";
 const ADMIN_MASTER_KEY = "roblox";
-const WEBHOOK_URL = "YOUR_DISCORD_WEBHOOK_URL_HERE";
 const BAD_WORDS = ["slur1", "slur2", "curse1"]; 
 
-/* --- AUTO DEVICE ID (1s DELAY) --- */
 let MY_DEVICE_ID = localStorage.rsq_user_unique_id || null;
+const now = () => Math.floor(Date.now()/1000);
 
-setTimeout(() => {
+/* --- INTERACTION LOGIC --- */
+if (!localStorage.rsq_verified) {
+    document.getElementById('interactionGate').classList.remove('hidden');
+} else {
+    initApp();
+}
+
+function authorizeDevice() {
     if(!MY_DEVICE_ID) {
         MY_DEVICE_ID = "RSQ-ID-" + crypto.randomUUID().replace(/-/g,'').toUpperCase().slice(0,24);
         localStorage.rsq_user_unique_id = MY_DEVICE_ID;
     }
-    console.log("Device ID Verified:", MY_DEVICE_ID);
+    localStorage.rsq_verified = "true";
+    document.getElementById('interactionGate').style.opacity = '0';
+    setTimeout(() => {
+        document.getElementById('interactionGate').classList.add('hidden');
+        initApp();
+    }, 500);
+}
+
+function initApp() {
     checkGlobalSecurity();
-}, 1000);
+}
 
-const now = () => Math.floor(Date.now()/1000);
-
-/* --- UTILS --- */
+/* --- API & CORE --- */
 function changePanel(oldPanel, newPanel) {
     oldPanel.classList.add("animate-out");
     setTimeout(() => {
@@ -247,75 +280,47 @@ async function saveData(data){
     });
 }
 
-/* --- SECURITY & TIMEOUTS --- */
 async function checkGlobalSecurity() {
     if(!MY_DEVICE_ID) return;
     const data = await getData();
     data.timeouts ||= {};
-    
-    const timeoutExpiry = data.timeouts[MY_DEVICE_ID];
-    if(timeoutExpiry && timeoutExpiry > now()) {
-        const remaining = Math.ceil((timeoutExpiry - now()) / 60);
-        status.textContent = `⏳ TIMEOUT: ${remaining}m remaining`;
-        genBtn.disabled = true;
-        appealBtn.disabled = true;
-        fbSubmit.disabled = true;
+    const exp = data.timeouts[MY_DEVICE_ID];
+    if(exp && exp > now()) {
+        timeoutOverlay.classList.remove('hidden');
+        displaySiteId.textContent = "ID: " + MY_DEVICE_ID;
         return true;
-    } else if (timeoutExpiry && timeoutExpiry <= now()) {
-        delete data.timeouts[MY_DEVICE_ID];
-        await saveData(data);
     }
-
     status.textContent = "✅ System Online";
-    genBtn.disabled = false;
-    appealBtn.disabled = false;
-    fbSubmit.disabled = false;
     return false;
 }
 
-/* --- USER ACTIONS --- */
+/* --- ACTIONS --- */
 genBtn.onclick = async () => {
     if(await checkGlobalSecurity()) return;
     const uid = userid.value.trim();
     if(!/^\d+$/.test(uid)) { status.textContent="❌ INVALID ID"; return; }
     status.textContent = "⌛ Authorizing...";
-    
     const data = await getData();
     data.keys ||= {}; data.bans ||= {};
-    
     if(data.bans[uid] && data.bans[uid] > now()){
-        status.textContent = "🚫 BANNED UNTIL " + new Date(data.bans[uid]*1000).toLocaleString();
-        return;
+        status.textContent = "🚫 BANNED"; return;
     }
-    
-    const existing = Object.entries(data.keys).find(([k,v]) => String(v.userId) === uid);
-    if(existing) {
-        keyOut.textContent = existing[0]; keyOut.style.display = "block";
-        status.textContent = "✅ KEY RECOVERED";
-    } else {
-        const key = "RSQ-" + crypto.randomUUID().replace(/-/g, '').toUpperCase().slice(0, 24);
-        data.keys[key] = { userId: Number(uid), expires: now() + 86400, device: MY_DEVICE_ID };
-        await saveData(data);
-        keyOut.textContent = key; keyOut.style.display = "block";
-        status.textContent = "✅ NEW KEY GENERATED";
-    }
+    const key = "RSQ-" + crypto.randomUUID().replace(/-/g, '').toUpperCase().slice(0, 24);
+    data.keys[key] = { userId: uid, expires: now() + 86400, device: MY_DEVICE_ID };
+    await saveData(data);
+    keyOut.textContent = key; keyOut.style.display = "block";
+    status.textContent = "✅ GENERATED";
 };
 
 async function submitFeedback() {
-    if(await checkGlobalSecurity()) return;
     const user = fbUser.value.trim(); const msg = fbMsg.value.trim();
     if(!user || !msg) return;
-
-    if(BAD_WORDS.some(word => msg.toLowerCase().includes(word.toLowerCase()))) {
+    if(BAD_WORDS.some(w => msg.toLowerCase().includes(w))) {
         const data = await getData();
-        data.timeouts ||= {};
-        data.timeouts[MY_DEVICE_ID] = now() + 3600; // 1 Hour Timeout
-        await saveData(data);
-        checkGlobalSecurity();
-        return;
+        data.timeouts ||= {}; data.timeouts[MY_DEVICE_ID] = now() + 3600;
+        await saveData(data); checkGlobalSecurity(); return;
     }
-
-    fbStatus.textContent = "⌛ SUBMITTING...";
+    fbStatus.textContent = "⌛ Sending...";
     const data = await getData();
     data.feedback ||= []; data.feedback.push({ id: crypto.randomUUID(), user, message: msg, device: MY_DEVICE_ID, time: now() });
     await saveData(data);
@@ -326,56 +331,18 @@ async function submitFeedback() {
 /* --- ADMIN --- */
 async function refreshAdmin() {
     const data = await getData();
-    
-    // Key Logs (Show Device IDs)
-    const kLogs = document.getElementById("keyLogs");
-    kLogs.innerHTML = "";
+    const kLogs = document.getElementById("keyLogs"); kLogs.innerHTML = "";
     Object.entries(data.keys || {}).forEach(([k, v]) => {
-        const div = document.createElement("div");
-        div.className = "key-card";
-        div.innerHTML = `
-            <b>User: ${v.userId}</b><br>
-            <small>Device: ${v.device || 'Unknown'}</small><br>
-            <code class="key-text">${k}</code>
-            <button class="danger" style="font-size:9px; padding:5px; margin-top:5px;" onclick="forceTimeout('${v.device}')">1H Timeout Device</button>
-        `;
-        kLogs.appendChild(div);
+        kLogs.innerHTML += `<div class="key-card"><b>User: ${v.userId}</b><br><small>Device: ${v.device}</small><br><code class="key-text">${k}</code><button class="danger" style="font-size:9px; padding:5px; margin-top:5px;" onclick="forceTimeout('${v.device}')">1H Timeout</button></div>`;
     });
-
-    // Timeout Logs
-    const tLogs = document.getElementById("timeoutLogs");
-    tLogs.innerHTML = "";
-    Object.entries(data.timeouts || {}).forEach(([did, exp]) => {
-        if(exp < now()) return;
-        const div = document.createElement("div");
-        div.className = "key-card";
-        div.style.borderColor = "#ff8a00";
-        div.innerHTML = `<small>ID: ${did}</small><br><b>Expires: ${new Date(exp*1000).toLocaleTimeString()}</b>
-        <button style="width:auto; font-size:9px;" onclick="liftTimeout('${did}')">LIFT</button>`;
-        tLogs.appendChild(div);
-    });
-
-    // Appeal List (Device ID Priority)
-    const list = document.getElementById("formsList"); list.innerHTML = "";
+    const fList = document.getElementById("formsList"); fList.innerHTML = "";
     (data.feedback || []).forEach(f => {
-        const div = document.createElement("div");
-        div.className = "key-card"; div.style.display="flex"; div.style.justifyContent="space-between";
-        div.innerHTML = `<span><b>${f.device}</b><br><small>User: ${f.user}</small></span> <button style="width:auto; font-size:10px;" onclick='showDetail(${JSON.stringify(f)})'>OPEN</button>`;
-        list.appendChild(div);
+        fList.innerHTML += `<div class="key-card" style="display:flex; justify-content:space-between;"><span><b>${f.device}</b><br><small>${f.user}</small></span><button style="width:auto; padding:5px 15px;" onclick='showDetail(${JSON.stringify(f)})'>OPEN</button></div>`;
     });
 }
 
 window.forceTimeout = async (did) => {
-    if(!did || did === 'Unknown') return;
-    const data = await getData();
-    data.timeouts ||= {};
-    data.timeouts[did] = now() + 3600;
-    await saveData(data); refreshAdmin();
-};
-
-window.liftTimeout = async (did) => {
-    const data = await getData();
-    delete data.timeouts[did];
+    const data = await getData(); data.timeouts ||= {}; data.timeouts[did] = now() + 3600;
     await saveData(data); refreshAdmin();
 };
 
@@ -390,16 +357,11 @@ function showDetail(f) {
         await saveData(data); closeDetail(); refreshAdmin();
     };
 }
-
-function closeDetail() {
-    document.getElementById("formsDetailView").classList.add("hidden");
-    document.getElementById("formsListView").classList.remove("hidden");
-}
+function closeDetail() { document.getElementById("formsDetailView").classList.add("hidden"); document.getElementById("formsListView").classList.remove("hidden"); }
 
 adminBtn.onclick = () => adminInput.classList.toggle("hidden");
 adminInput.onchange = () => { if(adminInput.value === ADMIN_MASTER_KEY) { changePanel(userPanel, adminPanel); refreshAdmin(); } };
-function exitAdmin() { changePanel(adminPanel, userPanel); adminInput.value = ""; adminInput.classList.add("hidden"); }
-
+function exitAdmin() { changePanel(adminPanel, userPanel); adminInput.value = ""; }
 </script>
 </body>
 </html>
