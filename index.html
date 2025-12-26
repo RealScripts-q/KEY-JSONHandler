@@ -12,7 +12,7 @@
   --danger: linear-gradient(135deg, #ff3b30, #ff453a);
   --secondary: linear-gradient(135deg, #ff8a00, #ffb300);
   --text: #ffffff;
-  --blur: blur(20px);
+  --blur: blur(25px);
 }
 
 body {
@@ -29,26 +29,25 @@ body {
 
 .hidden { display: none !important; }
 
-/* 1-TIME INTERACTION GATE */
+/* FULL SCREEN BLUR GATE */
 #interactionGate {
     position: fixed;
     inset: 0;
     z-index: 10000;
-    background: rgba(11, 14, 20, 0.85);
-    backdrop-filter: blur(50px);
-    -webkit-backdrop-filter: blur(50px);
+    background: rgba(11, 14, 20, 0.7);
+    backdrop-filter: blur(60px);
+    -webkit-backdrop-filter: blur(60px);
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.5s ease;
+    transition: opacity 0.6s ease;
 }
 
 .gate-content { text-align: center; max-width: 450px; padding: 40px; }
 
-/* Animations */
 @keyframes panelFadeIn {
-  from { opacity: 0; transform: scale(0.96) translateY(10px); filter: blur(10px); }
-  to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0px); }
+  from { opacity: 0; transform: scale(0.96) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .animate-in { animation: panelFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
@@ -60,7 +59,6 @@ body {
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 28px;
   padding: 35px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
   margin: auto;
   margin-top: 12vh;
 }
@@ -68,28 +66,28 @@ body {
 .adminFull {
   position: fixed;
   inset: 0;
-  background: rgba(11, 14, 20, 0.94);
+  background: rgba(11, 14, 20, 0.96);
   backdrop-filter: var(--blur);
   padding: 40px;
   overflow-y: auto;
   z-index: 100;
 }
 
-button, input, select, textarea {
+button, input, textarea {
   width: 100%;
   padding: 14px 18px;
   margin-top: 12px;
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(0, 0, 0, 0.4);
+  color: white;
   font-size: 14px;
   transition: all 0.2s ease;
   box-sizing: border-box;
 }
 
-input, select, textarea { background: rgba(0, 0, 0, 0.4); color: white; }
 button {
   background: var(--accent);
-  color: white;
   font-weight: 700;
   cursor: pointer;
   border: none;
@@ -116,33 +114,24 @@ button.secondary { background: var(--secondary); }
   padding: 8px;
   border-radius: 6px;
   display: block;
-  margin-top: 5px;
 }
 </style>
 </head>
 
 <body>
 
-<div id="interactionGate" class="hidden">
+<div id="interactionGate">
     <div class="gate-content animate-in">
-        <h1 style="font-weight: 900; letter-spacing: -1px; margin-bottom: 10px;">AUTHORIZATION</h1>
-        <p style="opacity: 0.7; margin-bottom: 30px; line-height: 1.5;">Welcome to RSQ Elite. Click below to initialize your secure session and unique hardware ID.</p>
-        <button onclick="authorizeDevice()" style="padding: 20px; font-size: 16px;">INITIALIZE DEVICE</button>
+        <h1 style="font-weight: 900; letter-spacing: -1px; margin-bottom: 10px;">SECURE ACCESS</h1>
+        <p style="opacity: 0.7; margin-bottom: 30px;">Initialize your session to verify your unique hardware ID via our central database.</p>
+        <button id="authBtn" onclick="authorizeDevice()" style="padding: 20px; font-size: 16px;">VERIFY & ENTER</button>
     </div>
 </div>
 
-<div id="timeoutOverlay" class="hidden" style="position:fixed; inset:0; background:#000; z-index:9999; display:flex; align-items:center; justify-content:center; text-align:center;">
-    <div class="animate-in">
-        <h1 style="color: #ff3b30; font-size: 50px;">🚫 RESTRICTED</h1>
-        <p style="font-size: 18px; opacity: 0.8;">Your device ID has been temporarily blocked for 1 hour.</p>
-        <p id="displaySiteId" class="id-display" style="width:fit-content; margin: 30px auto;"></p>
-    </div>
-</div>
-
-<div id="userPanel" class="panel animate-in">
+<div id="userPanel" class="panel animate-in hidden">
   <h2 style="text-align:center; margin-bottom:25px; font-weight:800;">🔐 RSQ KEY SYSTEM</h2>
   <input id="userid" placeholder="Enter Roblox UserId">
-  <button id="genBtn">GENERATE / RECOVER ACCESS</button>
+  <button id="genBtn">GENERATE ACCESS</button>
 
   <div id="status" style="text-align:center; margin-top:15px; font-size:13px; color:#888; height: 16px;"></div>
   <div id="keyOut" class="id-display" style="margin-top:10px; display:none; text-align:center;"></div>
@@ -156,165 +145,121 @@ button.secondary { background: var(--secondary); }
 
 <div id="feedbackPanel" class="panel hidden">
   <h2>📨 BAN APPEAL</h2>
-  <p style="font-size: 11px; color: #888; margin: 0;">Device timeouts are automated. Slurs = 1 Hour Restriction.</p>
-  <input id="fbUser" placeholder="Roblox Username/ID">
-  <textarea id="fbMsg" placeholder="Why should you be unbanned?" style="height:150px; resize:none;"></textarea>
-  <button id="fbSubmit" onclick="submitFeedback()">SUBMIT APPEAL</button>
-  <button style="background:none; border:1px solid rgba(255,255,255,0.1);" onclick="changePanel(feedbackPanel, userPanel)">CANCEL</button>
-  <div id="fbStatus" style="text-align:center; margin-top:12px; font-size:13px;"></div>
+  <textarea id="fbMsg" placeholder="Message..." style="height:150px; resize:none;"></textarea>
+  <button onclick="submitFeedback()">SUBMIT</button>
+  <button style="background:none;" onclick="changePanel(feedbackPanel, userPanel)">BACK</button>
 </div>
 
 <div id="adminPanel" class="adminFull hidden">
   <div style="max-width:1100px; margin:auto;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:40px;">
-      <h1 style="margin:0; font-weight:900;">👑 SYSTEM OVERSEER</h1>
-      <div style="display:flex; gap:15px;">
-        <button onclick="changePanel(adminPanel, formsPanel)" class="secondary" style="width:auto; padding:10px 25px;">VIEW APPEALS</button>
-        <button onclick="exitAdmin()" style="width:auto; padding:10px 25px; background:rgba(255,255,255,0.1);">EXIT</button>
-      </div>
+      <h1>👑 SYSTEM OVERSEER</h1>
+      <button onclick="exitAdmin()" style="width:auto; padding:10px 25px;">EXIT</button>
     </div>
-
     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:40px;">
       <div>
-        <h3>🔑 ACTIVE KEYS</h3>
+        <h3>🖥️ DEVICE ID REGISTRY</h3>
+        <div id="idLogs" style="max-height: 300px; overflow-y: auto;"></div>
+        <h3 style="margin-top:30px;">🔑 ACTIVE KEYS</h3>
         <div id="keyLogs"></div>
-        <h3 style="margin-top:30px;">🖥️ SYSTEM REGISTRY (DEVICE IDs)</h3>
-        <div id="idLogs"></div>
       </div>
       <div>
-        <h3>⏳ ACTIVE TIMEOUTS (1H)</h3>
-        <div id="timeoutLogs"></div>
-        <h3 style="margin-top: 30px;">📜 USER BANS</h3>
-        <div id="banLogs"></div>
+        <h3>📨 APPEALS</h3>
+        <div id="formsList"></div>
       </div>
     </div>
-  </div>
-</div>
-
-<div id="formsPanel" class="adminFull hidden">
-  <div style="max-width:900px; margin:auto;">
-    <h2 style="font-weight:900;">📋 APPEALS BY DEVICE ID</h2>
-    <button onclick="changePanel(formsPanel, adminPanel)" style="width:auto; margin-bottom:25px;">⬅ BACK</button>
-    <div id="formsList"></div>
   </div>
 </div>
 
 <script>
+/* --- CONFIG & STATE --- */
+localStorage.clear(); // Reset storage on every load as requested
 const BIN_ID = "694c4aefae596e708faef157";
 const JSONBIN_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu";
 const ADMIN_MASTER_KEY = "roblox";
-const BAD_WORDS = ["slur1", "slur2"]; 
 
-let MY_DEVICE_ID = localStorage.rsq_user_unique_id || null;
+let SESSION_DEVICE_ID = null;
 const now = () => Math.floor(Date.now()/1000);
 
-/* --- BOOTSTRAP --- */
-if (!localStorage.rsq_verified) {
-    document.getElementById('interactionGate').classList.remove('hidden');
-} else {
-    initApp();
+/* --- PERSISTENT IDENTIFICATION --- */
+function getFingerprint() {
+    // Generates a fingerprint based on hardware/browser properties
+    return btoa(navigator.userAgent + screen.colorDepth + screen.width + navigator.language).slice(0, 32);
 }
 
-async function authorizeDevice() {
-    if(!MY_DEVICE_ID) {
-        MY_DEVICE_ID = "RSQ-ID-" + crypto.randomUUID().replace(/-/g,'').toUpperCase().slice(0,24);
-        localStorage.rsq_user_unique_id = MY_DEVICE_ID;
-    }
-    
-    // Register Device in Registry
-    const data = await getData();
-    data.registry ||= [];
-    if(!data.registry.includes(MY_DEVICE_ID)) data.registry.push(MY_DEVICE_ID);
-    await saveData(data);
-
-    localStorage.rsq_verified = "true";
-    document.getElementById('interactionGate').style.opacity = '0';
-    setTimeout(() => {
-        document.getElementById('interactionGate').classList.add('hidden');
-        initApp();
-    }, 500);
-}
-
-async function initApp() {
-    checkGlobalSecurity();
-}
-
-/* --- DATABASE --- */
 async function getData(){ const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`); return (await r.json()).record || {}; }
 async function saveData(data){ await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, { method:"PUT", headers:{"Content-Type":"application/json", "X-Master-Key":JSONBIN_KEY}, body:JSON.stringify(data) }); }
 
-async function checkGlobalSecurity() {
-    if(!MY_DEVICE_ID) return;
+/* --- HANDSHAKE PROCESS --- */
+async function authorizeDevice() {
+    const authBtn = document.getElementById('authBtn');
+    authBtn.disabled = true;
+    authBtn.textContent = "QUERYING REGISTRY...";
+    
+    const fp = getFingerprint();
     const data = await getData();
-    data.timeouts ||= {};
-    if(data.timeouts[MY_DEVICE_ID] && data.timeouts[MY_DEVICE_ID] > now()) {
-        timeoutOverlay.classList.remove('hidden');
-        displaySiteId.textContent = "DEVICE ID: " + MY_DEVICE_ID;
-        return true;
+    data.registry ||= {}; // Key: Fingerprint, Value: 24+ char ID
+
+    if (data.registry[fp]) {
+        // ID Found in JSON
+        SESSION_DEVICE_ID = data.registry[fp];
+    } else {
+        // ID Not found, generate new 24+ char unique ID
+        SESSION_DEVICE_ID = "RSQ-ID-" + crypto.randomUUID().replace(/-/g,'').toUpperCase().slice(0,24);
+        data.registry[fp] = SESSION_DEVICE_ID;
+        await saveData(data);
     }
-    status.textContent = "✅ Secure";
-    return false;
+
+    document.getElementById('interactionGate').style.opacity = '0';
+    setTimeout(() => {
+        document.getElementById('interactionGate').classList.add('hidden');
+        document.getElementById('userPanel').classList.remove('hidden');
+        status.textContent = "✅ ID LINKED: " + SESSION_DEVICE_ID.slice(0,12) + "...";
+    }, 600);
 }
 
-/* --- USER LOGIC --- */
+/* --- LOGIC --- */
 genBtn.onclick = async () => {
-    if(await checkGlobalSecurity()) return;
     const uid = userid.value.trim();
-    if(!/^\d+$/.test(uid)) { status.textContent="❌ INVALID ID"; return; }
-    status.textContent = "⌛ Syncing...";
+    if(!/^\d+$/.test(uid)) { status.textContent="❌ INVALID USERID"; return; }
+    status.textContent = "⌛ SYNCING...";
     const data = await getData();
     data.keys ||= {};
     const key = "RSQ-" + crypto.randomUUID().replace(/-/g, '').toUpperCase().slice(0, 24);
-    data.keys[key] = { userId: uid, device: MY_DEVICE_ID, time: now() };
+    data.keys[key] = { userId: uid, device: SESSION_DEVICE_ID, time: now() };
     await saveData(data);
     keyOut.textContent = key; keyOut.style.display = "block";
-    status.textContent = "✅ KEY ACTIVE";
+    status.textContent = "✅ ACCESS GRANTED";
 };
 
 async function submitFeedback() {
-    const msg = fbMsg.value.trim();
-    if(!msg) return;
-    if(BAD_WORDS.some(w => msg.toLowerCase().includes(w))) {
-        const data = await getData();
-        data.timeouts ||= {}; data.timeouts[MY_DEVICE_ID] = now() + 3600;
-        await saveData(data); checkGlobalSecurity(); return;
-    }
     const data = await getData();
-    data.feedback ||= []; data.feedback.push({ user: fbUser.value, message: msg, device: MY_DEVICE_ID, time: now() });
+    data.feedback ||= [];
+    data.feedback.push({ message: fbMsg.value, device: SESSION_DEVICE_ID, time: now() });
     await saveData(data);
-    fbStatus.textContent = "✅ SENT";
+    alert("Appeal Submitted to Registry");
 }
 
-/* --- ADMIN LOGIC --- */
+/* --- ADMIN VIEW --- */
 async function refreshAdmin() {
     const data = await getData();
     
-    // Key Logs
+    // Registry Log (Showing all 24+ char IDs from JSON)
+    const il = document.getElementById("idLogs"); il.innerHTML = "";
+    Object.values(data.registry || {}).forEach(id => {
+        il.innerHTML += `<div class="key-card"><code class="id-display">${id}</code></div>`;
+    });
+
     const kl = document.getElementById("keyLogs"); kl.innerHTML = "";
     Object.entries(data.keys || {}).forEach(([k,v]) => {
-        kl.innerHTML += `<div class="key-card"><b>UID: ${v.userId}</b><br><small>Device: ${v.device}</small><br><code class="id-display">${k}</code></div>`;
+        kl.innerHTML += `<div class="key-card"><b>User: ${v.userId}</b><br><small>Dev: ${v.device}</small></div>`;
     });
 
-    // Device Registry (The 20+ char IDs)
-    const il = document.getElementById("idLogs"); il.innerHTML = "";
-    (data.registry || []).forEach(id => {
-        il.innerHTML += `<div class="key-card" style="padding:10px;">
-            <code class="id-display" style="margin:0;">${id}</code>
-            <button class="danger" style="margin-top:8px; padding:5px; font-size:9px;" onclick="forceTimeout('${id}')">Timeout Device</button>
-        </div>`;
-    });
-
-    // Appeals
     const fl = document.getElementById("formsList"); fl.innerHTML = "";
     (data.feedback || []).forEach(f => {
-        fl.innerHTML += `<div class="key-card"><b>Device: ${f.device}</b><br><p>${f.message}</p></div>`;
+        fl.innerHTML += `<div class="key-card"><b>From: ${f.device}</b><p>${f.message}</p></div>`;
     });
 }
-
-window.forceTimeout = async (did) => {
-    const data = await getData(); data.timeouts ||= {}; data.timeouts[did] = now() + 3600;
-    await saveData(data); refreshAdmin();
-};
 
 function changePanel(oldP, newP) { oldP.classList.add("hidden"); newP.classList.remove("hidden"); newP.classList.add("animate-in"); }
 adminBtn.onclick = () => adminInput.classList.toggle("hidden");
