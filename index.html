@@ -3,18 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <title>RSQ Key System</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body {
+  margin:0;
   background:#0b0e14;
   font-family:system-ui;
-  color:#fff;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
+  color:white;
 }
+
+.hidden { display:none; }
 
 .panel {
   width:520px;
@@ -22,278 +20,233 @@ body {
   border-radius:18px;
   padding:22px;
   box-shadow:0 0 60px rgba(0,120,255,.3);
+  margin:auto;
+  margin-top:10vh;
 }
 
-h1 { text-align:center; margin:0; }
-p { text-align:center; font-size:13px; color:#aaa; }
-
-input, button {
+button,input,select {
   width:100%;
   padding:12px;
-  margin-top:10px;
-  border-radius:10px;
+  margin-top:8px;
+  border-radius:8px;
   border:none;
   font-size:14px;
 }
 
-input {
+input,select {
   background:#0b0f18;
-  color:#fff;
+  color:white;
   border:1px solid #222;
 }
 
 button {
   background:linear-gradient(135deg,#4f7cff,#3fd2ff);
-  color:#fff;
   font-weight:bold;
   cursor:pointer;
-}
-
-button.secondary {
-  background:linear-gradient(135deg,#ff8a00,#ffb300);
 }
 
 button.danger {
   background:linear-gradient(135deg,#ff3b30,#ff453a);
 }
 
-.status {
-  margin-top:10px;
-  font-size:13px;
-  text-align:center;
+button.secondary {
+  background:linear-gradient(135deg,#ff8a00,#ffb300);
 }
 
-.status.ok { color:#00ff9c; }
-.status.err { color:#ff5c5c; }
-.status.warn { color:#ffb84d; }
+.status { text-align:center;margin-top:8px;font-size:13px; }
 
-.keybox {
-  margin-top:10px;
-  background:#0b0f18;
-  padding:10px;
-  border-radius:8px;
-  font-size:12px;
-  word-break:break-all;
-  display:none;
-}
-
-.timer {
-  margin-top:8px;
-  text-align:center;
-  font-size:14px;
-}
-
-.hidden { display:none; }
-
-.adminPanel {
-  margin-top:16px;
-  background:#0b0f18;
-  border-radius:12px;
-  padding:10px;
-  max-height:280px;
+.adminFull {
+  position:fixed;
+  inset:0;
+  background:#0b0e14;
+  padding:20px;
   overflow:auto;
-  display:none;
 }
 
 .keyRow {
-  border-bottom:1px solid #222;
-  padding:8px 0;
+  background:#111625;
+  border-radius:10px;
+  padding:10px;
+  margin-bottom:10px;
   font-size:12px;
-}
-.keyRow:last-child { border:none; }
-.keyRow button {
-  margin-top:6px;
-  width:100%;
 }
 </style>
 </head>
 
 <body>
-<div class="panel">
-  <h1>🔐 RSQ Key System</h1>
-  <p>Generate keys · Track expiry · Admin live control</p>
 
-  <!-- USER -->
+<!-- USER PANEL -->
+<div id="userPanel" class="panel">
+  <h2 style="text-align:center">🔐 RSQ Key System</h2>
+
   <input id="userid" placeholder="Roblox UserId">
   <button id="genBtn">Generate Key</button>
 
-  <div id="keyBox" class="keybox"></div>
+  <div id="keyBox" class="hidden"></div>
+  <div id="timer"></div>
   <div id="status" class="status"></div>
-  <div id="timer" class="timer"></div>
 
-  <button id="checkBtn" class="secondary">Key Expire Time</button>
-  <input id="checkKey" class="hidden" placeholder="Paste your key">
-
-  <hr style="margin:18px 0;opacity:.2">
-
-  <!-- ADMIN -->
   <button id="adminBtn" class="danger">👑 Admin Panel</button>
-  <input id="adminInput" class="hidden" placeholder="Paste admin master key">
-  <div id="adminPanel" class="adminPanel"></div>
+  <input id="adminInput" class="hidden" placeholder="Admin Master Key">
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="adminPanel" class="adminFull hidden">
+  <h2>👑 ADMIN PANEL</h2>
+  <button onclick="exitAdmin()">Exit Admin Panel</button>
+
+  <hr>
+
+  <h3>Create Infinite Key</h3>
+  <input id="infUser" placeholder="UserId">
+  <button onclick="createInfinite()">Generate Infinite Key</button>
+
+  <hr>
+
+  <h3>Ban UserId</h3>
+  <input id="banUser" placeholder="UserId">
+  <select id="banTime">
+    <option value="3600">1 Hour</option>
+    <option value="86400">1 Day</option>
+    <option value="604800">1 Week</option>
+    <option value="2592000">1 Month</option>
+    <option value="31536000">1 Year</option>
+  </select>
+  <button class="danger" onclick="banUser()">Ban User</button>
+
+  <hr>
+
+  <h3>Key Logs</h3>
+  <div id="logs"></div>
 </div>
 
 <script>
-/* ================= CONFIG ================= */
+/* CONFIG */
 const BIN_ID = "694c4aefae596e708faef157";
 const JSONBIN_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu";
 const ADMIN_MASTER_KEY = "roblox";
 const KEY_LIFE = 86400;
 
-/* ================= HELPERS ================= */
+/* HELPERS */
 const now = () => Math.floor(Date.now()/1000);
-const makeKey = () =>
-  "RSQ-" + crypto.randomUUID().replace(/-/g,"").slice(0,20).toUpperCase();
+const makeKey = () => "RSQ-" + crypto.randomUUID().replace(/-/g,"").slice(0,20).toUpperCase();
 
-function setStatus(msg,type="ok") {
-  status.className = "status " + type;
-  status.textContent = msg;
-}
-
-let timerInt;
-function startTimer(exp) {
-  clearInterval(timerInt);
-  timerInt = setInterval(() => {
-    const r = exp - now();
-    if (r <= 0) {
-      timer.textContent = "❌ Your key has expired";
-      clearInterval(timerInt);
-      return;
-    }
-    timer.textContent =
-      `⏱ ${Math.floor(r/3600)}h ${Math.floor(r%3600/60)}m ${r%60}s`;
-  }, 1000);
-}
-
-/* ================= JSONBIN ================= */
-async function getKeys() {
+/* JSONBIN */
+async function getData(){
   const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
-  return (await r.json()).record.keys || {};
+  const j = await r.json();
+  return j.record;
 }
-
-async function saveKeys(keys) {
-  await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+async function saveData(data){
+  await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{
     method:"PUT",
     headers:{
       "Content-Type":"application/json",
       "X-Master-Key":JSONBIN_KEY
     },
-    body:JSON.stringify({ keys })
+    body:JSON.stringify(data)
   });
 }
 
-/* ================= USER FLOW ================= */
-genBtn.onclick = async () => {
+/* USER */
+genBtn.onclick = async ()=>{
   const uid = userid.value.trim();
-  if (!/^\d+$/.test(uid)) {
-    setStatus("❌ Invalid UserId","err");
-    return;
-  }
+  if(!/^\d+$/.test(uid)) return status.textContent="❌ Invalid UserId";
 
-  const keys = await getKeys();
-  for (const k in keys) {
-    const d = keys[k];
-    if (d.userId == uid && d.expires > now()) {
+  const data = await getData();
+  data.bans ||= {};
+  if(data.bans[uid] && data.bans[uid] > now())
+    return status.textContent="🚫 You are banned";
+
+  data.keys ||= {};
+  for(const k in data.keys){
+    const d = data.keys[k];
+    if(d.userId==uid && (d.expires===0 || d.expires>now())){
       navigator.clipboard.writeText(k);
-      keyBox.style.display="block";
-      keyBox.textContent = k;
-      setStatus("✅ Active key copied","ok");
-      startTimer(d.expires);
+      status.textContent="✅ Key copied";
       return;
     }
   }
 
   const key = makeKey();
-  const exp = now()+KEY_LIFE;
-  keys[key] = { userId:Number(uid), created:now(), expires:exp };
-  await saveKeys(keys);
+  data.keys[key] = {userId:Number(uid),expires:now()+KEY_LIFE};
+  await saveData(data);
 
   navigator.clipboard.writeText(key);
-  keyBox.style.display="block";
-  keyBox.textContent = key;
-  setStatus("✅ New key generated","ok");
-  startTimer(exp);
+  status.textContent="✅ New key generated";
 };
 
-/* ================= CHECK KEY ================= */
-checkBtn.onclick = () => checkKey.classList.toggle("hidden");
+/* ADMIN LOGIN */
+adminBtn.onclick=()=>adminInput.classList.toggle("hidden");
 
-checkKey.oninput = async () => {
-  const k = checkKey.value.trim();
-  if (!k) return;
-  const keys = await getKeys();
-  const d = keys[k];
+adminInput.onchange=()=>{
+  if(adminInput.value!==ADMIN_MASTER_KEY)
+    return alert("Invalid admin key");
 
-  if (!d) {
-    setStatus("❌ Invalid key","err");
-    timer.textContent="";
-    return;
-  }
-  if (d.expires <= now()) {
-    setStatus("⚠️ Key expired","warn");
-    timer.textContent="❌ Your key has expired";
-    return;
-  }
-  setStatus("✅ Key valid","ok");
-  startTimer(d.expires);
+  userPanel.classList.add("hidden");
+  adminPanel.classList.remove("hidden");
+  renderLogs();
 };
 
-/* ================= ADMIN ================= */
-let adminActive = false;
-
-adminBtn.onclick = () => adminInput.classList.toggle("hidden");
-
-adminInput.onchange = async () => {
-  if (adminInput.value !== ADMIN_MASTER_KEY) {
-    setStatus("❌ Invalid admin key","err");
-    return;
-  }
-  adminActive = true;
-  setStatus("👑 Admin access granted","ok");
-  adminPanel.style.display="block";
-  renderAdmin();
-};
-
-async function renderAdmin() {
-  if (!adminActive) return;
-  adminPanel.innerHTML = "";
-  const keys = await getKeys();
-
-  for (const k in keys) {
-    const d = keys[k];
-    const expired = d.expires <= now();
-
-    const div = document.createElement("div");
-    div.className = "keyRow";
-    div.innerHTML = `
+/* ADMIN ACTIONS */
+async function renderLogs(){
+  const data = await getData();
+  logs.innerHTML="";
+  data.keys ||= {};
+  for(const k in data.keys){
+    const d = data.keys[k];
+    const div=document.createElement("div");
+    div.className="keyRow";
+    div.innerHTML=`
 <b>${k}</b><br>
 UserId: ${d.userId}<br>
-Status: ${expired ? "❌ EXPIRED" : "✅ ACTIVE"}<br>
-Expires: ${expired ? "—" : new Date(d.expires*1000).toLocaleString()}
-    `;
-
-    const renew = document.createElement("button");
+Status: ${d.expires===0?"♾️ INFINITE":d.expires>now()?"✅ ACTIVE":"❌ EXPIRED"}
+`;
+    const renew=document.createElement("button");
     renew.textContent="Renew 24h";
-    renew.onclick = async ()=>{
-      d.expires = now()+KEY_LIFE;
-      await saveKeys(keys);
-      setStatus("Key renewed","ok");
-      renderAdmin();
+    renew.onclick=async()=>{
+      d.expires=now()+KEY_LIFE;
+      await saveData(data);
+      renderLogs();
     };
 
-    const del = document.createElement("button");
-    del.textContent="Delete key";
+    const del=document.createElement("button");
+    del.textContent="Delete";
     del.className="danger";
-    del.onclick = async ()=>{
-      delete keys[k];
-      await saveKeys(keys);
-      setStatus("Key deleted","warn");
-      renderAdmin();
+    del.onclick=async()=>{
+      delete data.keys[k];
+      await saveData(data);
+      renderLogs();
     };
 
-    div.appendChild(renew);
-    div.appendChild(del);
-    adminPanel.appendChild(div);
+    div.append(renew,del);
+    logs.appendChild(div);
   }
+}
+
+async function createInfinite(){
+  const uid=infUser.value.trim();
+  if(!uid) return;
+  const data=await getData();
+  const key=makeKey();
+  data.keys[key]={userId:Number(uid),expires:0};
+  await saveData(data);
+  renderLogs();
+}
+
+async function banUser(){
+  const uid=banUser.value.trim();
+  const dur=Number(banTime.value);
+  const data=await getData();
+  data.bans ||= {};
+  data.bans[uid]=now()+dur;
+  await saveData(data);
+  renderLogs();
+}
+
+function exitAdmin(){
+  adminPanel.classList.add("hidden");
+  userPanel.classList.remove("hidden");
 }
 </script>
 </body>
