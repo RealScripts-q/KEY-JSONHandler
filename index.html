@@ -76,24 +76,24 @@ button.danger {
 <body>
 <div class="card">
   <h1>🔑 RSQ Key System</h1>
-  <p>Normal users generate & renew keys · Admins manage everything</p>
+  <p>Generate keys here · Roblox script validates them</p>
 
   <!-- NORMAL PLAYER -->
   <input id="userid" placeholder="Roblox UserId">
   <button id="gen">Generate / Recover Key</button>
 
   <button id="browserBtn" class="secondary">
-    🌐 Get Key (Open Website)
+    🌐 Open Key Website
   </button>
 
   <button id="renewBtn" class="secondary hidden">
     🔄 Renew Key (24h)
   </button>
-  <input id="renewKey" class="hidden" placeholder="Paste renew key from Roblox">
+  <input id="renewInput" class="hidden" placeholder="Paste renew key from Roblox">
 
   <!-- ADMIN -->
   <button id="adminBtn" class="danger">👑 Admin Panel</button>
-  <input id="adminKey" class="hidden" placeholder="Paste admin master key">
+  <input id="adminInput" class="hidden" placeholder="Paste admin master key">
 
   <div id="status" class="status"></div>
   <div id="log" class="log hidden"></div>
@@ -117,6 +117,7 @@ async function getKeys() {
   const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
   return (await r.json()).record.keys || {};
 }
+
 async function saveKeys(keys) {
   await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
     method:"PUT",
@@ -128,12 +129,13 @@ async function saveKeys(keys) {
   });
 }
 
-/* ================= NORMAL PLAYER ================= */
+/* ================= NORMAL USER ================= */
 gen.onclick = async () => {
   const uid = userid.value.trim();
   if (!/^\d+$/.test(uid))
     return status.textContent = "❌ Invalid UserId";
 
+  status.textContent = "🔍 Checking keys...";
   const keys = await getKeys();
 
   for (const k in keys) {
@@ -166,12 +168,12 @@ browserBtn.onclick = () => {
 
 /* ================= RENEW ================= */
 renewBtn.onclick = () => {
-  renewKey.classList.toggle("hidden");
+  renewInput.classList.toggle("hidden");
   status.textContent = "Paste renew key from Roblox";
 };
 
-renewKey.onchange = async () => {
-  const token = renewKey.value.trim().toUpperCase();
+renewInput.onchange = async () => {
+  const token = renewInput.value.trim().toUpperCase();
   const uid = userid.value.trim();
   if (!token || !uid) return;
 
@@ -183,9 +185,9 @@ renewKey.onchange = async () => {
       d.expires = now() + KEY_LIFE;
       d.renewKey = makeRenew();
       await saveKeys(keys);
-      status.textContent = "✅ Key renewed to 24h";
-      renewKey.value = "";
-      renewKey.classList.add("hidden");
+      status.textContent = "✅ Key renewed (24h)";
+      renewInput.value = "";
+      renewInput.classList.add("hidden");
       return;
     }
   }
@@ -195,29 +197,32 @@ renewKey.onchange = async () => {
 
 /* ================= ADMIN ================= */
 adminBtn.onclick = () => {
-  adminKey.classList.toggle("hidden");
+  adminInput.classList.toggle("hidden");
 };
 
-adminKey.onchange = async () => {
-  if (adminKey.value !== ADMIN_MASTER_KEY) {
+adminInput.onchange = async () => {
+  if (adminInput.value !== ADMIN_MASTER_KEY) {
     status.textContent = "❌ Invalid admin key";
     return;
   }
 
-  const keys = await getKeys();
-  log.innerHTML = "";
-  log.classList.remove("hidden");
   status.textContent = "👑 Admin access granted";
+  log.classList.remove("hidden");
+  log.innerHTML = "";
+
+  const keys = await getKeys();
 
   for (const k in keys) {
     const d = keys[k];
-    const div = document.createElement("div");
-    div.className = "keyRow";
-    div.innerHTML = `
-      <b>${k}</b><br>
-      UserId: ${d.userId}<br>
-      Expires: ${new Date(d.expires*1000).toLocaleString()}
-    `;
+
+    const row = document.createElement("div");
+    row.className = "keyRow";
+    row.innerHTML = `
+<b>${k}</b>
+UserId: ${d.userId}
+Expires: ${new Date(d.expires * 1000).toLocaleString()}
+RenewKey: ${d.renewKey}
+`;
 
     const renew = document.createElement("button");
     renew.textContent = "Renew 24h";
@@ -233,13 +238,13 @@ adminKey.onchange = async () => {
     del.onclick = async () => {
       delete keys[k];
       await saveKeys(keys);
-      div.remove();
+      row.remove();
       status.textContent = "Key deleted";
     };
 
-    div.appendChild(renew);
-    div.appendChild(del);
-    log.appendChild(div);
+    row.appendChild(renew);
+    row.appendChild(del);
+    log.appendChild(row);
   }
 };
 </script>
