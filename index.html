@@ -7,7 +7,7 @@
 
 <style>
 body {
-  background:#070707;
+  background:#0b0e14;
   font-family:system-ui;
   color:#fff;
   display:flex;
@@ -15,102 +15,154 @@ body {
   align-items:center;
   height:100vh;
 }
-.card {
-  width:480px;
-  background:#121212;
-  border-radius:18px;
-  padding:20px;
-  box-shadow:0 0 40px rgba(0,120,255,.25);
-}
-h1 { font-size:18px; margin:0; }
-p { font-size:13px; color:#aaa; }
 
-input,button {
+.panel {
+  width:480px;
+  background:#141822;
+  border-radius:18px;
+  padding:22px;
+  box-shadow:0 0 50px rgba(0,120,255,.25);
+}
+
+h1 { text-align:center; margin:0 0 6px; }
+p { text-align:center; font-size:13px; color:#aaa; }
+
+input, button {
   width:100%;
   padding:12px;
   margin-top:10px;
   border-radius:10px;
   border:none;
+  font-size:14px;
 }
+
 input {
-  background:#0b0b0b;
+  background:#0b0f18;
   color:#fff;
   border:1px solid #222;
 }
+
 button {
-  background:linear-gradient(135deg,#007aff,#00c6ff);
+  background:linear-gradient(135deg,#4f7cff,#3fd2ff);
   color:#fff;
   font-weight:bold;
   cursor:pointer;
 }
+
 button.secondary {
-  background:linear-gradient(135deg,#ff6a00,#ff9500);
+  background:linear-gradient(135deg,#ff8a00,#ffb300);
 }
+
 button.danger {
   background:linear-gradient(135deg,#ff3b30,#ff453a);
 }
+
+.status {
+  margin-top:10px;
+  font-size:13px;
+  text-align:center;
+}
+
+.status.ok { color:#00ff9c; }
+.status.err { color:#ff5c5c; }
+.status.warn { color:#ffb84d; }
+
+.keybox {
+  margin-top:10px;
+  background:#0b0f18;
+  padding:10px;
+  border-radius:8px;
+  font-size:12px;
+  word-break:break-all;
+  display:none;
+}
+
+.timer {
+  margin-top:8px;
+  text-align:center;
+  font-size:14px;
+}
+
 .hidden { display:none; }
 
-.status { margin-top:10px; font-size:13px; }
-.log {
-  margin-top:10px;
-  background:#0b0b0b;
-  border:1px solid #222;
-  border-radius:10px;
+.adminPanel {
+  margin-top:15px;
+  background:#0b0f18;
+  border-radius:12px;
   padding:10px;
   max-height:260px;
   overflow:auto;
-  font-family:monospace;
-  white-space:pre-wrap;
+  display:none;
 }
+
 .keyRow {
   border-bottom:1px solid #222;
   padding:8px 0;
+  font-size:12px;
 }
 .keyRow button {
   margin-top:6px;
+  width:100%;
 }
 </style>
 </head>
 
 <body>
-<div class="card">
-  <h1>🔑 RSQ Key System</h1>
-  <p>Generate keys here · Roblox script validates them</p>
+<div class="panel">
+  <h1>🔐 RSQ Key System</h1>
+  <p>Normal users generate keys · Admins manage everything</p>
 
-  <!-- NORMAL PLAYER -->
+  <!-- NORMAL USER -->
   <input id="userid" placeholder="Roblox UserId">
-  <button id="gen">Generate / Recover Key</button>
+  <button id="genBtn">Generate Key</button>
 
-  <button id="browserBtn" class="secondary">
-    🌐 Open Key Website
-  </button>
+  <div id="keyBox" class="keybox"></div>
+  <div id="status" class="status"></div>
+  <div id="timer" class="timer"></div>
 
-  <button id="renewBtn" class="secondary hidden">
-    🔄 Renew Key (24h)
-  </button>
-  <input id="renewInput" class="hidden" placeholder="Paste renew key from Roblox">
+  <button class="secondary" id="checkBtn">Key Expire Time</button>
+  <input id="checkKey" class="hidden" placeholder="Paste your key">
+
+  <hr style="margin:18px 0;opacity:.2">
 
   <!-- ADMIN -->
-  <button id="adminBtn" class="danger">👑 Admin Panel</button>
+  <button class="danger" id="adminBtn">👑 Admin Panel</button>
   <input id="adminInput" class="hidden" placeholder="Paste admin master key">
 
-  <div id="status" class="status"></div>
-  <div id="log" class="log hidden"></div>
+  <div id="adminPanel" class="adminPanel"></div>
 </div>
 
 <script>
 /* ================= CONFIG ================= */
 const BIN_ID = "694c4aefae596e708faef157";
-const JSONBIN_MASTER_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu";
+const JSONBIN_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu";
 const ADMIN_MASTER_KEY = "roblox";
-
 const KEY_LIFE = 86400;
 
 /* ================= HELPERS ================= */
 const now = () => Math.floor(Date.now()/1000);
-const makeKey = () => "RSQ-" + crypto.randomUUID().slice(0,8).toUpperCase();
-const makeRenew = () => crypto.randomUUID().slice(0,6).toUpperCase();
+const makeKey = () =>
+  "RSQ-" + crypto.randomUUID().replace(/-/g,"").slice(0,20).toUpperCase();
+
+function setStatus(msg,type="ok") {
+  status.className = "status " + type;
+  status.textContent = msg;
+}
+
+let timerInt;
+function startTimer(exp) {
+  clearInterval(timerInt);
+  timerInt = setInterval(() => {
+    const r = exp - now();
+    if (r <= 0) {
+      timer.textContent = "❌ EXPIRED";
+      clearInterval(timerInt);
+      return;
+    }
+    timer.textContent =
+      `⏱ ${Math.floor(r/3600)}h ${Math.floor(r%3600/60)}m ${r%60}s`;
+  }, 1000);
+}
 
 /* ================= JSONBIN ================= */
 async function getKeys() {
@@ -123,128 +175,114 @@ async function saveKeys(keys) {
     method:"PUT",
     headers:{
       "Content-Type":"application/json",
-      "X-Master-Key":JSONBIN_MASTER_KEY
+      "X-Master-Key":JSONBIN_KEY
     },
     body:JSON.stringify({ keys })
   });
 }
 
-/* ================= NORMAL USER ================= */
-gen.onclick = async () => {
+/* ================= GENERATE KEY ================= */
+genBtn.onclick = async () => {
   const uid = userid.value.trim();
-  if (!/^\d+$/.test(uid))
-    return status.textContent = "❌ Invalid UserId";
+  if (!/^\d+$/.test(uid)) {
+    setStatus("❌ Invalid UserId","err");
+    return;
+  }
 
-  status.textContent = "🔍 Checking keys...";
   const keys = await getKeys();
 
   for (const k in keys) {
     const d = keys[k];
     if (d.userId == uid && d.expires > now()) {
       navigator.clipboard.writeText(k);
-      status.textContent = "✅ Active key copied";
-      renewBtn.classList.remove("hidden");
+      keyBox.style.display="block";
+      keyBox.textContent = k;
+      setStatus("✅ Active key copied","ok");
+      startTimer(d.expires);
       return;
     }
   }
 
   const key = makeKey();
-  keys[key] = {
-    userId:Number(uid),
-    created:now(),
-    expires:now()+KEY_LIFE,
-    renewKey:makeRenew()
-  };
+  const exp = now()+KEY_LIFE;
+  keys[key] = { userId:Number(uid), created:now(), expires:exp };
 
   await saveKeys(keys);
   navigator.clipboard.writeText(key);
-  status.textContent = "✅ New key generated & copied";
-  renewBtn.classList.remove("hidden");
+  keyBox.style.display="block";
+  keyBox.textContent = key;
+  setStatus("✅ New key generated","ok");
+  startTimer(exp);
 };
 
-browserBtn.onclick = () => {
-  window.open("https://realscripts-q.github.io/KEY-JSONHandler/", "_blank");
-};
+/* ================= CHECK KEY ================= */
+checkBtn.onclick = () => checkKey.classList.toggle("hidden");
 
-/* ================= RENEW ================= */
-renewBtn.onclick = () => {
-  renewInput.classList.toggle("hidden");
-  status.textContent = "Paste renew key from Roblox";
-};
-
-renewInput.onchange = async () => {
-  const token = renewInput.value.trim().toUpperCase();
-  const uid = userid.value.trim();
-  if (!token || !uid) return;
-
+checkKey.oninput = async () => {
+  const k = checkKey.value.trim();
+  if (!k) return;
   const keys = await getKeys();
+  const d = keys[k];
 
-  for (const k in keys) {
-    const d = keys[k];
-    if (d.userId == uid && d.expires > now() && d.renewKey === token) {
-      d.expires = now() + KEY_LIFE;
-      d.renewKey = makeRenew();
-      await saveKeys(keys);
-      status.textContent = "✅ Key renewed (24h)";
-      renewInput.value = "";
-      renewInput.classList.add("hidden");
-      return;
-    }
+  if (!d) {
+    setStatus("❌ Invalid key","err");
+    timer.textContent="";
+    return;
   }
-
-  status.textContent = "❌ Invalid renew key or no active key";
+  if (d.expires <= now()) {
+    setStatus("⚠️ Key expired","warn");
+    timer.textContent="❌ EXPIRED";
+    return;
+  }
+  setStatus("✅ Key valid","ok");
+  startTimer(d.expires);
 };
 
 /* ================= ADMIN ================= */
-adminBtn.onclick = () => {
-  adminInput.classList.toggle("hidden");
-};
+adminBtn.onclick = () => adminInput.classList.toggle("hidden");
 
 adminInput.onchange = async () => {
   if (adminInput.value !== ADMIN_MASTER_KEY) {
-    status.textContent = "❌ Invalid admin key";
+    setStatus("❌ Invalid admin key","err");
     return;
   }
 
-  status.textContent = "👑 Admin access granted";
-  log.classList.remove("hidden");
-  log.innerHTML = "";
-
+  setStatus("👑 Admin access granted","ok");
+  adminPanel.style.display="block";
+  adminPanel.innerHTML="";
   const keys = await getKeys();
 
   for (const k in keys) {
     const d = keys[k];
-
-    const row = document.createElement("div");
-    row.className = "keyRow";
-    row.innerHTML = `
-<b>${k}</b>
-UserId: ${d.userId}
-Expires: ${new Date(d.expires * 1000).toLocaleString()}
-RenewKey: ${d.renewKey}
-`;
+    const div = document.createElement("div");
+    div.className="keyRow";
+    div.innerHTML = `
+<b>${k}</b><br>
+UserId: ${d.userId}<br>
+Expires: ${d.expires <= now() ? "EXPIRED" : new Date(d.expires*1000).toLocaleString()}
+    `;
 
     const renew = document.createElement("button");
-    renew.textContent = "Renew 24h";
-    renew.onclick = async () => {
-      d.expires = now() + KEY_LIFE;
+    renew.textContent="Renew 24h";
+    renew.onclick = async ()=>{
+      d.expires = now()+KEY_LIFE;
       await saveKeys(keys);
-      status.textContent = "Admin renewed key";
+      setStatus("Key renewed","ok");
     };
 
     const del = document.createElement("button");
-    del.textContent = "Delete Key";
-    del.className = "danger";
-    del.onclick = async () => {
+    del.textContent="Delete key";
+    del.className="danger";
+    del.onclick = async ()=>{
       delete keys[k];
       await saveKeys(keys);
-      row.remove();
-      status.textContent = "Key deleted";
+      div.remove();
+      setStatus("Key deleted","warn");
     };
 
-    row.appendChild(renew);
-    row.appendChild(del);
-    log.appendChild(row);
+    div.appendChild(renew);
+    div.appendChild(del);
+    adminPanel.appendChild(div);
   }
 };
 </script>
