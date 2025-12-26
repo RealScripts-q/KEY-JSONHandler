@@ -2,346 +2,384 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>RSQ Key System</title>
+<title>RSQ Key System | Advanced</title>
 
 <style>
+:root {
+  --bg: #0b0e14;
+  --panel-bg: rgba(20, 24, 34, 0.85);
+  --accent: linear-gradient(135deg, #4f7cff, #3fd2ff);
+  --danger: linear-gradient(135deg, #ff3b30, #ff453a);
+  --secondary: linear-gradient(135deg, #ff8a00, #ffb300);
+  --text: #ffffff;
+  --blur: blur(12px);
+}
+
 body {
-  margin:0;
-  background:#0b0e14;
-  font-family:system-ui;
-  color:white;
+  margin: 0;
+  background: var(--bg);
+  background-image: radial-gradient(circle at top right, rgba(63, 210, 255, 0.1), transparent),
+                    radial-gradient(circle at bottom left, rgba(79, 124, 255, 0.05), transparent);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
 }
-.hidden { display:none; }
 
+.hidden { display: none !important; }
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(10px); }
+}
+
+.animate-in { animation: fadeIn 0.3s ease forwards; }
+
+/* Panels */
 .panel {
-  width:520px;
-  background:#141822;
-  border-radius:18px;
-  padding:22px;
-  box-shadow:0 0 60px rgba(0,120,255,.3);
-  margin:auto;
-  margin-top:10vh;
-}
-
-button,input,select,textarea {
-  width:100%;
-  padding:12px;
-  margin-top:8px;
-  border-radius:8px;
-  border:none;
-  font-size:14px;
-}
-
-input,select,textarea {
-  background:#0b0f18;
-  color:white;
-  border:1px solid #222;
-}
-
-textarea {
-  height:120px;
-  resize:none;
-}
-
-button {
-  background:linear-gradient(135deg,#4f7cff,#3fd2ff);
-  font-weight:bold;
-  cursor:pointer;
-}
-button.danger {
-  background:linear-gradient(135deg,#ff3b30,#ff453a);
-}
-button.secondary {
-  background:linear-gradient(135deg,#ff8a00,#ffb300);
-}
-
-.status {
-  text-align:center;
-  margin-top:8px;
-  font-size:13px;
-}
-.keyDisplay {
-  text-align:center;
-  margin-top:6px;
-  font-size:13px;
-  color:#3fd2ff;
-  word-break:break-all;
+  width: 520px;
+  background: var(--panel-bg);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 24px;
+  padding: 30px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(0,120,255,0.15);
+  margin: auto;
+  margin-top: 15vh;
 }
 
 .adminFull {
-  position:fixed;
-  inset:0;
-  background:#0b0e14;
-  padding:20px;
-  overflow:auto;
+  position: fixed;
+  inset: 0;
+  background: rgba(11, 14, 20, 0.95);
+  backdrop-filter: var(--blur);
+  padding: 40px;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+/* Form Elements */
+button, input, select, textarea {
+  width: 100%;
+  padding: 14px;
+  margin-top: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+  font-size: 14px;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+input, select, textarea {
+  background: rgba(0, 0, 0, 0.3);
+  color: white;
+}
+
+input:focus { border-color: #4f7cff; outline: none; background: rgba(0,0,0,0.5); }
+
+button {
+  background: var(--accent);
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+button:hover { opacity: 0.9; transform: translateY(-1px); }
+button:active { transform: translateY(0); }
+
+button.danger { background: var(--danger); }
+button.secondary { background: var(--secondary); }
+
+/* Feedback Detail View */
+.detail-container {
+  position: relative;
+  height: 70vh;
+  background: rgba(255,255,255,0.03);
+  border-radius: 20px;
+  border: 1px dashed rgba(255,255,255,0.1);
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-header {
+  padding: 25px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.detail-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
 }
 
 .keyRow {
-  background:#111625;
-  border-radius:10px;
-  padding:12px;
-  margin-bottom:12px;
-  font-size:12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 14px;
+  padding: 15px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.topRight {
-  position:absolute;
-  top:16px;
-  right:16px;
-}
-
-hr { opacity:.2 }
+hr { border: 0; height: 1px; background: rgba(255,255,255,0.1); margin: 25px 0; }
 </style>
 </head>
 
 <body>
 
-<div id="userPanel" class="panel">
-  <h2 style="text-align:center">🔐 RSQ Key System</h2>
-
+<div id="userPanel" class="panel animate-in">
+  <h2 style="text-align:center; margin-top:0;">🔐 RSQ Key System</h2>
   <input id="userid" placeholder="Roblox UserId">
   <button id="genBtn">Generate / Recover Key</button>
 
-  <div id="status" class="status"></div>
-  <div id="keyOut" class="keyDisplay"></div>
+  <div id="status" class="status" style="text-align:center; margin-top:15px; font-size:13px; color:#aaa;"></div>
+  <div id="keyOut" style="text-align:center; margin-top:8px; font-weight:bold; color:#3fd2ff; letter-spacing:1px;"></div>
 
-  <button id="adminBtn" class="danger">👑 Admin Panel</button>
-  <button class="secondary" onclick="openFeedback()">📨 Feedback / Appeal</button>
-  <input id="adminInput" class="hidden" placeholder="Admin Master Key">
-</div>
-
-<div id="adminPanel" class="adminFull hidden">
-  <h2>👑 ADMIN PANEL</h2>
-  <button onclick="exitAdmin()">Exit Admin Panel</button>
-  <button class="secondary" onclick="openForms()">📋 See Feedback</button>
-
-  <hr>
-
-  <h3>🚫 Ban UserId</h3>
-  <input id="banUserId" placeholder="Roblox UserId">
-  <select id="banDuration">
-    <option value="3600">1 Hour</option>
-    <option value="86400">1 Day</option>
-    <option value="604800">1 Week</option>
-    <option value="2592000">1 Month</option>
-    <option value="31536000">1 Year</option>
-  </select>
-  <button class="danger" onclick="banUser()">Ban User (Deletes All Keys)</button>
-
-  <hr>
-
-  <h3>🔑 Key Logs</h3>
-  <div id="keyLogs"></div>
-
-  <hr>
-
-  <h3>📜 Ban Logs</h3>
-  <div id="banLogs"></div>
+  <div style="margin-top:20px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+    <button id="adminBtn" class="danger">👑 Admin</button>
+    <button class="secondary" onclick="changePanel(userPanel, feedbackPanel)">📨 Appeal</button>
+  </div>
+  <input id="adminInput" class="hidden" placeholder="Master Key">
 </div>
 
 <div id="feedbackPanel" class="panel hidden">
-  <button class="topRight" style="width:auto" onclick="backToUser()">⬅ Back</button>
-  <h2>📨 Appeal / Feedback</h2>
+  <h2 style="margin-top:0;">📨 Ban Appeal</h2>
+  <p style="font-size:13px; opacity:0.7;">Submit your case for review.</p>
   <input id="fbUser" placeholder="Username or UserId">
-  <textarea id="fbMsg" placeholder="Explain why you should be unbanned"></textarea>
+  <textarea id="fbMsg" placeholder="Why should you be unbanned?" style="height:120px; resize:none;"></textarea>
   <button onclick="submitFeedback()">Send Appeal</button>
-  <div id="fbStatus" class="status"></div>
+  <button style="background:none; border:1px solid rgba(255,255,255,0.1);" onclick="changePanel(feedbackPanel, userPanel)">Back</button>
+  <div id="fbStatus" style="text-align:center; margin-top:10px; font-size:13px;"></div>
+</div>
+
+<div id="adminPanel" class="adminFull hidden">
+  <div style="max-width:900px; margin:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h1 style="margin:0;">👑 Admin Console</h1>
+      <div>
+        <button onclick="changePanel(adminPanel, formsPanel)" class="secondary" style="width:auto; padding:10px 20px;">📋 Feedback Forms</button>
+        <button onclick="exitAdmin()" style="width:auto; padding:10px 20px; background:rgba(255,255,255,0.1);">Exit</button>
+      </div>
+    </div>
+    
+    <hr>
+    <h3>🚫 Ban Management</h3>
+    <div style="display:flex; gap:10px;">
+      <input id="banUserId" placeholder="Target UserId" style="margin:0;">
+      <select id="banDuration" style="margin:0; width:200px;">
+        <option value="3600">1 Hour</option>
+        <option value="86400">1 Day</option>
+        <option value="604800">1 Week</option>
+        <option value="2592000">1 Month</option>
+      </select>
+      <button class="danger" onclick="banUser()" style="margin:0; width:150px;">Ban User</button>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:30px; margin-top:30px;">
+      <div>
+        <h3>🔑 Active Keys</h3>
+        <div id="keyLogs"></div>
+      </div>
+      <div>
+        <h3>📜 Ban History</h3>
+        <div id="banLogs"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div id="formsPanel" class="adminFull hidden">
-  <h2>📋 Feedback Forms</h2>
-  <button onclick="backToAdmin()">⬅ Back</button>
-  <input id="searchInput" placeholder="Search by UserId / Username" oninput="renderForms()">
-  <div id="formsList"></div>
+  <div style="max-width:800px; margin:auto;">
+    <div id="formsListView">
+      <h2>📋 Appeals Inbox</h2>
+      <button onclick="changePanel(formsPanel, adminPanel)" style="width:auto; margin-bottom:20px;">⬅ Back to Dashboard</button>
+      <input id="searchInput" placeholder="Search by User..." oninput="renderForms()">
+      <div id="formsList" style="margin-top:20px;"></div>
+    </div>
+
+    <div id="formsDetailView" class="hidden detail-container">
+      <div class="detail-header">
+        <h2 id="detailUser" style="margin:0; color:#3fd2ff;"></h2>
+        <span id="detailTime" style="font-size:12px; opacity:0.5;"></span>
+      </div>
+      <div class="detail-body">
+        <p id="detailMessage" style="font-size:18px; line-height:1.6; color:#eee;"></p>
+      </div>
+      <div style="padding:20px; display:flex; gap:10px; justify-content: flex-end; background: rgba(0,0,0,0.2);">
+        <button style="width:auto; background:rgba(255,255,255,0.1);" onclick="closeDetail()">Close</button>
+        <button id="detailDeleteBtn" class="danger" style="width:auto;">Resolve & Delete</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
-/* CONFIG */
 const BIN_ID = "694c4aefae596e708faef157";
 const JSONBIN_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu";
 const ADMIN_MASTER_KEY = "roblox";
 const KEY_LIFE = 86400;
-const FEEDBACK_COOLDOWN = 60;
 
-/* HELPERS */
 const now = () => Math.floor(Date.now()/1000);
-const uuid = () => crypto.randomUUID();
-const makeKey = () => "RSQ-" + crypto.randomUUID().replace(/-/g,"").slice(0,24).toUpperCase();
 
-function copy(text){ navigator.clipboard.writeText(text); }
+/* UI Controller */
+function changePanel(oldPanel, newPanel) {
+    oldPanel.style.animation = "fadeOut 0.2s ease forwards";
+    setTimeout(() => {
+        oldPanel.classList.add("hidden");
+        newPanel.classList.remove("hidden");
+        newPanel.style.animation = "fadeIn 0.3s ease forwards";
+    }, 200);
+}
 
-/* JSONBIN */
+/* Database */
 async function getData(){
-  const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
-  return (await r.json()).record || {};
+    const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
+    const res = await r.json();
+    return res.record || {};
 }
+
 async function saveData(data){
-  await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{
-    method:"PUT",
-    headers:{
-      "Content-Type":"application/json",
-      "X-Master-Key":JSONBIN_KEY
-    },
-    body:JSON.stringify(data)
-  });
+    await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+        method:"PUT",
+        headers:{"Content-Type":"application/json", "X-Master-Key":JSONBIN_KEY},
+        body:JSON.stringify(data)
+    });
 }
 
-/* USER FLOW */
-genBtn.onclick = async ()=>{
-  const uid = userid.value.trim();
-  status.textContent="";
-  keyOut.textContent="";
-  if(!/^\d+$/.test(uid)){ status.textContent="❌ Invalid UserId"; return; }
+/* User Functions */
+genBtn.onclick = async () => {
+    const uid = userid.value.trim();
+    if(!/^\d+$/.test(uid)) { status.textContent="❌ Invalid ID"; return; }
+    
+    status.textContent = "⌛ Fetching...";
+    const data = await getData();
+    data.keys ||= {}; data.bans ||= {};
 
-  const data = await getData();
-  data.keys ||= {};
-  data.bans ||= {};
-
-  if(data.bans[uid] && data.bans[uid] > now()){
-    status.textContent = "🚫 You were banned by an admin until " + new Date(data.bans[uid]*1000).toLocaleString();
-    return;
-  }
-
-  for(const k in data.keys){
-    const d = data.keys[k];
-    if(String(d.userId) === uid){
-      if(d.expires === 0){ status.textContent="♾️ Your key is infinite"; keyOut.textContent=k; copy(k); return; }
-      if(d.expires < now()){ status.textContent="⏰ Your key has expired"; return; }
-      status.textContent = "✅ Active key · Expires " + new Date(d.expires*1000).toLocaleString();
-      keyOut.textContent=k; copy(k); return;
+    if(data.bans[uid] && data.bans[uid] > now()){
+        status.textContent = "🚫 Banned until " + new Date(data.bans[uid]*1000).toLocaleString();
+        return;
     }
-  }
 
-  const key = makeKey();
-  data.keys[key] = { userId:Number(uid), expires: now()+KEY_LIFE };
-  await saveData(data);
-  status.textContent = "✅ New key generated · Expires " + new Date((now()+KEY_LIFE)*1000).toLocaleString();
-  keyOut.textContent = key; copy(key);
+    const existing = Object.entries(data.keys).find(([k,v]) => String(v.userId) === uid);
+    if(existing) {
+        keyOut.textContent = existing[0];
+        status.textContent = "✅ Key Recovered (Copied)";
+        navigator.clipboard.writeText(existing[0]);
+    } else {
+        const key = "RSQ-" + crypto.randomUUID().split('-')[0].toUpperCase();
+        data.keys[key] = { userId: Number(uid), expires: now() + KEY_LIFE };
+        await saveData(data);
+        keyOut.textContent = key;
+        status.textContent = "✅ New Key Generated";
+        navigator.clipboard.writeText(key);
+    }
 };
 
-/* FEEDBACK LOGIC */
-function openFeedback(){ userPanel.classList.add("hidden"); feedbackPanel.classList.remove("hidden"); }
-function backToUser(){ feedbackPanel.classList.add("hidden"); userPanel.classList.remove("hidden"); }
+/* Feedback Logic */
+async function submitFeedback() {
+    const user = fbUser.value.trim();
+    const msg = fbMsg.value.trim();
+    if(!user || !msg) return;
 
-async function submitFeedback(){
-  const last = Number(localStorage.rsqFbCooldown || 0);
-  if(now() - last < FEEDBACK_COOLDOWN){ fbStatus.textContent = "⏳ Please wait before submitting again."; return; }
-
-  const user = fbUser.value.trim();
-  const msg = fbMsg.value.trim();
-  if(!user || !msg) return;
-
-  const data = await getData();
-  data.feedback ||= [];
-  data.feedback.push({ id: uuid(), user, message: msg, time: now() });
-
-  await saveData(data);
-  localStorage.rsqFbCooldown = now();
-  fbStatus.textContent = "✅ Thank you, we will notify you shortly.";
-  fbUser.value = ""; fbMsg.value = "";
+    fbStatus.textContent = "⌛ Sending...";
+    const data = await getData();
+    data.feedback ||= [];
+    data.feedback.push({ id: crypto.randomUUID(), user, message: msg, time: now() });
+    await saveData(data);
+    
+    fbStatus.textContent = "✅ Appeal Sent Successfully";
+    fbUser.value = ""; fbMsg.value = "";
+    setTimeout(() => changePanel(feedbackPanel, userPanel), 1500);
 }
 
-/* ADMIN FEEDBACK VIEW */
+/* Admin Logic */
+adminBtn.onclick = () => adminInput.classList.toggle("hidden");
+adminInput.onchange = () => {
+    if(adminInput.value === ADMIN_MASTER_KEY) {
+        changePanel(userPanel, adminPanel);
+        refreshAdmin();
+    } else { alert("Access Denied"); }
+};
+
+async function refreshAdmin() {
+    const data = await getData();
+    renderKeys(data);
+    renderBans(data);
+}
+
+function renderKeys(data) {
+    keyLogs.innerHTML = "";
+    Object.entries(data.keys || {}).forEach(([k, v]) => {
+        const div = document.createElement("div");
+        div.className = "keyRow";
+        div.innerHTML = `<div><b>${v.userId}</b><br><small style="opacity:0.5">${k}</small></div>
+                         <button style="width:auto; font-size:10px;" class="danger" onclick="deleteKey('${k}')">Del</button>`;
+        keyLogs.appendChild(div);
+    });
+}
+
+async function banUser() {
+    const uid = banUserId.value.trim();
+    const dur = Number(banDuration.value);
+    const data = await getData();
+    data.bans ||= {}; data.bans[uid] = now() + dur;
+    await saveData(data);
+    refreshAdmin();
+}
+
+/* Forms Admin */
 let cachedFeedback = [];
-async function openForms(){
-  adminPanel.classList.add("hidden");
-  formsPanel.classList.remove("hidden");
-  const data = await getData();
-  cachedFeedback = data.feedback || [];
-  renderForms();
+function renderForms() {
+    const q = searchInput.value.toLowerCase();
+    formsList.innerHTML = "";
+    cachedFeedback.filter(f => f.user.toLowerCase().includes(q)).forEach(f => {
+        const div = document.createElement("div");
+        div.className = "keyRow";
+        div.innerHTML = `<span><b>${f.user}</b></span>
+                         <button style="width:auto;" onclick='showDetail(${JSON.stringify(f)})'>Open Feedback</button>`;
+        formsList.appendChild(div);
+    });
 }
 
-function renderForms(){
-  const q = searchInput.value.toLowerCase();
-  formsList.innerHTML = "";
-  cachedFeedback.filter(f => f.user.toLowerCase().includes(q)).forEach(f=>{
-    const div = document.createElement("div");
-    div.className="keyRow";
-    div.innerHTML = `<b>${f.user}</b><br>${f.message}<br><small>${new Date(f.time*1000).toLocaleString()}</small>`;
-    const del = document.createElement("button");
-    del.className="danger"; del.textContent="Resolve / Delete";
-    del.onclick = ()=>deleteFeedback(f.id);
-    div.appendChild(del);
-    formsList.appendChild(div);
-  });
+function showDetail(f) {
+    document.getElementById("formsListView").classList.add("hidden");
+    document.getElementById("formsDetailView").classList.remove("hidden");
+    document.getElementById("detailUser").textContent = f.user;
+    document.getElementById("detailTime").textContent = "Submitted: " + new Date(f.time*1000).toLocaleString();
+    document.getElementById("detailMessage").textContent = f.message;
+    document.getElementById("detailDeleteBtn").onclick = async () => {
+        const data = await getData();
+        data.feedback = data.feedback.filter(x => x.id !== f.id);
+        await saveData(data);
+        cachedFeedback = data.feedback;
+        closeDetail();
+        renderForms();
+    };
 }
 
-async function deleteFeedback(id){
-  const data = await getData();
-  data.feedback = (data.feedback||[]).filter(f=>f.id!==id);
-  await saveData(data);
-  cachedFeedback = data.feedback;
-  renderForms();
+function closeDetail() {
+    document.getElementById("formsDetailView").classList.add("hidden");
+    document.getElementById("formsListView").classList.remove("hidden");
 }
 
-function backToAdmin(){ formsPanel.classList.add("hidden"); adminPanel.classList.remove("hidden"); }
+function exitAdmin() { changePanel(adminPanel, userPanel); adminInput.value = ""; adminInput.classList.add("hidden"); }
 
-/* ADMIN LOGIN & DASHBOARD */
-adminBtn.onclick = ()=>adminInput.classList.toggle("hidden");
-adminInput.onchange = ()=>{
-  if(adminInput.value !== ADMIN_MASTER_KEY){ alert("Invalid admin key"); return; }
-  userPanel.classList.add("hidden");
-  adminPanel.classList.remove("hidden");
-  refreshAdmin();
-};
-
-async function refreshAdmin(){
-  const data = await getData();
-  renderKeys(data);
-  renderBans(data);
-}
-
-function renderKeys(data){
-  keyLogs.innerHTML="";
-  data.keys ||= {};
-  for(const k in data.keys){
-    const d = data.keys[k];
-    const div = document.createElement("div");
-    div.className="keyRow";
-    div.innerHTML=`<b>${k}</b><br>UserId: ${d.userId}<br>Expires: ${d.expires===0?"Never":new Date(d.expires*1000).toLocaleString()}`;
-    
-    const renew = document.createElement("button");
-    renew.textContent="Renew 24h";
-    renew.onclick=async()=>{ d.expires = now()+KEY_LIFE; await saveData(data); refreshAdmin(); };
-    
-    const del = document.createElement("button");
-    del.textContent="Delete Key"; del.className="danger";
-    del.onclick=async()=>{ delete data.keys[k]; await saveData(data); refreshAdmin(); };
-
-    div.append(renew,del);
-    keyLogs.appendChild(div);
-  }
-}
-
-async function banUser(){
-  const uid = banUserId.value.trim();
-  const dur = Number(banDuration.value);
-  if(!uid) return;
-  const data = await getData();
-  data.bans ||= {}; data.keys ||= {};
-  data.bans[uid] = now() + dur;
-  for(const k in data.keys){ if(String(data.keys[k].userId) === uid) delete data.keys[k]; }
-  await saveData(data);
-  refreshAdmin();
-}
-
-function renderBans(data){
-  banLogs.innerHTML="";
-  data.bans ||= {};
-  for(const uid in data.bans){
-    if(data.bans[uid] < now()) continue;
-    const div = document.createElement("div");
-    div.className="keyRow";
-    div.innerHTML=`UserId: ${uid}<br>Until: ${new Date(data.bans[uid]*1000).toLocaleString()}`;
-    const unban = document.createElement("button");
-    unban.textContent="Unban";
-    unban.onclick=async()=>{ delete data.bans[uid]; await saveData(data); refreshAdmin(); };
-    div.appendChild(unban);
-    banLogs.appendChild(div);
-  }
-}
-
-function exitAdmin(){ adminPanel.classList.add("hidden"); userPanel.classList.remove("hidden"); }
 </script>
 </body>
 </html>
