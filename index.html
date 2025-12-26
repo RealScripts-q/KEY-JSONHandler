@@ -2,25 +2,26 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>RSQ Key System | Advanced</title>
+<title>RSQ Key System | Elite</title>
 
 <style>
 :root {
   --bg: #0b0e14;
-  --panel-bg: rgba(20, 24, 34, 0.85);
+  --panel-bg: rgba(20, 24, 34, 0.75);
   --accent: linear-gradient(135deg, #4f7cff, #3fd2ff);
   --danger: linear-gradient(135deg, #ff3b30, #ff453a);
   --secondary: linear-gradient(135deg, #ff8a00, #ffb300);
   --text: #ffffff;
-  --blur: blur(12px);
+  --blur: blur(16px);
 }
 
 body {
   margin: 0;
   background: var(--bg);
-  background-image: radial-gradient(circle at top right, rgba(63, 210, 255, 0.1), transparent),
-                    radial-gradient(circle at bottom left, rgba(79, 124, 255, 0.05), transparent);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-image: 
+    radial-gradient(circle at 15% 15%, rgba(79, 124, 255, 0.08), transparent),
+    radial-gradient(circle at 85% 85%, rgba(63, 210, 255, 0.08), transparent);
+  font-family: 'Inter', system-ui, sans-serif;
   color: var(--text);
   height: 100vh;
   overflow: hidden;
@@ -28,61 +29,56 @@ body {
 
 .hidden { display: none !important; }
 
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+/* Advanced Animations */
+@keyframes panelFadeIn {
+  from { opacity: 0; transform: scale(0.96) translateY(10px); filter: blur(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0px); }
 }
 
-@keyframes fadeOut {
-  from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(10px); }
+@keyframes panelFadeOut {
+  from { opacity: 1; transform: scale(1); filter: blur(0px); }
+  to { opacity: 0; transform: scale(1.02); filter: blur(10px); }
 }
 
-.animate-in { animation: fadeIn 0.3s ease forwards; }
+.animate-in { animation: panelFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-out { animation: panelFadeOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
-/* Panels */
 .panel {
   width: 520px;
   background: var(--panel-bg);
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 24px;
-  padding: 30px;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(0,120,255,0.15);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 28px;
+  padding: 35px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
   margin: auto;
-  margin-top: 15vh;
+  margin-top: 12vh;
 }
 
 .adminFull {
   position: fixed;
   inset: 0;
-  background: rgba(11, 14, 20, 0.95);
+  background: rgba(11, 14, 20, 0.94);
   backdrop-filter: var(--blur);
   padding: 40px;
   overflow-y: auto;
   z-index: 100;
 }
 
-/* Form Elements */
 button, input, select, textarea {
   width: 100%;
-  padding: 14px;
-  margin-top: 10px;
-  border-radius: 12px;
+  padding: 14px 18px;
+  margin-top: 12px;
+  border-radius: 14px;
   border: 1px solid rgba(255,255,255,0.1);
   font-size: 14px;
   transition: all 0.2s ease;
   box-sizing: border-box;
 }
 
-input, select, textarea {
-  background: rgba(0, 0, 0, 0.3);
-  color: white;
-}
-
-input:focus { border-color: #4f7cff; outline: none; background: rgba(0,0,0,0.5); }
+input, select, textarea { background: rgba(0, 0, 0, 0.4); color: white; }
+input:focus { border-color: #4f7cff; outline: none; background: rgba(0,0,0,0.6); }
 
 button {
   background: var(--accent);
@@ -90,114 +86,94 @@ button {
   font-weight: 700;
   cursor: pointer;
   border: none;
+  letter-spacing: 0.8px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
-button:hover { opacity: 0.9; transform: translateY(-1px); }
-button:active { transform: translateY(0); }
-
+button:hover { filter: brightness(1.1); transform: translateY(-1px); }
 button.danger { background: var(--danger); }
 button.secondary { background: var(--secondary); }
 
-/* Feedback Detail View */
-.detail-container {
-  position: relative;
-  height: 70vh;
+.key-card {
   background: rgba(255,255,255,0.03);
-  border-radius: 20px;
-  border: 1px dashed rgba(255,255,255,0.1);
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-}
-
-.detail-header {
-  padding: 25px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-
-.detail-body {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-  text-align: center;
-}
-
-.keyRow {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.05);
-  border-radius: 14px;
-  padding: 15px;
+  padding: 20px;
+  border-radius: 18px;
   margin-bottom: 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  border: 1px solid rgba(255,255,255,0.05);
 }
 
-hr { border: 0; height: 1px; background: rgba(255,255,255,0.1); margin: 25px 0; }
+.key-text {
+  font-family: 'JetBrains Mono', monospace;
+  color: #3fd2ff;
+  font-size: 11px;
+  background: rgba(0,0,0,0.3);
+  padding: 10px;
+  border-radius: 8px;
+  word-break: break-all;
+  display: block;
+}
+
+hr { border: 0; height: 1px; background: rgba(255,255,255,0.1); margin: 30px 0; }
 </style>
 </head>
 
 <body>
 
 <div id="userPanel" class="panel animate-in">
-  <h2 style="text-align:center; margin-top:0;">🔐 RSQ Key System</h2>
-  <input id="userid" placeholder="Roblox UserId">
-  <button id="genBtn">Generate / Recover Key</button>
+  <h2 style="text-align:center; margin-bottom:25px; font-weight:800;">🔐 RSQ KEY SYSTEM</h2>
+  <input id="userid" placeholder="Enter Roblox UserId">
+  <button id="genBtn">GENERATE / RECOVER ACCESS</button>
 
-  <div id="status" class="status" style="text-align:center; margin-top:15px; font-size:13px; color:#aaa;"></div>
-  <div id="keyOut" style="text-align:center; margin-top:8px; font-weight:bold; color:#3fd2ff; letter-spacing:1px;"></div>
+  <div id="status" style="text-align:center; margin-top:15px; font-size:13px; color:#888;"></div>
+  <div id="keyOut" class="key-text" style="margin-top:10px; display:none; text-align:center;"></div>
 
-  <div style="margin-top:20px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-    <button id="adminBtn" class="danger">👑 Admin</button>
-    <button class="secondary" onclick="changePanel(userPanel, feedbackPanel)">📨 Appeal</button>
+  <div style="margin-top:25px; display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+    <button id="adminBtn" class="danger" style="font-size:11px;">👑 ADMIN</button>
+    <button class="secondary" style="font-size:11px;" onclick="changePanel(userPanel, feedbackPanel)">📨 APPEAL</button>
   </div>
-  <input id="adminInput" class="hidden" placeholder="Master Key">
+  <input id="adminInput" class="hidden" placeholder="Master Access Key">
 </div>
 
 <div id="feedbackPanel" class="panel hidden">
-  <h2 style="margin-top:0;">📨 Ban Appeal</h2>
-  <p style="font-size:13px; opacity:0.7;">Submit your case for review.</p>
-  <input id="fbUser" placeholder="Username or UserId">
-  <textarea id="fbMsg" placeholder="Why should you be unbanned?" style="height:120px; resize:none;"></textarea>
-  <button onclick="submitFeedback()">Send Appeal</button>
-  <button style="background:none; border:1px solid rgba(255,255,255,0.1);" onclick="changePanel(feedbackPanel, userPanel)">Back</button>
-  <div id="fbStatus" style="text-align:center; margin-top:10px; font-size:13px;"></div>
+  <h2>📨 BAN APPEAL</h2>
+  <input id="fbUser" placeholder="Roblox Username/ID">
+  <textarea id="fbMsg" placeholder="Why should you be unbanned?" style="height:150px; resize:none;"></textarea>
+  <button onclick="submitFeedback()">SUBMIT APPEAL</button>
+  <button style="background:none; border:1px solid rgba(255,255,255,0.1);" onclick="changePanel(feedbackPanel, userPanel)">CANCEL</button>
+  <div id="fbStatus" style="text-align:center; margin-top:12px; font-size:13px;"></div>
 </div>
 
 <div id="adminPanel" class="adminFull hidden">
-  <div style="max-width:900px; margin:auto;">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <h1 style="margin:0;">👑 Admin Console</h1>
-      <div>
-        <button onclick="changePanel(adminPanel, formsPanel)" class="secondary" style="width:auto; padding:10px 20px;">📋 Feedback Forms</button>
-        <button onclick="exitAdmin()" style="width:auto; padding:10px 20px; background:rgba(255,255,255,0.1);">Exit</button>
+  <div style="max-width:1100px; margin:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:40px;">
+      <h1 style="margin:0; font-weight:900;">👑 SYSTEM OVERSEER</h1>
+      <div style="display:flex; gap:15px;">
+        <button onclick="changePanel(adminPanel, formsPanel)" class="secondary" style="width:auto; padding:10px 25px;">VIEW APPEALS</button>
+        <button onclick="exitAdmin()" style="width:auto; padding:10px 25px; background:rgba(255,255,255,0.1);">EXIT</button>
       </div>
     </div>
-    
-    <hr>
-    <h3>🚫 Ban Management</h3>
-    <div style="display:flex; gap:10px;">
-      <input id="banUserId" placeholder="Target UserId" style="margin:0;">
-      <select id="banDuration" style="margin:0; width:200px;">
-        <option value="3600">1 Hour</option>
-        <option value="86400">1 Day</option>
-        <option value="604800">1 Week</option>
-        <option value="2592000">1 Month</option>
-      </select>
-      <button class="danger" onclick="banUser()" style="margin:0; width:150px;">Ban User</button>
+
+    <div style="background:rgba(255,255,255,0.03); padding:30px; border-radius:24px; border:1px solid rgba(255,255,255,0.05); margin-bottom:30px;">
+      <h3 style="margin-top:0;">🚫 RESTRICT USER</h3>
+      <div style="display:grid; grid-template-columns: 1fr 1fr 150px; gap:15px;">
+        <input id="banUserId" placeholder="Target UserId" style="margin:0;">
+        <select id="banDuration" style="margin:0;">
+          <option value="3600">1 HOUR</option>
+          <option value="86400">24 HOURS</option>
+          <option value="604800">7 DAYS</option>
+          <option value="2592000">30 DAYS</option>
+        </select>
+        <button class="danger" onclick="banUser()">BAN</button>
+      </div>
     </div>
 
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:30px; margin-top:30px;">
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:40px;">
       <div>
-        <h3>🔑 Active Keys</h3>
+        <h3>🔑 ACTIVE KEYS</h3>
         <div id="keyLogs"></div>
       </div>
       <div>
-        <h3>📜 Ban History</h3>
+        <h3>📜 ACTIVE BANS</h3>
         <div id="banLogs"></div>
       </div>
     </div>
@@ -205,118 +181,118 @@ hr { border: 0; height: 1px; background: rgba(255,255,255,0.1); margin: 25px 0; 
 </div>
 
 <div id="formsPanel" class="adminFull hidden">
-  <div style="max-width:800px; margin:auto;">
+  <div style="max-width:900px; margin:auto;">
     <div id="formsListView">
-      <h2>📋 Appeals Inbox</h2>
-      <button onclick="changePanel(formsPanel, adminPanel)" style="width:auto; margin-bottom:20px;">⬅ Back to Dashboard</button>
-      <input id="searchInput" placeholder="Search by User..." oninput="renderForms()">
+      <h2 style="font-weight:900;">📋 APPEALS INBOX</h2>
+      <button onclick="changePanel(formsPanel, adminPanel)" style="width:auto; margin-bottom:25px;">⬅ BACK</button>
+      <input id="searchInput" placeholder="Filter appeals..." oninput="renderForms()">
       <div id="formsList" style="margin-top:20px;"></div>
     </div>
 
-    <div id="formsDetailView" class="hidden detail-container">
-      <div class="detail-header">
-        <h2 id="detailUser" style="margin:0; color:#3fd2ff;"></h2>
-        <span id="detailTime" style="font-size:12px; opacity:0.5;"></span>
-      </div>
-      <div class="detail-body">
-        <p id="detailMessage" style="font-size:18px; line-height:1.6; color:#eee;"></p>
-      </div>
-      <div style="padding:20px; display:flex; gap:10px; justify-content: flex-end; background: rgba(0,0,0,0.2);">
-        <button style="width:auto; background:rgba(255,255,255,0.1);" onclick="closeDetail()">Close</button>
-        <button id="detailDeleteBtn" class="danger" style="width:auto;">Resolve & Delete</button>
-      </div>
+    <div id="formsDetailView" class="hidden animate-in" style="background: rgba(255,255,255,0.02); border-radius: 24px; min-height: 60vh; position: relative; border: 1px solid rgba(255,255,255,0.05);">
+        <div style="padding:30px;">
+            <h2 id="detailUser" style="margin:0; color:#3fd2ff;"></h2>
+            <div id="detailTime" style="font-size:12px; opacity:0.5; margin-top:5px;"></div>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:center; text-align:center; padding:40px 60px;">
+            <p id="detailMessage" style="font-size:20px; line-height:1.6; max-width:85%;"></p>
+        </div>
+        <div style="padding:25px; display:flex; gap:15px; justify-content:flex-end; background:rgba(0,0,0,0.3); border-radius:0 0 24px 24px; position: absolute; bottom: 0; width: 100%;">
+            <button style="width:auto; background:rgba(255,255,255,0.1); padding:10px 30px;" onclick="closeDetail()">CLOSE</button>
+            <button id="detailDeleteBtn" class="danger" style="width:auto; padding:10px 30px;">RESOLVE</button>
+        </div>
     </div>
   </div>
 </div>
 
 <script>
+/* --- CONFIG --- */
 const BIN_ID = "694c4aefae596e708faef157";
 const JSONBIN_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu";
 const ADMIN_MASTER_KEY = "roblox";
+const WEBHOOK_URL = "https://discord.com/api/webhooks/1453515343833338017/7VwwcpKDpSvIYr0PA3Ceh8YgMwIEba47CoyISHCZkvdaF2hUsvyUYw3zNV_TbYyDFTMy";
 const KEY_LIFE = 86400;
 
 const now = () => Math.floor(Date.now()/1000);
 
-/* UI Controller */
+/* --- UI CONTROLLER --- */
 function changePanel(oldPanel, newPanel) {
-    oldPanel.style.animation = "fadeOut 0.2s ease forwards";
+    oldPanel.classList.add("animate-out");
     setTimeout(() => {
         oldPanel.classList.add("hidden");
+        oldPanel.classList.remove("animate-out");
         newPanel.classList.remove("hidden");
-        newPanel.style.animation = "fadeIn 0.3s ease forwards";
-    }, 200);
+        newPanel.classList.add("animate-in");
+    }, 300);
 }
 
-/* Database */
+/* --- DATABASE --- */
 async function getData(){
     const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
     const res = await r.json();
     return res.record || {};
 }
-
 async function saveData(data){
     await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-        method:"PUT",
-        headers:{"Content-Type":"application/json", "X-Master-Key":JSONBIN_KEY},
+        method:"PUT", headers:{"Content-Type":"application/json", "X-Master-Key":JSONBIN_KEY},
         body:JSON.stringify(data)
     });
 }
 
-/* User Functions */
-genBtn.onclick = async () => {
-    const uid = userid.value.trim();
-    if(!/^\d+$/.test(uid)) { status.textContent="❌ Invalid ID"; return; }
-    
-    status.textContent = "⌛ Fetching...";
-    const data = await getData();
-    data.keys ||= {}; data.bans ||= {};
-
-    if(data.bans[uid] && data.bans[uid] > now()){
-        status.textContent = "🚫 Banned until " + new Date(data.bans[uid]*1000).toLocaleString();
-        return;
-    }
-
-    const existing = Object.entries(data.keys).find(([k,v]) => String(v.userId) === uid);
-    if(existing) {
-        keyOut.textContent = existing[0];
-        status.textContent = "✅ Key Recovered (Copied)";
-        navigator.clipboard.writeText(existing[0]);
-    } else {
-        const key = "RSQ-" + crypto.randomUUID().split('-')[0].toUpperCase();
-        data.keys[key] = { userId: Number(uid), expires: now() + KEY_LIFE };
-        await saveData(data);
-        keyOut.textContent = key;
-        status.textContent = "✅ New Key Generated";
-        navigator.clipboard.writeText(key);
-    }
-};
-
-/* Feedback Logic */
-async function submitFeedback() {
-    const user = fbUser.value.trim();
-    const msg = fbMsg.value.trim();
-    if(!user || !msg) return;
-
-    fbStatus.textContent = "⌛ Sending...";
-    const data = await getData();
-    data.feedback ||= [];
-    data.feedback.push({ id: crypto.randomUUID(), user, message: msg, time: now() });
-    await saveData(data);
-    
-    fbStatus.textContent = "✅ Appeal Sent Successfully";
-    fbUser.value = ""; fbMsg.value = "";
-    setTimeout(() => changePanel(feedbackPanel, userPanel), 1500);
+/* --- WEBHOOK --- */
+async function sendWebhook(user, msg) {
+    if(!WEBHOOK_URL.includes("discord")) return;
+    await fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            embeds: [{
+                title: "📨 New Appeal / Feedback",
+                color: 4183039,
+                fields: [
+                    { name: "User", value: user, inline: true },
+                    { name: "Time", value: new Date().toLocaleString(), inline: true },
+                    { name: "Message", value: msg }
+                ],
+                footer: { text: "RSQ System Monitoring" }
+            }]
+        })
+    });
 }
 
-/* Admin Logic */
-adminBtn.onclick = () => adminInput.classList.toggle("hidden");
-adminInput.onchange = () => {
-    if(adminInput.value === ADMIN_MASTER_KEY) {
-        changePanel(userPanel, adminPanel);
-        refreshAdmin();
-    } else { alert("Access Denied"); }
+function generateRSQKey() {
+    const p1 = crypto.randomUUID().replace(/-/g, '').toUpperCase().slice(0, 12);
+    const p2 = crypto.randomUUID().replace(/-/g, '').toUpperCase().slice(0, 12);
+    return `RSQ-${p1}${p2}`;
+}
+
+/* --- USER SIDE --- */
+genBtn.onclick = async () => {
+    const uid = userid.value.trim();
+    if(!/^\d+$/.test(uid)) { status.textContent="❌ INVALID ID"; return; }
+    status.textContent = "⌛ AUTHORIZING...";
+    const data = await getData();
+    data.keys ||= {}; data.bans ||= {};
+    
+    if(data.bans[uid] && data.bans[uid] > now()){
+        status.textContent = "🚫 BANNED UNTIL " + new Date(data.bans[uid]*1000).toLocaleString();
+        return;
+    }
+    
+    const existing = Object.entries(data.keys).find(([k,v]) => String(v.userId) === uid);
+    if(existing) {
+        keyOut.textContent = existing[0]; keyOut.style.display = "block";
+        status.textContent = "✅ KEY RECOVERED"; navigator.clipboard.writeText(existing[0]);
+    } else {
+        const key = generateRSQKey();
+        data.keys[key] = { userId: Number(uid), expires: now() + KEY_LIFE };
+        await saveData(data);
+        keyOut.textContent = key; keyOut.style.display = "block";
+        status.textContent = "✅ NEW KEY GENERATED"; navigator.clipboard.writeText(key);
+    }
 };
 
+/* --- ADMIN SIDE --- */
 async function refreshAdmin() {
     const data = await getData();
     renderKeys(data);
@@ -324,36 +300,90 @@ async function refreshAdmin() {
 }
 
 function renderKeys(data) {
-    keyLogs.innerHTML = "";
+    const logs = document.getElementById("keyLogs");
+    logs.innerHTML = "";
     Object.entries(data.keys || {}).forEach(([k, v]) => {
         const div = document.createElement("div");
-        div.className = "keyRow";
-        div.innerHTML = `<div><b>${v.userId}</b><br><small style="opacity:0.5">${k}</small></div>
-                         <button style="width:auto; font-size:10px;" class="danger" onclick="deleteKey('${k}')">Del</button>`;
-        keyLogs.appendChild(div);
+        div.className = "key-card";
+        const isInf = v.expires === 0;
+        div.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <b style="color:#3fd2ff;">UID: ${v.userId}</b>
+                <span style="font-size:10px; opacity:0.6;">${isInf ? "♾️ INFINITE" : "⌛ " + new Date(v.expires*1000).toLocaleDateString()}</span>
+            </div>
+            <code class="key-text">${k}</code>
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; margin-top:12px;">
+                <button style="font-size:9px; padding:5px;" onclick="renewKey('${k}')">Renew</button>
+                <button style="font-size:9px; padding:5px;" class="secondary" onclick="makeInfinite('${k}')">Inf</button>
+                <button style="font-size:9px; padding:5px;" class="danger" onclick="deleteKey('${k}')">Revoke</button>
+            </div>
+        `;
+        logs.appendChild(div);
     });
 }
 
+window.renewKey = async (k) => {
+    const data = await getData();
+    if(data.keys[k]) { data.keys[k].expires = now() + KEY_LIFE; await saveData(data); refreshAdmin(); }
+};
+
+window.makeInfinite = async (k) => {
+    const data = await getData();
+    if(data.keys[k]) { data.keys[k].expires = 0; await saveData(data); refreshAdmin(); }
+};
+
+window.deleteKey = async (k) => {
+    const data = await getData(); delete data.keys[k]; await saveData(data); refreshAdmin();
+};
+
 async function banUser() {
     const uid = banUserId.value.trim();
-    const dur = Number(banDuration.value);
+    if(!uid) return;
     const data = await getData();
-    data.bans ||= {}; data.bans[uid] = now() + dur;
-    await saveData(data);
-    refreshAdmin();
+    data.bans ||= {}; data.bans[uid] = now() + Number(banDuration.value);
+    Object.keys(data.keys).forEach(k => { if(String(data.keys[k].userId) === uid) delete data.keys[k]; });
+    await saveData(data); refreshAdmin();
 }
 
-/* Forms Admin */
-let cachedFeedback = [];
-function renderForms() {
-    const q = searchInput.value.toLowerCase();
-    formsList.innerHTML = "";
-    cachedFeedback.filter(f => f.user.toLowerCase().includes(q)).forEach(f => {
+function renderBans(data) {
+    const logs = document.getElementById("banLogs"); logs.innerHTML = "";
+    Object.entries(data.bans || {}).forEach(([uid, exp]) => {
+        if(exp < now()) return;
         const div = document.createElement("div");
-        div.className = "keyRow";
-        div.innerHTML = `<span><b>${f.user}</b></span>
-                         <button style="width:auto;" onclick='showDetail(${JSON.stringify(f)})'>Open Feedback</button>`;
-        formsList.appendChild(div);
+        div.className = "key-card"; div.style.borderColor = "rgba(255,0,0,0.2)";
+        div.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center;">
+            <b>${uid}</b><button style="width:auto; font-size:9px;" onclick="unbanUser('${uid}')">LIFT</button>
+        </div>`;
+        logs.appendChild(div);
+    });
+}
+
+window.unbanUser = async (uid) => {
+    const data = await getData(); delete data.bans[uid]; await saveData(data); refreshAdmin();
+};
+
+/* --- APPEALS FLOW --- */
+async function submitFeedback() {
+    const user = fbUser.value.trim(); const msg = fbMsg.value.trim();
+    if(!user || !msg) return;
+    fbStatus.textContent = "⌛ SUBMITTING...";
+    const data = await getData();
+    data.feedback ||= []; data.feedback.push({ id: crypto.randomUUID(), user, message: msg, time: now() });
+    await saveData(data);
+    await sendWebhook(user, msg);
+    fbStatus.textContent = "✅ APPEAL SUBMITTED";
+    setTimeout(() => changePanel(feedbackPanel, userPanel), 1500);
+}
+
+async function renderForms() {
+    const q = searchInput.value.toLowerCase();
+    const list = document.getElementById("formsList"); list.innerHTML = "";
+    const data = await getData();
+    (data.feedback || []).filter(f => f.user.toLowerCase().includes(q)).forEach(f => {
+        const div = document.createElement("div");
+        div.className = "key-card"; div.style.display="flex"; div.style.justifyContent="space-between";
+        div.innerHTML = `<span><b>${f.user}</b></span> <button style="width:auto; font-size:10px;" onclick='showDetail(${JSON.stringify(f)})'>OPEN</button>`;
+        list.appendChild(div);
     });
 }
 
@@ -361,15 +391,11 @@ function showDetail(f) {
     document.getElementById("formsListView").classList.add("hidden");
     document.getElementById("formsDetailView").classList.remove("hidden");
     document.getElementById("detailUser").textContent = f.user;
-    document.getElementById("detailTime").textContent = "Submitted: " + new Date(f.time*1000).toLocaleString();
+    document.getElementById("detailTime").textContent = new Date(f.time*1000).toLocaleString();
     document.getElementById("detailMessage").textContent = f.message;
     document.getElementById("detailDeleteBtn").onclick = async () => {
-        const data = await getData();
-        data.feedback = data.feedback.filter(x => x.id !== f.id);
-        await saveData(data);
-        cachedFeedback = data.feedback;
-        closeDetail();
-        renderForms();
+        const data = await getData(); data.feedback = data.feedback.filter(x => x.id !== f.id);
+        await saveData(data); closeDetail(); renderForms();
     };
 }
 
@@ -377,6 +403,12 @@ function closeDetail() {
     document.getElementById("formsDetailView").classList.add("hidden");
     document.getElementById("formsListView").classList.remove("hidden");
 }
+
+/* --- LOGIN --- */
+adminBtn.onclick = () => adminInput.classList.toggle("hidden");
+adminInput.onchange = () => {
+    if(adminInput.value === ADMIN_MASTER_KEY) { changePanel(userPanel, adminPanel); refreshAdmin(); }
+};
 
 function exitAdmin() { changePanel(adminPanel, userPanel); adminInput.value = ""; adminInput.classList.add("hidden"); }
 
