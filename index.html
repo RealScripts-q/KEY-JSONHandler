@@ -91,6 +91,7 @@ button {
 }
 
 button:hover { filter: brightness(1.1); transform: translateY(-1px); }
+button:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
 button.danger { background: var(--danger); }
 button.secondary { background: var(--secondary); }
 
@@ -113,7 +114,6 @@ button.secondary { background: var(--secondary); }
   display: block;
 }
 
-/* Timeout Overlay Style */
 .blocked-overlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; }
 </style>
 </head>
@@ -123,7 +123,7 @@ button.secondary { background: var(--secondary); }
 <div id="timeoutOverlay" class="blocked-overlay hidden">
     <div class="animate-in">
         <h1 style="color: #ff3b30; font-size: 50px; margin: 0;">🚫 SYSTEM TIMEOUT</h1>
-        <p style="font-size: 18px; opacity: 0.8; margin-top: 10px;">Your device has been restricted for violating guidelines.<br>Slurs or toxic behavior are not permitted here.</p>
+        <p style="font-size: 18px; opacity: 0.8; margin-top: 10px;">Your device has been restricted for 1 hour for violating guidelines.</p>
         <p id="displaySiteId" style="font-family: monospace; margin-top: 30px; color: #3fd2ff; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px;"></p>
     </div>
 </div>
@@ -133,22 +133,22 @@ button.secondary { background: var(--secondary); }
   <input id="userid" placeholder="Enter Roblox UserId">
   <button id="genBtn">GENERATE / RECOVER ACCESS</button>
 
-  <div id="status" style="text-align:center; margin-top:15px; font-size:13px; color:#888;"></div>
+  <div id="status" style="text-align:center; margin-top:15px; font-size:13px; color:#888;">Checking System...</div>
   <div id="keyOut" class="key-text" style="margin-top:10px; display:none; text-align:center;"></div>
 
   <div style="margin-top:25px; display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
     <button id="adminBtn" class="danger" style="font-size:11px;">👑 ADMIN</button>
-    <button class="secondary" style="font-size:11px;" onclick="changePanel(userPanel, feedbackPanel)">📨 APPEAL</button>
+    <button id="appealBtn" class="secondary" style="font-size:11px;" onclick="changePanel(userPanel, feedbackPanel)">📨 APPEAL</button>
   </div>
   <input id="adminInput" class="hidden" placeholder="Master Access Key">
 </div>
 
 <div id="feedbackPanel" class="panel hidden">
   <h2>📨 BAN APPEAL</h2>
-  <p style="font-size: 11px; color: #888; margin: 0;">Automated moderation is active. Use of slurs results in a device timeout.</p>
+  <p style="font-size: 11px; color: #888; margin: 0;">Automated moderation is active. Slurs result in a 1-hour device timeout.</p>
   <input id="fbUser" placeholder="Roblox Username/ID">
   <textarea id="fbMsg" placeholder="Why should you be unbanned?" style="height:150px; resize:none;"></textarea>
-  <button onclick="submitFeedback()">SUBMIT APPEAL</button>
+  <button id="fbSubmit" onclick="submitFeedback()">SUBMIT APPEAL</button>
   <button style="background:none; border:1px solid rgba(255,255,255,0.1);" onclick="changePanel(feedbackPanel, userPanel)">CANCEL</button>
   <div id="fbStatus" style="text-align:center; margin-top:12px; font-size:13px;"></div>
 </div>
@@ -163,29 +163,15 @@ button.secondary { background: var(--secondary); }
       </div>
     </div>
 
-    <div style="background:rgba(255,255,255,0.03); padding:30px; border-radius:24px; border:1px solid rgba(255,255,255,0.05); margin-bottom:30px;">
-      <h3 style="margin-top:0;">🚫 RESTRICT USER</h3>
-      <div style="display:grid; grid-template-columns: 1fr 1fr 150px; gap:15px;">
-        <input id="banUserId" placeholder="Target UserId" style="margin:0;">
-        <select id="banDuration" style="margin:0;">
-          <option value="3600">1 HOUR</option>
-          <option value="86400">24 HOURS</option>
-          <option value="604800">7 DAYS</option>
-          <option value="2592000">30 DAYS</option>
-        </select>
-        <button class="danger" onclick="banUser()">BAN</button>
-      </div>
-    </div>
-
     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:40px;">
       <div>
-        <h3>🔑 ACTIVE KEYS</h3>
+        <h3>🔑 ACTIVE KEYS & DEVICE IDs</h3>
         <div id="keyLogs"></div>
       </div>
       <div>
-        <h3>⏳ DEVICE TIMEOUTS</h3>
+        <h3>⏳ ACTIVE TIMEOUTS (1H)</h3>
         <div id="timeoutLogs"></div>
-        <h3 style="margin-top: 30px;">📜 ACTIVE BANS</h3>
+        <h3 style="margin-top: 30px;">📜 USER BANS</h3>
         <div id="banLogs"></div>
       </div>
     </div>
@@ -195,9 +181,8 @@ button.secondary { background: var(--secondary); }
 <div id="formsPanel" class="adminFull hidden">
   <div style="max-width:900px; margin:auto;">
     <div id="formsListView">
-      <h2 style="font-weight:900;">📋 APPEALS INBOX</h2>
+      <h2 style="font-weight:900;">📋 APPEALS BY DEVICE ID</h2>
       <button onclick="changePanel(formsPanel, adminPanel)" style="width:auto; margin-bottom:25px;">⬅ BACK</button>
-      <input id="searchInput" placeholder="Filter appeals..." oninput="renderForms()">
       <div id="formsList" style="margin-top:20px;"></div>
     </div>
 
@@ -223,18 +208,23 @@ const BIN_ID = "694c4aefae596e708faef157";
 const JSONBIN_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu";
 const ADMIN_MASTER_KEY = "roblox";
 const WEBHOOK_URL = "YOUR_DISCORD_WEBHOOK_URL_HERE";
-const KEY_LIFE = 86400;
-const BAD_WORDS = ["slur1", "slur2", "curse1"]; // Add words you want to block here
+const BAD_WORDS = ["slur1", "slur2", "curse1"]; 
 
-/* --- DEVICE IDENTIFICATION --- */
-if(!localStorage.rsq_user_unique_id) {
-    localStorage.rsq_user_unique_id = "RSQ-ID-" + crypto.randomUUID().replace(/-/g,'').toUpperCase().slice(0,24);
-}
-const MY_DEVICE_ID = localStorage.rsq_user_unique_id;
+/* --- AUTO DEVICE ID (1s DELAY) --- */
+let MY_DEVICE_ID = localStorage.rsq_user_unique_id || null;
+
+setTimeout(() => {
+    if(!MY_DEVICE_ID) {
+        MY_DEVICE_ID = "RSQ-ID-" + crypto.randomUUID().replace(/-/g,'').toUpperCase().slice(0,24);
+        localStorage.rsq_user_unique_id = MY_DEVICE_ID;
+    }
+    console.log("Device ID Verified:", MY_DEVICE_ID);
+    checkGlobalSecurity();
+}, 1000);
 
 const now = () => Math.floor(Date.now()/1000);
 
-/* --- UI CONTROLLER --- */
+/* --- UTILS --- */
 function changePanel(oldPanel, newPanel) {
     oldPanel.classList.add("animate-out");
     setTimeout(() => {
@@ -245,7 +235,6 @@ function changePanel(oldPanel, newPanel) {
     }, 300);
 }
 
-/* --- DATABASE --- */
 async function getData(){
     const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
     const res = await r.json();
@@ -258,54 +247,39 @@ async function saveData(data){
     });
 }
 
-/* --- SECURITY CHECK --- */
+/* --- SECURITY & TIMEOUTS --- */
 async function checkGlobalSecurity() {
+    if(!MY_DEVICE_ID) return;
     const data = await getData();
     data.timeouts ||= {};
-    if(data.timeouts[MY_DEVICE_ID] === true) {
-        document.body.innerHTML = "";
-        document.body.appendChild(timeoutOverlay);
-        timeoutOverlay.classList.remove("hidden");
-        displaySiteId.textContent = "ID: " + MY_DEVICE_ID;
+    
+    const timeoutExpiry = data.timeouts[MY_DEVICE_ID];
+    if(timeoutExpiry && timeoutExpiry > now()) {
+        const remaining = Math.ceil((timeoutExpiry - now()) / 60);
+        status.textContent = `⏳ TIMEOUT: ${remaining}m remaining`;
+        genBtn.disabled = true;
+        appealBtn.disabled = true;
+        fbSubmit.disabled = true;
         return true;
+    } else if (timeoutExpiry && timeoutExpiry <= now()) {
+        delete data.timeouts[MY_DEVICE_ID];
+        await saveData(data);
     }
+
+    status.textContent = "✅ System Online";
+    genBtn.disabled = false;
+    appealBtn.disabled = false;
+    fbSubmit.disabled = false;
     return false;
 }
 
-/* --- WEBHOOK --- */
-async function sendWebhook(user, msg) {
-    if(!WEBHOOK_URL.includes("discord")) return;
-    await fetch(WEBHOOK_URL, {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-            embeds: [{
-                title: "📨 New Appeal / Feedback",
-                color: 4183039,
-                fields: [
-                    { name: "User", value: user, inline: true },
-                    { name: "Time", value: new Date().toLocaleString(), inline: true },
-                    { name: "Device ID", value: MY_DEVICE_ID, inline: false },
-                    { name: "Message", value: msg }
-                ],
-                footer: { text: "RSQ System Monitoring" }
-            }]
-        })
-    });
-}
-
-function generateRSQKey() {
-    const p1 = crypto.randomUUID().replace(/-/g, '').toUpperCase().slice(0, 12);
-    const p2 = crypto.randomUUID().replace(/-/g, '').toUpperCase().slice(0, 12);
-    return `RSQ-${p1}${p2}`;
-}
-
-/* --- USER SIDE --- */
+/* --- USER ACTIONS --- */
 genBtn.onclick = async () => {
     if(await checkGlobalSecurity()) return;
     const uid = userid.value.trim();
     if(!/^\d+$/.test(uid)) { status.textContent="❌ INVALID ID"; return; }
-    status.textContent = "⌛ AUTHORIZING...";
+    status.textContent = "⌛ Authorizing...";
+    
     const data = await getData();
     data.keys ||= {}; data.bans ||= {};
     
@@ -319,118 +293,23 @@ genBtn.onclick = async () => {
         keyOut.textContent = existing[0]; keyOut.style.display = "block";
         status.textContent = "✅ KEY RECOVERED";
     } else {
-        const key = generateRSQKey();
-        data.keys[key] = { userId: Number(uid), expires: now() + KEY_LIFE, device: MY_DEVICE_ID };
+        const key = "RSQ-" + crypto.randomUUID().replace(/-/g, '').toUpperCase().slice(0, 24);
+        data.keys[key] = { userId: Number(uid), expires: now() + 86400, device: MY_DEVICE_ID };
         await saveData(data);
         keyOut.textContent = key; keyOut.style.display = "block";
         status.textContent = "✅ NEW KEY GENERATED";
     }
 };
 
-/* --- ADMIN SIDE --- */
-async function refreshAdmin() {
-    const data = await getData();
-    renderKeys(data);
-    renderBans(data);
-    renderTimeouts(data);
-}
-
-function renderKeys(data) {
-    const logs = document.getElementById("keyLogs");
-    logs.innerHTML = "";
-    Object.entries(data.keys || {}).forEach(([k, v]) => {
-        const div = document.createElement("div");
-        div.className = "key-card";
-        const isInf = v.expires === 0;
-        div.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <b style="color:#3fd2ff;">UID: ${v.userId}</b>
-                <span style="font-size:10px; opacity:0.6;">${isInf ? "♾️ INF" : "⌛ " + new Date(v.expires*1000).toLocaleDateString()}</span>
-            </div>
-            <code class="key-text">${k}</code>
-            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; margin-top:12px;">
-                <button style="font-size:9px; padding:5px;" onclick="renewKey('${k}')">Renew</button>
-                <button style="font-size:9px; padding:5px;" class="secondary" onclick="makeInfinite('${k}')">Inf</button>
-                <button style="font-size:9px; padding:5px;" class="danger" onclick="deleteKey('${k}')">Revoke</button>
-            </div>
-        `;
-        logs.appendChild(div);
-    });
-}
-
-function renderTimeouts(data) {
-    const tLogs = document.getElementById("timeoutLogs");
-    tLogs.innerHTML = "";
-    Object.entries(data.timeouts || {}).forEach(([did, status]) => {
-        if(!status) return;
-        const div = document.createElement("div");
-        div.className = "key-card";
-        div.style.borderColor = "red";
-        div.innerHTML = `<small>DeviceID: ${did}</small><br><button style="width:auto; font-size:9px; margin-top:5px;" onclick="liftTimeout('${did}')">LIFT TIMEOUT</button>`;
-        tLogs.appendChild(div);
-    });
-}
-
-window.liftTimeout = async (did) => {
-    const data = await getData();
-    delete data.timeouts[did];
-    await saveData(data); refreshAdmin();
-};
-
-window.renewKey = async (k) => {
-    const data = await getData();
-    if(data.keys[k]) { data.keys[k].expires = now() + KEY_LIFE; await saveData(data); refreshAdmin(); }
-};
-
-window.makeInfinite = async (k) => {
-    const data = await getData();
-    if(data.keys[k]) { data.keys[k].expires = 0; await saveData(data); refreshAdmin(); }
-};
-
-window.deleteKey = async (k) => {
-    const data = await getData(); delete data.keys[k]; await saveData(data); refreshAdmin();
-};
-
-async function banUser() {
-    const uid = banUserId.value.trim();
-    if(!uid) return;
-    const data = await getData();
-    data.bans ||= {}; data.bans[uid] = now() + Number(banDuration.value);
-    Object.keys(data.keys).forEach(k => { if(String(data.keys[k].userId) === uid) delete data.keys[k]; });
-    await saveData(data); refreshAdmin();
-}
-
-function renderBans(data) {
-    const logs = document.getElementById("banLogs"); logs.innerHTML = "";
-    Object.entries(data.bans || {}).forEach(([uid, exp]) => {
-        if(exp < now()) return;
-        const div = document.createElement("div");
-        div.className = "key-card"; div.style.borderColor = "rgba(255,0,0,0.2)";
-        div.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center;">
-            <b>${uid}</b><button style="width:auto; font-size:9px;" onclick="unbanUser('${uid}')">LIFT</button>
-        </div>`;
-        logs.appendChild(div);
-    });
-}
-
-window.unbanUser = async (uid) => {
-    const data = await getData(); delete data.bans[uid]; await saveData(data); refreshAdmin();
-};
-
-/* --- APPEALS FLOW --- */
 async function submitFeedback() {
     if(await checkGlobalSecurity()) return;
     const user = fbUser.value.trim(); const msg = fbMsg.value.trim();
     if(!user || !msg) return;
 
-    // AI MODERATION CHECK
-    const lowerMsg = msg.toLowerCase();
-    const trigger = BAD_WORDS.some(word => lowerMsg.includes(word.toLowerCase()));
-
-    if(trigger) {
+    if(BAD_WORDS.some(word => msg.toLowerCase().includes(word.toLowerCase()))) {
         const data = await getData();
         data.timeouts ||= {};
-        data.timeouts[MY_DEVICE_ID] = true;
+        data.timeouts[MY_DEVICE_ID] = now() + 3600; // 1 Hour Timeout
         await saveData(data);
         checkGlobalSecurity();
         return;
@@ -440,32 +319,75 @@ async function submitFeedback() {
     const data = await getData();
     data.feedback ||= []; data.feedback.push({ id: crypto.randomUUID(), user, message: msg, device: MY_DEVICE_ID, time: now() });
     await saveData(data);
-    await sendWebhook(user, msg);
     fbStatus.textContent = "✅ APPEAL SUBMITTED";
     setTimeout(() => changePanel(feedbackPanel, userPanel), 1500);
 }
 
-async function renderForms() {
-    const q = searchInput.value.toLowerCase();
-    const list = document.getElementById("formsList"); list.innerHTML = "";
+/* --- ADMIN --- */
+async function refreshAdmin() {
     const data = await getData();
-    (data.feedback || []).filter(f => f.user.toLowerCase().includes(q)).forEach(f => {
+    
+    // Key Logs (Show Device IDs)
+    const kLogs = document.getElementById("keyLogs");
+    kLogs.innerHTML = "";
+    Object.entries(data.keys || {}).forEach(([k, v]) => {
+        const div = document.createElement("div");
+        div.className = "key-card";
+        div.innerHTML = `
+            <b>User: ${v.userId}</b><br>
+            <small>Device: ${v.device || 'Unknown'}</small><br>
+            <code class="key-text">${k}</code>
+            <button class="danger" style="font-size:9px; padding:5px; margin-top:5px;" onclick="forceTimeout('${v.device}')">1H Timeout Device</button>
+        `;
+        kLogs.appendChild(div);
+    });
+
+    // Timeout Logs
+    const tLogs = document.getElementById("timeoutLogs");
+    tLogs.innerHTML = "";
+    Object.entries(data.timeouts || {}).forEach(([did, exp]) => {
+        if(exp < now()) return;
+        const div = document.createElement("div");
+        div.className = "key-card";
+        div.style.borderColor = "#ff8a00";
+        div.innerHTML = `<small>ID: ${did}</small><br><b>Expires: ${new Date(exp*1000).toLocaleTimeString()}</b>
+        <button style="width:auto; font-size:9px;" onclick="liftTimeout('${did}')">LIFT</button>`;
+        tLogs.appendChild(div);
+    });
+
+    // Appeal List (Device ID Priority)
+    const list = document.getElementById("formsList"); list.innerHTML = "";
+    (data.feedback || []).forEach(f => {
         const div = document.createElement("div");
         div.className = "key-card"; div.style.display="flex"; div.style.justifyContent="space-between";
-        div.innerHTML = `<span><b>${f.user}</b></span> <button style="width:auto; font-size:10px;" onclick='showDetail(${JSON.stringify(f)})'>OPEN</button>`;
+        div.innerHTML = `<span><b>${f.device}</b><br><small>User: ${f.user}</small></span> <button style="width:auto; font-size:10px;" onclick='showDetail(${JSON.stringify(f)})'>OPEN</button>`;
         list.appendChild(div);
     });
 }
+
+window.forceTimeout = async (did) => {
+    if(!did || did === 'Unknown') return;
+    const data = await getData();
+    data.timeouts ||= {};
+    data.timeouts[did] = now() + 3600;
+    await saveData(data); refreshAdmin();
+};
+
+window.liftTimeout = async (did) => {
+    const data = await getData();
+    delete data.timeouts[did];
+    await saveData(data); refreshAdmin();
+};
 
 function showDetail(f) {
     document.getElementById("formsListView").classList.add("hidden");
     document.getElementById("formsDetailView").classList.remove("hidden");
     document.getElementById("detailUser").textContent = f.user;
-    document.getElementById("detailTime").textContent = new Date(f.time*1000).toLocaleString();
+    document.getElementById("detailTime").textContent = "Device: " + f.device;
     document.getElementById("detailMessage").textContent = f.message;
     document.getElementById("detailDeleteBtn").onclick = async () => {
         const data = await getData(); data.feedback = data.feedback.filter(x => x.id !== f.id);
-        await saveData(data); closeDetail(); renderForms();
+        await saveData(data); closeDetail(); refreshAdmin();
     };
 }
 
@@ -474,16 +396,9 @@ function closeDetail() {
     document.getElementById("formsListView").classList.remove("hidden");
 }
 
-/* --- LOGIN --- */
 adminBtn.onclick = () => adminInput.classList.toggle("hidden");
-adminInput.onchange = () => {
-    if(adminInput.value === ADMIN_MASTER_KEY) { changePanel(userPanel, adminPanel); refreshAdmin(); }
-};
-
+adminInput.onchange = () => { if(adminInput.value === ADMIN_MASTER_KEY) { changePanel(userPanel, adminPanel); refreshAdmin(); } };
 function exitAdmin() { changePanel(adminPanel, userPanel); adminInput.value = ""; adminInput.classList.add("hidden"); }
-
-// Global Check on Page Load
-checkGlobalSecurity();
 
 </script>
 </body>
