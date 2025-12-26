@@ -102,6 +102,10 @@ button.mini { width: auto; padding: 5px 10px; font-size: 10px; margin: 2px; marg
 .msg-item b { color: var(--secondary); font-size: 10px; display: block; }
 .del-msg { position: absolute; top: 5px; right: 8px; color: var(--danger); font-size: 9px; cursor: pointer; font-weight: bold; }
 
+/* Bot Warning Style */
+.bot-msg { border-left: 3px solid var(--danger); background: rgba(255, 59, 48, 0.1); }
+.bot-name { color: var(--danger) !important; font-weight: bold; }
+
 /* Admin Panel */
 .adminFull {
     position: fixed; inset: 15px; background: #0b0f1a; border-radius: 20px;
@@ -181,6 +185,10 @@ const BIN_ID = "694c4aefae596e708faef157";
 const JSON_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu";
 const MASTER_KEY = "roblox";
 
+// MODERATION CONFIG
+const BANNED_WORDS = ["nigger", "fuck", "shit"];
+let localWarnings = 0;
+
 let currentUser = null;
 const getDevId = () => btoa(navigator.userAgent + screen.width).slice(0, 12).toUpperCase();
 const MY_ID = getDevId();
@@ -252,6 +260,22 @@ async function handleAuth(type) {
 
 function logout() { location.reload(); }
 
+/* CHAT MODERATION LOGIC */
+function containsBannedWords(text) {
+    const lowerText = text.toLowerCase();
+    return BANNED_WORDS.some(word => lowerText.includes(word));
+}
+
+function triggerBotWarning() {
+    localWarnings++;
+    const box = document.getElementById('chat-msgs');
+    const warning = document.createElement('div');
+    warning.className = 'msg-item bot-msg';
+    warning.innerHTML = `<b class="bot-name">[PRIVATE] RSQ MANAGER</b> You have been warned. Any more warnings could result in a timeout.`;
+    box.appendChild(warning);
+    box.scrollTop = box.scrollHeight;
+}
+
 /* CHAT */
 document.getElementById('chat-toggle').onclick = () => document.getElementById('chat-window').classList.toggle('hidden');
 
@@ -260,20 +284,35 @@ function startChatLoop() { setInterval(updateChat, 4000); updateChat(); }
 async function updateChat() {
     const data = await api('GET');
     const box = document.getElementById('chat-msgs');
+    
+    // Save current scroll position
+    const isAtBottom = box.scrollHeight - box.clientHeight <= box.scrollTop + 1;
+
     box.innerHTML = (data.chat || []).map((m, i) => `
         <div class="msg-item">
             <b>${m.user}</b>${m.txt}
             ${m.user === currentUser ? `<span class="del-msg" onclick="deleteMsg(${i})">DEL</span>` : ''}
         </div>
     `).join('');
+
+    if (isAtBottom) box.scrollTop = box.scrollHeight;
 }
 
 document.getElementById('sendChat').onclick = async () => {
     const inp = document.getElementById('chatIn');
-    if(!inp.value.trim()) return;
+    const text = inp.value.trim();
+    if(!text) return;
+
+    // BOT MODERATION CHECK
+    if(containsBannedWords(text)) {
+        inp.value = '';
+        triggerBotWarning();
+        return; 
+    }
+
     const data = await api('GET');
     data.chat ||= [];
-    data.chat.push({ user: currentUser, txt: inp.value.trim() });
+    data.chat.push({ user: currentUser, txt: text });
     await api('PUT', data);
     inp.value = '';
     updateChat();
