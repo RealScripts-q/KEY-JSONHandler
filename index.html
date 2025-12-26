@@ -125,7 +125,6 @@ const POLL_RATE=3000;
 
 /* STATE */
 let CURRENT_UID = localStorage.getItem("rsq_uid") || null;
-let LAST_KEY = null;
 
 /* HELPERS */
 const now=()=>Math.floor(Date.now()/1000);
@@ -148,89 +147,144 @@ async function saveData(data){
   });
 }
 
-/* USER ACTION */
-genBtn.onclick=async()=>{
-  const uid=userid.value.trim();
+/* ================= USER GENERATE / RECOVER ================= */
+genBtn.onclick = async ()=>{
+  const uid = userid.value.trim();
+  status.textContent="";
+  keyOut.textContent="";
+
   if(!/^\d+$/.test(uid)){
     status.textContent="❌ Invalid UserId";
     return;
   }
-  CURRENT_UID=uid;
-  localStorage.setItem("rsq_uid",uid);
-  await syncUser();
-};
 
-/* LIVE USER SYNC */
-async function syncUser(){
-  if(!CURRENT_UID) return;
+  CURRENT_UID = uid;
+  localStorage.setItem("rsq_uid", uid);
 
-  const data=await getData();
+  const data = await getData();
   data.keys ||= {};
   data.bans ||= {};
   data.messages ||= {};
 
-  /* BANNED */
-  if(data.bans[CURRENT_UID] && data.bans[CURRENT_UID]>now()){
-    status.textContent="🚫 You were banned by an admin until "+
-      new Date(data.bans[CURRENT_UID]*1000).toLocaleString();
+  /* 🚫 HARD BAN BLOCK */
+  if (data.bans[uid] && data.bans[uid] > now()) {
+    status.textContent =
+      "🚫 You can’t generate a key because you were banned by an admin";
+    keyOut.textContent="";
+    return; // ⛔ ABSOLUTE STOP
+  }
+
+  /* 📩 ADMIN MESSAGE */
+  if (data.messages[uid]) {
+    status.textContent = data.messages[uid];
+    delete data.messages[uid];
+    await saveData(data);
+  }
+
+  /* 🔑 EXISTING KEY */
+  for (const k in data.keys) {
+    const d = data.keys[k];
+    if (d.userId == uid) {
+
+      if (d.expires === 0) {
+        status.textContent = "♾️ Your key was made infinite by an admin";
+        keyOut.textContent = k;
+        copy(k);
+        return;
+      }
+
+      if (d.expires < now()) {
+        status.textContent = "⏰ Your key has expired";
+        return;
+      }
+
+      status.textContent =
+        "✅ Active key · Expires " +
+        new Date(d.expires*1000).toLocaleString();
+      keyOut.textContent = k;
+      copy(k);
+      return;
+    }
+  }
+
+  /* 🆕 CREATE NEW KEY */
+  const key = makeKey();
+  data.keys[key] = {
+    userId:Number(uid),
+    expires: now() + KEY_LIFE
+  };
+
+  await saveData(data);
+  copy(key);
+
+  status.textContent =
+    "✅ New key generated · Expires " +
+    new Date((now()+KEY_LIFE)*1000).toLocaleString();
+  keyOut.textContent = key;
+};
+
+/* ================= LIVE USER SYNC ================= */
+async function syncUser(){
+  if(!CURRENT_UID) return;
+
+  const data = await getData();
+  data.bans ||= {};
+  data.keys ||= {};
+  data.messages ||= {};
+
+  /* 🚫 LIVE BAN CHECK */
+  if (data.bans[CURRENT_UID] && data.bans[CURRENT_UID] > now()) {
+    status.textContent =
+      "🚫 You can’t generate a key because you were banned by an admin";
     keyOut.textContent="";
     return;
   }
 
-  /* MESSAGE */
-  if(data.messages[CURRENT_UID]){
-    status.textContent=data.messages[CURRENT_UID];
+  /* 📩 MESSAGE */
+  if (data.messages[CURRENT_UID]) {
+    status.textContent = data.messages[CURRENT_UID];
     delete data.messages[CURRENT_UID];
     await saveData(data);
   }
 
-  /* KEY CHECK */
+  /* 🔑 LIVE KEY CHECK */
   for(const k in data.keys){
     const d=data.keys[k];
     if(d.userId==CURRENT_UID){
-      LAST_KEY=k;
-      keyOut.textContent=k;
-      copy(k);
 
       if(d.expires===0){
         status.textContent="♾️ Infinite key (admin)";
+        keyOut.textContent=k;
         return;
       }
 
       if(d.expires<now()){
         status.textContent="⏰ Your key has expired";
+        keyOut.textContent="";
         return;
       }
 
       status.textContent="✅ Active · Expires "+
         new Date(d.expires*1000).toLocaleString();
+      keyOut.textContent=k;
       return;
     }
   }
-
-  /* CREATE NEW */
-  const key=makeKey();
-  data.keys[key]={userId:Number(CURRENT_UID),expires:now()+KEY_LIFE};
-  await saveData(data);
-
-  keyOut.textContent=key;
-  copy(key);
-  status.textContent="✅ New key generated · Expires "+
-    new Date((now()+KEY_LIFE)*1000).toLocaleString();
 }
 
-/* ADMIN LOGIN */
+/* ================= ADMIN LOGIN ================= */
 adminBtn.onclick=()=>adminInput.classList.toggle("hidden");
 adminInput.onchange=()=>{
   if(adminInput.value!==ADMIN_MASTER_KEY){
-    alert("Invalid admin key");return;
+    alert("Invalid admin key");
+    return;
   }
   userPanel.classList.add("hidden");
   adminPanel.classList.remove("hidden");
   refreshAdmin();
 };
 
-/* ADMIN */
+/* ================= ADMIN ================= */
 async function refreshAdmin(){
   const data=await getData();
   renderKeys(data);
@@ -245,6 +299,7 @@ async function renderKeys(data){
     const d=data.keys[k];
     const div=document.createElement("div");
     div.className="keyRow";
+
     div.innerHTML=`
 <b>${k}</b><br>
 UserId: ${d.userId}<br>
@@ -256,7 +311,8 @@ Expires: ${d.expires===0?"Never":new Date(d.expires*1000).toLocaleString()}
     renew.onclick=async()=>{
       d.expires=now()+KEY_LIFE;
       data.messages[d.userId]="🔄 Your key was renewed by an admin";
-      await saveData(data);refreshAdmin();
+      await saveData(data);
+      refreshAdmin();
     };
 
     const inf=document.createElement("button");
@@ -265,7 +321,8 @@ Expires: ${d.expires===0?"Never":new Date(d.expires*1000).toLocaleString()}
     inf.onclick=async()=>{
       d.expires=0;
       data.messages[d.userId]="👑 Your key was made infinite by an admin";
-      await saveData(data);refreshAdmin();
+      await saveData(data);
+      refreshAdmin();
     };
 
     const del=document.createElement("button");
@@ -274,7 +331,8 @@ Expires: ${d.expires===0?"Never":new Date(d.expires*1000).toLocaleString()}
     del.onclick=async()=>{
       delete data.keys[k];
       data.messages[d.userId]="🗑️ Your key was removed by an admin";
-      await saveData(data);refreshAdmin();
+      await saveData(data);
+      refreshAdmin();
     };
 
     div.append(renew,inf,del);
@@ -282,15 +340,18 @@ Expires: ${d.expires===0?"Never":new Date(d.expires*1000).toLocaleString()}
   }
 }
 
-/* BAN */
+/* ================= BAN ================= */
 async function banUser(){
   const uid=banUserId.value.trim();
-  if(!uid)return;
+  if(!uid) return;
+
   const data=await getData();
   data.bans ||= {};
   data.messages ||= {};
+
   data.bans[uid]=now()+Number(banDuration.value);
   data.messages[uid]="🚫 You were banned by an admin";
+
   await saveData(data);
   refreshAdmin();
 }
@@ -298,10 +359,10 @@ async function banUser(){
 function renderBans(data){
   banLogs.innerHTML="";
   for(const u in data.bans){
-    if(data.bans[u]<now())continue;
+    if(data.bans[u]<now()) continue;
     const d=document.createElement("div");
     d.className="keyRow";
-    d.innerHTML=`UserId:${u}<br>Until:${new Date(data.bans[u]*1000)}`;
+    d.innerHTML=`UserId: ${u}<br>Until: ${new Date(data.bans[u]*1000)}`;
     banLogs.appendChild(d);
   }
 }
@@ -311,12 +372,12 @@ function exitAdmin(){
   userPanel.classList.remove("hidden");
 }
 
-/* AUTO LIVE POLL */
+/* ================= AUTO LIVE ================= */
 if(CURRENT_UID){
   userid.value=CURRENT_UID;
   syncUser();
 }
-setInterval(syncUser,POLL_RATE);
+setInterval(syncUser, POLL_RATE);
 </script>
 </body>
 </html>
