@@ -59,6 +59,14 @@ button.secondary {
   font-size:13px;
 }
 
+.keyDisplay {
+  text-align:center;
+  margin-top:6px;
+  font-size:13px;
+  color:#3fd2ff;
+  word-break:break-all;
+}
+
 .adminFull {
   position:fixed;
   inset:0;
@@ -86,9 +94,10 @@ hr { opacity:.2 }
   <h2 style="text-align:center">🔐 RSQ Key System</h2>
 
   <input id="userid" placeholder="Roblox UserId">
-  <button id="genBtn">Generate Key</button>
+  <button id="genBtn">Generate / Recover Key</button>
 
   <div id="status" class="status"></div>
+  <div id="keyOut" class="keyDisplay"></div>
 
   <button id="adminBtn" class="danger">👑 Admin Panel</button>
   <input id="adminInput" class="hidden" placeholder="Admin Master Key">
@@ -138,7 +147,7 @@ const makeKey = () =>
 /* JSONBIN */
 async function getData(){
   const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
-  return (await r.json()).record;
+  return (await r.json()).record || {};
 }
 async function saveData(data){
   await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{
@@ -151,55 +160,79 @@ async function saveData(data){
   });
 }
 
-/* USER GENERATE */
+/* USER GENERATE / RECOVER */
 genBtn.onclick = async ()=>{
   const uid = userid.value.trim();
-  if(!/^\d+$/.test(uid))
-    return status.textContent="❌ Invalid UserId";
+  keyOut.textContent = "";
+
+  if(!/^\d+$/.test(uid)){
+    status.textContent="❌ Invalid UserId";
+    return;
+  }
 
   const data = await getData();
+  data.keys ||= {};
   data.bans ||= {};
 
-  if(data.bans[uid] && data.bans[uid] > now())
-    return status.textContent="🚫 You are banned";
+  if(data.bans[uid] && data.bans[uid] > now()){
+    status.textContent="🚫 You were banned by an admin";
+    return;
+  }
 
-  data.keys ||= {};
   for(const k in data.keys){
     const d = data.keys[k];
-    if(d.userId == uid && (d.expires === 0 || d.expires > now())){
+    if(d.userId == uid){
+      if(d.expires === 0){
+        navigator.clipboard.writeText(k);
+        status.textContent="♾️ Your key was made infinite by an admin";
+        keyOut.textContent = k;
+        return;
+      }
+      if(d.expires < now()){
+        status.textContent="⏰ Your key has expired";
+        return;
+      }
       navigator.clipboard.writeText(k);
-      return status.textContent="✅ Existing key copied";
+      status.textContent="✅ Existing key copied";
+      keyOut.textContent = k;
+      return;
     }
   }
 
   const key = makeKey();
-  data.keys[key] = { userId:Number(uid), expires:now()+KEY_LIFE };
-  await saveData(data);
+  data.keys[key] = {
+    userId:Number(uid),
+    expires: now() + KEY_LIFE
+  };
 
+  await saveData(data);
   navigator.clipboard.writeText(key);
+
   status.textContent="✅ New key generated & copied";
+  keyOut.textContent = key;
 };
 
 /* ADMIN LOGIN */
 adminBtn.onclick = ()=>adminInput.classList.toggle("hidden");
 
 adminInput.onchange = ()=>{
-  if(adminInput.value !== ADMIN_MASTER_KEY)
-    return alert("Invalid admin key");
-
+  if(adminInput.value !== ADMIN_MASTER_KEY){
+    alert("Invalid admin key");
+    return;
+  }
   userPanel.classList.add("hidden");
   adminPanel.classList.remove("hidden");
   refreshAdmin();
 };
 
-/* ADMIN RENDER */
+/* ADMIN REFRESH */
 async function refreshAdmin(){
   const data = await getData();
   renderKeys(data);
   renderBans(data);
 }
 
-/* KEYS */
+/* KEY LOGS */
 async function renderKeys(data){
   keyLogs.innerHTML="";
   data.keys ||= {};
@@ -209,7 +242,7 @@ async function renderKeys(data){
     const div = document.createElement("div");
     div.className="keyRow";
 
-    const status =
+    const state =
       d.expires === 0 ? "♾️ INFINITE" :
       d.expires > now() ? "✅ ACTIVE" :
       "❌ EXPIRED";
@@ -217,7 +250,7 @@ async function renderKeys(data){
     div.innerHTML=`
 <b>${k}</b><br>
 UserId: ${d.userId}<br>
-Status: ${status}<br>
+Status: ${state}<br>
 Expires: ${d.expires===0?"Never":new Date(d.expires*1000).toLocaleString()}
 `;
 
@@ -252,7 +285,7 @@ Expires: ${d.expires===0?"Never":new Date(d.expires*1000).toLocaleString()}
   }
 }
 
-/* BAN */
+/* BAN USER */
 async function banUser(){
   const uid = banUserId.value.trim();
   const dur = Number(banDuration.value);
@@ -295,7 +328,7 @@ function renderBans(data){
   }
 }
 
-/* EXIT */
+/* EXIT ADMIN */
 function exitAdmin(){
   adminPanel.classList.add("hidden");
   userPanel.classList.remove("hidden");
