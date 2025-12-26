@@ -1,17 +1,19 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>RSQ Key System</title>
+
 <style>
 body{
-  background:#0b0d14;
-  color:white;
-  font-family:Segoe UI;
-  display:flex;
-  justify-content:center;
-  align-items:center;
+  margin:0;
   height:100vh;
+  background:#0b0d14;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:Segoe UI, sans-serif;
+  color:white;
 }
 .box{
   width:400px;
@@ -19,39 +21,58 @@ body{
   padding:20px;
   border-radius:16px;
 }
+h3{
+  text-align:center;
+  color:#50c8ff;
+}
 input,button{
   width:100%;
   height:36px;
-  margin-top:10px;
   border-radius:10px;
   border:none;
+  margin-top:10px;
 }
-input{background:#0e0e16;color:white;padding:10px;}
-button{background:#0080ff;color:white;font-weight:600;cursor:pointer;}
-.status{text-align:center;margin-top:12px;font-size:13px;}
+input{
+  background:#0e0e16;
+  color:white;
+  padding:10px;
+}
+button{
+  background:#0080ff;
+  color:white;
+  font-weight:600;
+  cursor:pointer;
+}
+.status{
+  margin-top:12px;
+  text-align:center;
+  font-size:13px;
+}
 .ok{color:#46ff8c}
 .err{color:#ff5050}
 </style>
 </head>
 
 <body>
+
 <div class="box" id="ui">
-  <h3 style="text-align:center;color:#50c8ff">🔐 RSQ Key System</h3>
-  <input id="key" placeholder="Paste your key">
-  <button onclick="verify()">Verify Key</button>
-  <div id="status" class="status">Waiting for key...</div>
+  <h3>🔐 RSQ Key System</h3>
+  <input id="keyInput" placeholder="Paste your key">
+  <button onclick="verifyKey()">Verify Key</button>
+  <div class="status" id="status">Waiting for key...</div>
 </div>
 
 <script>
 /* ================= CONFIG ================= */
 
-const USER_ID = 123456789; // simulate Roblox UserId
-const RECHECK_INTERVAL = 15000;
+const JSONBIN_URL =
+  "https://api.jsonbin.io/v3/b/694c4aefae596e708faef157/latest";
 
-// CORS proxy
-const JSON_URL =
-"https://api.allorigins.win/raw?url=" +
-encodeURIComponent("https://api.jsonbin.io/v3/b/694c4aefae596e708faef157/latest");
+const JSONBIN_MASTER_KEY =
+  "$2a$10$7MPZXICawr4gE5o3N/KXiOaEMdx9qUL/c1Ht4TEnfO8DYmK2Tqiae"; // ⚠️ NOT SECURE
+
+const USER_ID = 123456789; // simulate Roblox Player.UserId
+const RECHECK_INTERVAL = 15000;
 
 /* ================= STATE ================= */
 
@@ -67,43 +88,59 @@ function setStatus(msg, cls=""){
 
 async function fetchData(){
   try{
-    const r = await fetch(JSON_URL);
-    const j = await r.json();
-    return j.record;
-  }catch{
+    const res = await fetch(JSONBIN_URL, {
+      headers: {
+        "X-Master-Key": JSONBIN_MASTER_KEY
+      }
+    });
+    const json = await res.json();
+    return json.record;
+  }catch(e){
     return null;
   }
 }
 
 /* ================= VALIDATION ================= */
 
-function checkKey(key, data){
+function checkKeyState(key, data){
   const now = Math.floor(Date.now()/1000);
 
-  if(data.bans && data.bans[USER_ID] && data.bans[USER_ID] > now){
-    alert("🚫 You were banned");
-    location.reload();
-    return "BANNED";
+  // BAN CHECK
+  if(data.bans && data.bans[String(USER_ID)]){
+    if(data.bans[String(USER_ID)] > now){
+      alert("🚫 You were banned from using the script");
+      location.reload();
+      return "BANNED";
+    }
   }
 
-  if(!data.keys || !data.keys[key]) return "DELETED";
+  // KEY EXISTS
+  if(!data.keys || !data.keys[key]){
+    return "DELETED";
+  }
 
   const info = data.keys[key];
 
-  if(Number(info.userId) !== USER_ID) return "INVALID";
+  // USER BIND
+  if(Number(info.userId) !== USER_ID){
+    return "INVALID";
+  }
 
-  if(info.expires !== 0 && info.expires < now) return "EXPIRED";
+  // EXPIRY
+  if(info.expires !== 0 && info.expires < now){
+    return "EXPIRED";
+  }
 
   return "VALID";
 }
 
-/* ================= VERIFY ================= */
+/* ================= VERIFY FLOW ================= */
 
-async function verify(){
-  const key = document.getElementById("key").value.trim();
+async function verifyKey(){
+  const key = document.getElementById("keyInput").value.trim();
   if(!key) return;
 
-  setStatus("Checking...");
+  setStatus("Checking key...");
 
   const data = await fetchData();
   if(!data){
@@ -111,38 +148,38 @@ async function verify(){
     return;
   }
 
-  const state = checkKey(key,data);
+  const state = checkKeyState(key,data);
 
   if(state !== "VALID"){
-    setStatus(
-      state === "EXPIRED" ? "⏰ Key expired" : "❌ Invalid key",
-      "err"
-    );
+    if(state === "EXPIRED") setStatus("⏰ Key expired","err");
+    else setStatus("❌ Invalid key","err");
     return;
   }
 
+  // SUCCESS
   currentKey = key;
   localStorage.setItem("rsq_key", key);
 
   setStatus("✅ Key valid","ok");
-  document.getElementById("ui").style.display="none";
+  document.getElementById("ui").style.display = "none";
 
-  startLiveCheck();
+  startLiveRecheck();
 }
 
 /* ================= LIVE RECHECK ================= */
 
-function startLiveCheck(){
+function startLiveRecheck(){
   setInterval(async ()=>{
     if(!currentKey) return;
+
     const data = await fetchData();
     if(!data) return;
 
-    const state = checkKey(currentKey,data);
+    const state = checkKeyState(currentKey,data);
     if(state === "VALID") return;
 
     currentKey = null;
-    document.getElementById("ui").style.display="block";
+    document.getElementById("ui").style.display = "block";
     setStatus("❌ Key revoked","err");
 
   }, RECHECK_INTERVAL);
@@ -152,9 +189,10 @@ function startLiveCheck(){
 
 const saved = localStorage.getItem("rsq_key");
 if(saved){
-  document.getElementById("key").value = saved;
-  verify();
+  document.getElementById("keyInput").value = saved;
+  verifyKey();
 }
 </script>
+
 </body>
 </html>
