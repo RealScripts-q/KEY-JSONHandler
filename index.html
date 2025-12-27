@@ -145,6 +145,7 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
     display: flex; justify-content: space-between; align-items: center; 
     padding: 12px; background: rgba(255,255,255,0.05); margin-bottom: 8px; border-radius: 8px;
 }
+.fb-actions { display: flex; gap: 5px; }
 </style>
 </head>
 <body>
@@ -322,7 +323,6 @@ async function api(method, data = null) {
     } catch (e) { return null; }
 }
 
-// PERSISTENT LOGIN ON REFRESH
 window.onload = () => {
     const saved = localStorage.getItem('rsq_session');
     if(saved) {
@@ -366,7 +366,6 @@ async function handleAuth(type) {
     }
 }
 
-// FEEDBACK LOGIC (USER)
 function toggleFeedbackUI(show) {
     if(show) {
         document.getElementById('mainSystem').classList.add('hidden');
@@ -381,20 +380,16 @@ async function submitFeedback() {
     const u = document.getElementById('fb-user').value.trim();
     const id = document.getElementById('fb-id').value.trim();
     const msg = document.getElementById('fb-msg').value.trim();
-
     if(!u || !id || !msg) return alert("Fill all fields.");
-
     const data = await api('GET');
     data.feedbacks ||= [];
     data.feedbacks.push({ user: u, id: id, feedback: msg, time: new Date().toLocaleString() });
-    
     await api('PUT', data);
-    alert("Feedback Submitted Successfully!");
+    alert("Feedback Submitted.");
     document.getElementById('fb-msg').value = "";
     toggleFeedbackUI(false);
 }
 
-// FEEDBACK LOGIC (ADMIN)
 function openAdminFeedbacks() {
     document.getElementById('adminDefaultView').classList.add('hidden');
     document.getElementById('adminFeedbackListView').classList.remove('hidden');
@@ -410,7 +405,6 @@ function renderAdminFeedbacks() {
     const list = document.getElementById('fbLogs');
     const search = document.getElementById('fbSearch').value.toLowerCase();
     const data = globalData;
-    
     if(!data.feedbacks || data.feedbacks.length === 0) return list.innerHTML = "No Feedbacks.";
 
     const filtered = data.feedbacks.filter(f => 
@@ -420,9 +414,20 @@ function renderAdminFeedbacks() {
     list.innerHTML = filtered.map((f, i) => `
         <div class="fb-item">
             <span><b>${f.user}</b> (${f.id})</span>
-            <button class="mini" onclick="viewSingleFeedback(${i})">View Feedback</button>
+            <div class="fb-actions">
+                <button class="mini" onclick="viewSingleFeedback(${i})">View</button>
+                <button class="mini danger" onclick="deleteFeedback(${i})">Delete</button>
+            </div>
         </div>
     `).join('');
+}
+
+async function deleteFeedback(index) {
+    if(!confirm("Are you sure you want to delete this feedback?")) return;
+    const data = await api('GET');
+    data.feedbacks.splice(index, 1);
+    await api('PUT', data);
+    renderAdminFeedbacks();
 }
 
 function viewSingleFeedback(index) {
@@ -438,14 +443,11 @@ function closeSingleFeedback() {
     document.getElementById('adminFeedbackListView').classList.remove('hidden');
 }
 
-// EXISTING SYSTEM FUNCTIONS
 async function sendChat() {
     const input = document.getElementById('chatIn');
     let txt = input.value.trim();
     if(!txt) return;
     const data = await api('GET');
-    const user = data.users[currentUser] || { warns:0, lastWarn:0, timeoutUntil:0 };
-    if(user.timeoutUntil > now()) return;
     data.chat ||= [];
     data.chat.push({ user: currentUser, txt: txt });
     if(data.chat.length > 50) data.chat.shift();
@@ -465,11 +467,7 @@ async function updateChat() {
     box.scrollTop = box.scrollHeight;
 }
 
-function logout() { 
-    localStorage.removeItem('rsq_session');
-    location.reload(); 
-}
-
+function logout() { localStorage.removeItem('rsq_session'); location.reload(); }
 function closeAdmin() { document.getElementById('adminPanel').classList.add('hidden'); }
 function triggerShake(id) { document.getElementById(id).classList.add('animate-shake'); setTimeout(()=>document.getElementById(id).classList.remove('animate-shake'), 400); }
 function toggleAuth(s) { document.getElementById('signupView').classList.toggle('hidden', !s); document.getElementById('loginView').classList.toggle('hidden', s); }
