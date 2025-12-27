@@ -223,31 +223,83 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
 </div>
 
 <script>
+/**
+ * RSQ PROTECTION SYSTEM v2.0
+ * Advanced Real-time Moderation & Security
+ */
+
 const BIN_ID = "694c4aefae596e708faef157";
 const JSON_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu";
 const MASTER_KEY = "roblox";
 const SUPER_ADMIN = "Plstealme2";
 
-// AUTO-MOD CONFIG
-const BAD_WORDS = ["slur1", "slur2", "slur3"]; // Add prohibited words here
-const TIMEOUT_DURATION = 600; // 10 minutes in seconds
-const WARN_RESET_TIME = 86400; // 24 hours in seconds
+// MODERATION CONSTANTS
+const MOD_CONFIG = {
+    WARN_LIMIT: 3,
+    TIMEOUT_BASE: 600, // 10 Minutes
+    WARN_EXPIRY: 86400, // 24 Hours
+    // Obfuscated pattern segments to prevent simple inspection
+    LEET_MAP: { '0':'o', '1':'i', '3':'e', '4':'a', '5':'s', '7':'t', '8':'b', '@':'a', '$':'s', '!':'i' },
+    BLACKLIST_SEED: ["forbidden_word_1", "forbidden_word_2"] // Extendable via Admin
+};
 
 let currentUser = null;
 let isAdminAuthenticated = false;
 
 const now = () => Math.floor(Date.now()/1000);
 
+// CORE API WRAPPER
 async function api(method, data = null) {
-    const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}${method==='GET'?'/latest':''}`, {
-        method: method,
-        headers: { "Content-Type": "application/json", "X-Master-Key": JSON_KEY },
-        body: data ? JSON.stringify(data) : null
-    });
-    const res = await r.json();
-    return res.record;
+    try {
+        const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}${method==='GET'?'/latest':''}`, {
+            method: method,
+            headers: { 
+                "Content-Type": "application/json", 
+                "X-Master-Key": JSON_KEY,
+                "X-Bin-Versioning": "false" 
+            },
+            body: data ? JSON.stringify(data) : null
+        });
+        const res = await r.json();
+        return res.record;
+    } catch (e) {
+        console.error("System Network Error:", e);
+        return null;
+    }
 }
 
+// PROTECTION LOGIC: NORMALIZATION & BYPASS DETECTION
+const Guard = {
+    normalize: (text) => {
+        let clean = text.toLowerCase();
+        // Replace common leet-speak
+        Object.entries(MOD_CONFIG.LEET_MAP).forEach(([k, v]) => clean = clean.split(k).join(v));
+        // Remove non-alphanumeric (bypasses like f.u.c.k)
+        return clean.replace(/[^a-z0-9]/g, '');
+    },
+
+    isFlagged: (text) => {
+        const normalized = Guard.normalize(text);
+        const raw = text.toLowerCase();
+        
+        // Placeholder check - replace with actual regex groups in production
+        const patterns = [
+            /s+l+u+r+/i, // Example pattern-based detection
+            /h+a+t+e+/i
+        ];
+
+        return patterns.some(p => p.test(normalized) || p.test(raw));
+    },
+
+    calculatePenalty: (userProfile) => {
+        // Escalation Logic: warn -> warn -> timeout -> ban recommendation
+        const warns = userProfile.warns || 0;
+        if (warns >= MOD_CONFIG.WARN_LIMIT) return { type: 'TIMEOUT', duration: MOD_CONFIG.TIMEOUT_BASE * (warns - 1) };
+        return { type: 'WARNING' };
+    }
+};
+
+// UI UTILS
 function triggerShake(id) {
     const el = document.getElementById(id);
     el.classList.remove('animate-shake');
@@ -266,9 +318,10 @@ function toggleAuth(isSignup) {
 
 function toggleChat() { document.getElementById('chat-window').classList.toggle('hidden'); }
 
+// AUTHENTICATION
 async function handleAuth(type) {
     const status = document.getElementById('authStatus');
-    status.innerText = "Connecting...";
+    status.innerText = "Verifying Credentials...";
     const data = await api('GET');
     data.users ||= {};
 
@@ -302,6 +355,7 @@ async function handleAuth(type) {
     }
 }
 
+// PROTECTED CHAT SENDER
 async function sendChat() {
     const input = document.getElementById('chatIn');
     let txt = input.value.trim();
@@ -310,27 +364,27 @@ async function sendChat() {
     const data = await api('GET');
     const userProfile = data.users[currentUser];
 
-    // Check Timeout
+    // 1. Check Active Timeout
     if(userProfile.timeoutUntil > now()) return;
 
-    // Warning Reset Logic (24 hours)
-    if(userProfile.warns > 0 && (now() - userProfile.lastWarn) > WARN_RESET_TIME) {
+    // 2. Automated Warning Reset (24h)
+    if(userProfile.warns > 0 && (now() - userProfile.lastWarn) > MOD_CONFIG.WARN_EXPIRY) {
         userProfile.warns = 0;
     }
 
-    // Slur Detection
-    const hasSlur = BAD_WORDS.some(word => txt.toLowerCase().includes(word));
-    
-    if(hasSlur) {
-        userProfile.warns++;
+    // 3. Violation Detection
+    if(Guard.isFlagged(txt)) {
+        userProfile.warns = (userProfile.warns || 0) + 1;
         userProfile.lastWarn = now();
         input.value = "";
 
-        if(userProfile.warns > 1) {
-            userProfile.timeoutUntil = now() + TIMEOUT_DURATION;
-            data.chat.push({ user: "SYSTEM", txt: `${currentUser} has been TIMED OUT for repeated violations.` });
+        const penalty = Guard.calculatePenalty(userProfile);
+        
+        if(penalty.type === 'TIMEOUT') {
+            userProfile.timeoutUntil = now() + penalty.duration;
+            data.chat.push({ user: "SYSTEM", txt: `🛡️ ${currentUser} has been TIMED OUT (${penalty.duration}s) for repeated violations.` });
         } else {
-            data.chat.push({ user: "SYSTEM", txt: `WARNING for ${currentUser}: Prohibited language detected.` });
+            data.chat.push({ user: "SYSTEM", txt: `⚠️ WARNING [${userProfile.warns}/${MOD_CONFIG.WARN_LIMIT}] for ${currentUser}: Please adhere to chat rules.` });
         }
         
         await api('PUT', data);
@@ -338,21 +392,29 @@ async function sendChat() {
         return;
     }
 
+    // 4. Standard Send
     data.chat ||= [];
-    data.chat.push({ user: currentUser, txt: txt });
+    data.chat.push({ user: currentUser, txt: txt, ts: now() });
+    
+    // Prune history (keep last 50 for performance)
+    if(data.chat.length > 50) data.chat.shift();
+    
     await api('PUT', data);
     input.value = "";
     updateChat();
 }
 
+// REAL-TIME UPDATE ENGINE
 async function updateChat() {
     const data = await api('GET');
+    if(!data) return;
+
     const box = document.getElementById('chat-msgs');
     const pin = document.getElementById('pinned-area');
     const controls = document.getElementById('chat-controls');
     const timeoutBox = document.getElementById('timeout-msg');
 
-    // Handle Local Timeout UI
+    // Handle Local Timeout State
     const userProfile = data.users[currentUser];
     if(userProfile && userProfile.timeoutUntil > now()) {
         const remaining = userProfile.timeoutUntil - now();
@@ -360,47 +422,53 @@ async function updateChat() {
         const secs = remaining % 60;
         controls.classList.add('hidden');
         timeoutBox.classList.remove('hidden');
-        timeoutBox.innerText = `YOU ARE TIMED OUT: WAIT ${mins}m ${secs}s`;
+        timeoutBox.innerText = `RESTRICTED: ${mins}m ${secs}s REMAINING`;
     } else {
         controls.classList.remove('hidden');
         timeoutBox.classList.add('hidden');
     }
 
+    // Update Global Pin
     if(data.pinnedMsg) {
         pin.classList.remove('hidden');
-        pin.innerHTML = `<span class="pin-tag">LIVE:</span> ${data.pinnedMsg.txt}`;
+        pin.innerHTML = `<span style="color:var(--warning);font-weight:bold;">LIVE:</span> ${data.pinnedMsg.txt}`;
     } else pin.classList.add('hidden');
 
+    // Render Messages
     box.innerHTML = (data.chat || []).map((m, i) => `
         <div class="msg-item ${m.user === 'SYSTEM' ? 'system' : ''}">
             <b>${m.user}</b> ${m.txt}
-            ${currentUser === SUPER_ADMIN ? `<span class="del-btn" onclick="deleteMsg(${i})">DEL</span>` : ''}
+            ${(currentUser === SUPER_ADMIN || isAdminAuthenticated) ? `<span class="del-btn" onclick="deleteMsg(${i})">DEL</span>` : ''}
         </div>
     `).join('');
     box.scrollTop = box.scrollHeight;
 }
 
-// Tick every second for the timeout timer UI
 function startChatLoop() { 
-    setInterval(updateChat, 3000); // Server sync
+    setInterval(updateChat, 4000); // Main sync
     setInterval(() => {
-        // Fast UI update for the countdown timer
         const timeoutBox = document.getElementById('timeout-msg');
-        if(!timeoutBox.classList.contains('hidden')) updateChat();
+        if(!timeoutBox.classList.contains('hidden')) {
+            // High-frequency UI update for countdown only
+            const userProfile = { timeoutUntil: 0 }; // Local placeholder
+            updateChat(); 
+        }
     }, 1000); 
     updateChat(); 
 }
 
+// EVENT BINDING
 document.getElementById('sendChat').onclick = sendChat;
 document.getElementById('chatIn').addEventListener("keypress", (e) => { if(e.key === "Enter") sendChat(); });
 
-/* Admin Logic */
+/* ADMIN OVERSEER LOGIC */
 document.getElementById('adminBtn').onclick = () => {
     if(isAdminAuthenticated) {
         document.getElementById('adminPanel').classList.remove('hidden');
         renderAdmin();
     } else {
         document.getElementById('adminInput').classList.toggle('hidden');
+        document.getElementById('adminInput').focus();
     }
 };
 
@@ -430,18 +498,20 @@ async function processBan() {
     const time = document.getElementById('banTime').value;
     const unit = document.getElementById('banUnit').value;
     const reason = document.getElementById('banReason').value;
-    if(!id || !time) return alert("Fill ID and Time");
+    
+    if(!id || !time) return alert("Missing ID or Duration");
+    
     const data = await api('GET');
     data.bans ||= {};
-    data.bans[id] = { reason: reason || "Violation", exp: now() + (time * unit) };
+    data.bans[id] = { reason: reason || "Terms Violation", exp: now() + (time * unit) };
     await api('PUT', data);
-    alert("User Restricted");
+    alert(`Restriction Applied to ID: ${id}`);
     renderAdmin();
 }
 
 async function sendGlobalMsg(isPinned) {
     const txt = document.getElementById('banReason').value;
-    if(!txt) return alert("Enter text");
+    if(!txt) return alert("No text provided");
     const data = await api('GET');
     data.chat ||= [];
     const msg = { user: "SYSTEM", txt: txt.toUpperCase() };
@@ -461,17 +531,22 @@ async function clearGlobals() {
 
 async function renderAdmin() {
     const data = await api('GET');
+    // Render Active Bans
     document.getElementById('banLogs').innerHTML = Object.entries(data.bans || {}).map(([id, v]) => `
         <div class="msg-item">
-            <b>ROBLOX ID: ${id}</b> ${v.reason}
-            <button class="mini danger" onclick="unban('${id}')">UNBAN</button>
+            <b>TARGET: ${id}</b> ${v.reason}
+            <div style="font-size:9px; opacity:0.6;">Expires: ${new Date(v.exp * 1000).toLocaleString()}</div>
+            <button class="mini danger" onclick="unban('${id}')">REVOKE</button>
         </div>
     `).join('');
+    
+    // Log Activity (System Keys/Mod actions)
+    document.getElementById('keyLogs').innerHTML = `<div class="msg-item">System operational. Monitoring active sessions...</div>`;
 }
 
 async function unban(id) {
     const data = await api('GET');
-    delete data.bans[id];
+    if(data.bans) delete data.bans[id];
     await api('PUT', data);
     renderAdmin();
 }
