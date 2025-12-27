@@ -101,13 +101,13 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
 }
 
 #chat-msgs { flex: 1; overflow-y: auto; padding: 15px; font-size: 13px; scroll-behavior: smooth;}
-#pinned-area { background: rgba(255, 204, 0, 0.2); border-bottom: 1px solid var(--warning); padding: 10px; font-size: 12px; color: var(--warning); font-weight: bold; }
+#pinned-area { background: rgba(255, 204, 0, 0.1); border-bottom: 1px solid var(--warning); padding: 10px; font-size: 12px; color: var(--warning); font-weight: bold; }
 
 .msg-item { 
     margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; 
     animation: fadeIn 0.3s forwards; position: relative; border-left: 2px solid transparent;
 }
-.msg-item.system { border-left-color: var(--primary); background: rgba(79, 124, 255, 0.15); animation: pulse 2s infinite; }
+.msg-item.system { border-left-color: var(--primary); background: rgba(79, 124, 255, 0.1); animation: fadeIn 0.3s forwards, pulse 2s infinite; }
 
 .msg-item.owner-msg { 
     border-left-color: var(--warning); 
@@ -118,11 +118,20 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
 .msg-item b { color: var(--secondary); font-size: 11px; display: block; margin-bottom: 3px;}
 .owner-name { color: var(--warning) !important; font-weight: 800; }
 
+.del-btn { 
+    position: absolute; top: 8px; right: 8px; color: var(--danger); 
+    cursor: pointer; font-weight: 800; font-size: 10px; background: rgba(255,0,0,0.1);
+    padding: 2px 5px; border-radius: 4px; transition: 0.2s;
+}
+.del-btn:hover { background: var(--danger); color: white; }
+
 .timeout-overlay {
-    background: rgba(255, 59, 48, 0.9);
-    position: absolute; inset: 0; z-index: 100;
-    display: flex; align-items: center; justify-content: center;
-    text-align: center; font-size: 14px; color: white; border-radius: 15px;
+    background: rgba(255, 59, 48, 0.1);
+    padding: 10px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--danger);
+    font-weight: bold;
 }
 
 .adminFull {
@@ -131,10 +140,12 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
 }
 .log-box { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; height: 350px; overflow-y: auto; }
 
+/* Feedback specific */
 .fb-item {
     display: flex; justify-content: space-between; align-items: center; 
     padding: 12px; background: rgba(255,255,255,0.05); margin-bottom: 8px; border-radius: 8px;
 }
+.fb-actions { display: flex; gap: 5px; }
 </style>
 </head>
 <body>
@@ -201,7 +212,7 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
             <input id="chatIn" placeholder="Message..." style="margin:0; font-size:12px;">
             <button id="sendChat" style="margin:0; width:50px;">➔</button>
         </div>
-        <div id="timeout-msg" class="timeout-overlay hidden">ACCESS DENIED: CHAT MUTED</div>
+        <div id="timeout-msg" class="timeout-overlay hidden"></div>
     </div>
 </div>
 
@@ -224,31 +235,54 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
                     <select id="banUnit" style="width:auto">
                         <option value="3600">Hours</option>
                         <option value="86400">Days</option>
+                        <option value="604800">Weeks</option>
                     </select>
                 </div>
                 <input id="banReason" placeholder="Reason / Broadcast Text">
             </div>
             <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:10px;">
                 <button onclick="processBan()">BAN USER</button>
-                <button class="warning" onclick="sendGlobalMsg('pin')">PIN LIVE</button>
-                <button class="warning" onclick="sendGlobalMsg('announce')">ANNOUNCE</button>
+                <button class="warning" onclick="sendGlobalMsg(true)">PIN LIVE</button>
+                <button class="warning" onclick="sendGlobalMsg(false)">ANNOUNCE</button>
                 <button class="danger" onclick="clearGlobals()">PURGE GLOBALS</button>
                 <button class="danger" onclick="clearAllChat()">WIPE CHAT</button>
             </div>
         </div>
 
+        <div style="background:rgba(255, 59, 48, 0.1); padding:20px; border-radius:15px; margin-top:20px; border: 1px solid var(--danger);">
+            <h3 style="margin-top:0; color:var(--danger);">☢️ SYSTEM RESET</h3>
+            <div style="display:grid; grid-template-columns: 2fr 1fr; gap:10px;">
+                <select id="resetTarget">
+                    <option value="chat">Clear Chat History Only</option>
+                    <option value="bans">Clear All Blacklists (Bans)</option>
+                    <option value="users">Clear All User Accounts</option>
+                    <option value="all">FACTORY RESET (Wipe Everything)</option>
+                </select>
+                <button class="danger" onclick="masterReset()">EXECUTE RESET</button>
+            </div>
+        </div>
+
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-top:20px;">
             <div><h3>Active Bans</h3><div id="banLogs" class="log-box"></div></div>
-            <div><h3>System Audit</h3><div id="keyLogs" class="log-box"></div></div>
+            <div><h3>System Keys</h3><div id="keyLogs" class="log-box"></div></div>
         </div>
     </div>
 
     <div id="adminFeedbackListView" class="hidden">
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h2>📩 USER FEEDBACKS</h2>
-            <button onclick="returnToAdminPanel()" style="width:auto; margin:0; background:#444;">Return</button>
+            <button onclick="returnToAdminPanel()" style="width:auto; margin:0; background:#444;">Return to Admin Panel</button>
         </div>
+        <input id="fbSearch" placeholder="Search UserID or Username..." oninput="renderAdminFeedbacks()">
         <div id="fbLogs" class="log-box" style="margin-top:15px; height: 500px;"></div>
+    </div>
+
+    <div id="adminViewFeedbackUI" class="hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2 id="viewFbTitle">FEEDBACK VIEW</h2>
+            <button onclick="closeSingleFeedback()" style="width:auto; margin:0; background:var(--danger);">Close Feedback</button>
+        </div>
+        <div id="viewFbContent" style="background:rgba(255,255,255,0.05); padding:20px; border-radius:15px; margin-top:20px; line-height: 1.6; min-height: 200px;"></div>
     </div>
 </div>
 
@@ -259,38 +293,43 @@ const MASTER_KEY = "roblox";
 const SUPER_ADMIN = "plstealme2";
 const OWNER_PASS = "RSQ-OWNER-PLSTEALME2";
 
-// --- AI ANTI-SLUR SYSTEM ---
-const MODERATOR = {
-    blacklist: ["fuck", "shit", "nigger", "faggot", "ass", "bitch", "cunt", "dick", "sex", "porn", "pussy"],
-    leetMap: { '0':'o', '1':'i', '3':'e', '4':'a', '5':'s', '7':'t', '8':'b', '@':'a', '$':'s', '!':'i', 'v':'u' },
-    
-    cleanse: function(text) {
-        let str = text.toLowerCase();
-        // Decode Leet Speak
-        Object.keys(this.leetMap).forEach(key => str = str.split(key).join(this.leetMap[key]));
-        // Remove symbols to catch f.u.c.k
-        str = str.replace(/[^a-z]/g, "");
-        return str;
-    },
-    
-    isSafe: function(text) {
-        const cleaned = this.cleanse(text);
-        for(let word of this.blacklist) {
-            if(cleaned.includes(word) || text.toLowerCase().includes(word)) return false;
-        }
-        return true;
-    }
+// --- AI ANTI-SLUR CONFIGURATION ---
+const MOD_CONFIG = {
+    // Basic detection list (Expand this list)
+    BANNED: [/fuck/gi, /shit/gi, /nigger/gi, /faggot/gi, /retard/gi, /bitch/gi, /porn/gi, /sex/gi],
+    // Character normalization map to prevent bypasses like "f.u.c.k" or "f4ck"
+    LEET: { '0':'o', '1':'i', '3':'e', '4':'a', '5':'s', '7':'t', '8':'b', '@':'a', '$':'s', '!':'i', '*':'' }
 };
+
+function moderate(text) {
+    if (!text) return false;
+    let clean = text.toLowerCase();
+    // Normalize leetspeak
+    for (let key in MOD_CONFIG.LEET) {
+        clean = clean.split(key).join(MOD_CONFIG.LEET[key]);
+    }
+    // Remove symbols to detect "f.u.c.k"
+    clean = clean.replace(/[^a-zA-Z ]/g, "");
+    
+    // Check against banned regex
+    return MOD_CONFIG.BANNED.some(regex => regex.test(clean) || regex.test(text));
+}
 
 let currentUser = null;
 let isAdminAuthenticated = false;
 let globalData = null;
 
+const now = () => Math.floor(Date.now()/1000);
+
 async function api(method, data = null) {
     try {
         const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}${method==='GET'?'/latest':''}`, {
             method: method,
-            headers: { "Content-Type": "application/json", "X-Master-Key": JSON_KEY, "X-Bin-Versioning": "false" },
+            headers: { 
+                "Content-Type": "application/json", 
+                "X-Master-Key": JSON_KEY,
+                "X-Bin-Versioning": "false" 
+            },
             body: data ? JSON.stringify(data) : null
         });
         const res = await r.json();
@@ -299,72 +338,141 @@ async function api(method, data = null) {
     } catch (e) { return null; }
 }
 
+window.onload = () => {
+    const saved = localStorage.getItem('rsq_session');
+    if(saved) {
+        const session = JSON.parse(saved);
+        document.getElementById('l-user').value = session.u;
+        document.getElementById('l-pass').value = session.p;
+        handleAuth('login');
+    }
+}
+
 async function handleAuth(type) {
     const status = document.getElementById('authStatus');
-    status.innerText = "Processing...";
+    status.innerText = "Syncing...";
     const data = await api('GET');
+    if(!data.users || Array.isArray(data.users)) data.users = {};
+
     const u = document.getElementById(type === 'signup' ? 's-user' : 'l-user').value.trim();
     const p = document.getElementById(type === 'signup' ? 's-pass' : 'l-pass').value.trim();
 
-    if(!MODERATOR.isSafe(u)) { triggerShake('authPanel'); return status.innerText = "Inappropriate Username"; }
-    if(!u || !p) return status.innerText = "Fields empty";
+    if(!u || !p) { triggerShake('authPanel'); return status.innerText = "Empty fields"; }
+
+    // MODERATION CHECK ON SIGNUP
+    if(type === 'signup' && moderate(u)) {
+        triggerShake('authPanel');
+        return status.innerText = "Inappropriate Username";
+    }
 
     if(type === 'signup') {
-        data.users ||= {};
-        if(data.users[u]) return status.innerText = "Username taken";
-        data.users[u] = { pass: p };
+        if(data.users[u]) return status.innerText = "User exists";
+        data.users[u] = { pass: p, warns: 0, lastWarn: 0, timeoutUntil: 0 };
         await api('PUT', data);
-        status.innerText = "Account Created!"; toggleAuth(false);
+        status.innerText = "Success! Login now.";
+        toggleAuth(false);
     } else {
         const isOwner = (u === SUPER_ADMIN && p === OWNER_PASS);
-        if(isOwner || (data.users && data.users[u] && data.users[u].pass === p)) {
+        const isRegular = (data.users[u] && data.users[u].pass === p);
+
+        if(isOwner || isRegular) {
             currentUser = u;
             localStorage.setItem('rsq_session', JSON.stringify({u, p}));
             if(u === SUPER_ADMIN) document.getElementById('adminBtn').classList.remove('hidden');
             document.getElementById('authPanel').classList.add('hidden');
             document.getElementById('mainSystem').classList.remove('hidden');
-            document.getElementById('welcomeUser').innerText = `USER: ${u}`;
+            document.getElementById('welcomeUser').innerText = `SESSION: ${u}`;
             startChatLoop();
-        } else { triggerShake('authPanel'); status.innerText = "Invalid Credentials"; }
+        } else { triggerShake('authPanel'); status.innerText = "Denied"; }
     }
 }
 
-// --- GLOBAL BROADCAST LOGIC ---
-async function sendGlobalMsg(type) {
-    const txt = document.getElementById('banReason').value.trim();
-    if(!txt) return alert("Enter message text");
-    const data = await api('GET');
-    
-    if(type === 'pin') {
-        data.pinnedMsg = txt;
+function toggleFeedbackUI(show) {
+    if(show) {
+        document.getElementById('mainSystem').classList.add('hidden');
+        document.getElementById('userFeedbackUI').classList.remove('hidden');
     } else {
+        document.getElementById('userFeedbackUI').classList.add('hidden');
+        document.getElementById('mainSystem').classList.remove('hidden');
+    }
+}
+
+async function submitFeedback() {
+    const u = document.getElementById('fb-user').value.trim();
+    const id = document.getElementById('fb-id').value.trim();
+    const msg = document.getElementById('fb-msg').value.trim();
+    
+    if(!u || !id || !msg) return alert("Fill all fields.");
+
+    // MODERATION CHECK
+    if(moderate(u) || moderate(msg)) {
+        return alert("Inappropriate content detected in feedback.");
+    }
+
+    const data = await api('GET');
+    data.feedbacks ||= [];
+    data.feedbacks.push({ user: u, id: id, feedback: msg, time: new Date().toLocaleString() });
+    await api('PUT', data);
+    alert("Feedback Submitted.");
+    document.getElementById('fb-msg').value = "";
+    toggleFeedbackUI(false);
+}
+
+// --- FIXED ADMIN FUNCTIONS ---
+
+async function sendGlobalMsg(isPin) {
+    const msg = document.getElementById('banReason').value.trim();
+    if(!msg) return alert("Enter message text first.");
+    
+    const data = await api('GET');
+    if(isPin) {
+        // Fix: Update database pinned object
+        data.pinned = { text: msg, active: true };
+    } else {
+        // Announce: Send as a system chat message
         data.chat ||= [];
-        data.chat.push({ user: "SYSTEM", txt: `📢 ALERT: ${txt}`, isSystem: true });
+        data.chat.push({ user: "SYSTEM", txt: `[GLOBAL ANNOUNCEMENT]: ${msg}` });
+        if(data.chat.length > 50) data.chat.shift();
     }
     
     await api('PUT', data);
-    alert("Broadcast sent.");
+    alert(isPin ? "Live Pin Updated" : "Announcement Sent");
     updateChat();
 }
 
 async function clearGlobals() {
     const data = await api('GET');
-    data.pinnedMsg = null;
+    // Reset the pin state
+    data.pinned = { text: "", active: false };
+    // Optionally remove system messages from chat
+    if(data.chat) {
+        data.chat = data.chat.filter(m => !m.txt.startsWith("[GLOBAL ANNOUNCEMENT]"));
+    }
     await api('PUT', data);
-    alert("Globals Purged.");
+    alert("Globals Purged");
     updateChat();
 }
 
-// --- CHAT MODERATION ---
+async function clearAllChat() {
+    if(!confirm("Wipe all chat history?")) return;
+    const data = await api('GET');
+    data.chat = [];
+    await api('PUT', data);
+    updateChat();
+}
+
+// --- MAIN CHAT LOGIC ---
+
 async function sendChat() {
     const input = document.getElementById('chatIn');
     let txt = input.value.trim();
     if(!txt) return;
 
-    if(!MODERATOR.isSafe(txt)) {
+    // MODERATION CHECK
+    if(moderate(txt)) {
         input.value = "";
-        triggerShake('chat-window');
-        return alert("Message blocked: Inappropriate content.");
+        alert("Your message was blocked for inappropriate language.");
+        return;
     }
 
     const data = await api('GET');
@@ -380,51 +488,27 @@ async function updateChat() {
     const data = await api('GET');
     if(!data) return;
 
-    // Handle Pinned Area
-    const pinBar = document.getElementById('pinned-area');
-    if(data.pinnedMsg) {
-        pinBar.innerHTML = `LIVE: ${data.pinnedMsg}`;
-        pinBar.classList.remove('hidden');
+    // FIX: Handle Pinned Live Display
+    const pinArea = document.getElementById('pinned-area');
+    if(data.pinned && data.pinned.active) {
+        pinArea.innerText = `📌 ${data.pinned.text}`;
+        pinArea.classList.remove('hidden');
     } else {
-        pinBar.classList.add('hidden');
+        pinArea.classList.add('hidden');
     }
 
-    // Handle Messages
     const box = document.getElementById('chat-msgs');
-    box.innerHTML = (data.chat || []).map(m => {
+    box.innerHTML = (data.chat || []).map((m, i) => {
         const isOwner = m.user === SUPER_ADMIN;
-        const cls = m.isSystem ? 'system' : (isOwner ? 'owner-msg' : '');
-        return `<div class="msg-item ${cls}"><b>${isOwner ? '👑 ' : ''}${m.user}</b> ${m.txt}</div>`;
+        const isSystem = m.user === "SYSTEM";
+        return `<div class="msg-item ${isOwner ? 'owner-msg' : ''} ${isSystem ? 'system' : ''}">
+            <b>${isOwner ? '👑 ' : ''}${m.user}</b> ${m.txt}
+        </div>`;
     }).join('');
     box.scrollTop = box.scrollHeight;
 }
 
-// --- FEEDBACKS ---
-async function submitFeedback() {
-    const u = document.getElementById('fb-user').value.trim();
-    const id = document.getElementById('fb-id').value.trim();
-    const msg = document.getElementById('fb-msg').value.trim();
-    if(!MODERATOR.isSafe(msg)) return alert("Feedback contains slurs. Refused.");
-    
-    const data = await api('GET');
-    data.feedbacks ||= [];
-    data.feedbacks.push({ user: u, id: id, feedback: msg, time: new Date().toLocaleString() });
-    await api('PUT', data);
-    alert("Thank you for your feedback.");
-    toggleFeedbackUI(false);
-}
-
-// UI Handlers
-function toggleFeedbackUI(s) { 
-    document.getElementById('mainSystem').classList.toggle('hidden', s);
-    document.getElementById('userFeedbackUI').classList.toggle('hidden', !s); 
-}
-function openAdminFeedbacks() {
-    document.getElementById('adminDefaultView').classList.add('hidden');
-    document.getElementById('adminFeedbackListView').classList.remove('hidden');
-    const logs = document.getElementById('fbLogs');
-    logs.innerHTML = (globalData.feedbacks || []).map(f => `<div class="fb-item"><span><b>${f.user}</b>: ${f.feedback}</span></div>`).join('');
-}
+// --- UTILITIES ---
 function logout() { localStorage.removeItem('rsq_session'); location.reload(); }
 function closeAdmin() { document.getElementById('adminPanel').classList.add('hidden'); }
 function triggerShake(id) { document.getElementById(id).classList.add('animate-shake'); setTimeout(()=>document.getElementById(id).classList.remove('animate-shake'), 400); }
@@ -433,14 +517,70 @@ function toggleChat() { document.getElementById('chat-window').classList.toggle(
 function startChatLoop() { setInterval(updateChat, 5000); updateChat(); }
 
 document.getElementById('adminBtn').onclick = () => {
-    if(isAdminAuthenticated) document.getElementById('adminPanel').classList.remove('hidden');
+    if(isAdminAuthenticated) { document.getElementById('adminPanel').classList.remove('hidden'); }
     else document.getElementById('adminInput').classList.toggle('hidden');
 };
+
 document.getElementById('adminInput').onchange = function() {
     if(this.value === MASTER_KEY) { isAdminAuthenticated = true; this.classList.add('hidden'); document.getElementById('adminPanel').classList.remove('hidden'); }
+    else { triggerShake('userPanel'); this.value = ""; }
 };
+
 document.getElementById('sendChat').onclick = sendChat;
 document.getElementById('chatIn').onkeypress = (e) => { if(e.key === 'Enter') sendChat(); };
+
+function openAdminFeedbacks() {
+    document.getElementById('adminDefaultView').classList.add('hidden');
+    document.getElementById('adminFeedbackListView').classList.remove('hidden');
+    renderAdminFeedbacks();
+}
+
+function returnToAdminPanel() {
+    document.getElementById('adminFeedbackListView').classList.add('hidden');
+    document.getElementById('adminDefaultView').classList.remove('hidden');
+}
+
+function renderAdminFeedbacks() {
+    const list = document.getElementById('fbLogs');
+    const search = document.getElementById('fbSearch').value.toLowerCase();
+    const data = globalData;
+    if(!data.feedbacks || data.feedbacks.length === 0) return list.innerHTML = "No Feedbacks.";
+
+    const filtered = data.feedbacks.filter(f => 
+        f.user.toLowerCase().includes(search) || f.id.toLowerCase().includes(search)
+    );
+
+    list.innerHTML = filtered.map((f, i) => `
+        <div class="fb-item">
+            <span><b>${f.user}</b> (${f.id})</span>
+            <div class="fb-actions">
+                <button class="mini" onclick="viewSingleFeedback(${i})">View</button>
+                <button class="mini danger" onclick="deleteFeedback(${i})">Delete</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function deleteFeedback(index) {
+    if(!confirm("Are you sure you want to delete this feedback?")) return;
+    const data = await api('GET');
+    data.feedbacks.splice(index, 1);
+    await api('PUT', data);
+    renderAdminFeedbacks();
+}
+
+function viewSingleFeedback(index) {
+    const fb = globalData.feedbacks[index];
+    document.getElementById('adminFeedbackListView').classList.add('hidden');
+    document.getElementById('adminViewFeedbackUI').classList.remove('hidden');
+    document.getElementById('viewFbTitle').innerText = `${fb.user} - ${fb.id}`;
+    document.getElementById('viewFbContent').innerText = fb.feedback;
+}
+
+function closeSingleFeedback() {
+    document.getElementById('adminViewFeedbackUI').classList.add('hidden');
+    document.getElementById('adminFeedbackListView').classList.remove('hidden');
+}
 </script>
 </body>
 </html>
