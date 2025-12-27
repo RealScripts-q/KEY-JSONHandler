@@ -81,6 +81,7 @@ button {
 button:hover { transform: scale(1.02); filter: brightness(1.2); }
 button.danger { background: linear-gradient(135deg, #ff3b30, #ff7b30); }
 button.warning { background: linear-gradient(135deg, #ffcc00, #ffae00); color: #000; }
+button.success { background: linear-gradient(135deg, #28cd41, #1fb335); }
 button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
 
 #chat-toggle {
@@ -129,6 +130,15 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
     padding: 25px; z-index: 2000; overflow-y: auto; border: 1px solid var(--border);
 }
 .log-box { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; height: 350px; overflow-y: auto; }
+
+/* Key Item Styling */
+.key-item {
+    background: rgba(255,255,255,0.05); padding: 12px; border-radius: 10px; margin-bottom: 10px;
+    border-left: 3px solid var(--secondary);
+}
+.key-txt { font-family: monospace; color: var(--secondary); font-weight: bold; font-size: 14px; }
+.key-meta { font-size: 10px; opacity: 0.6; margin: 4px 0; }
+.key-actions { display: flex; gap: 5px; margin-top: 8px; }
 
 /* Feedback specific */
 .fb-item {
@@ -253,7 +263,13 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-top:20px;">
             <div><h3>Active Bans</h3><div id="banLogs" class="log-box"></div></div>
-            <div><h3>System Keys</h3><div id="keyLogs" class="log-box"></div></div>
+            <div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3>System Keys</h3>
+                    <button class="mini" onclick="renderAdminKeys()">Refresh</button>
+                </div>
+                <div id="keyLogs" class="log-box"></div>
+            </div>
         </div>
     </div>
 
@@ -362,30 +378,86 @@ async function handleAuth(type) {
     }
 }
 
-// --- UPDATED KEY GEN ---
+// --- UPDATED KEY GEN (24H Sticky Logic) ---
 async function generateKey() {
     const rbxId = document.getElementById('userid').value.trim();
     if(!rbxId) return alert("Enter Roblox ID");
     
     const status = document.getElementById('statusMsg');
-    status.innerText = "Generating...";
+    status.innerText = "Processing...";
     
-    const key = "RSQ-" + Math.random().toString(36).substring(2, 10).toUpperCase();
     const data = await api('GET');
-    
     if(!data.keys) data.keys = {};
     
-    // Exact requested structure
-    data.keys[key] = {
-        "user": currentUser,
-        "rbx": rbxId,
-        "dev": "RSQ-ELITE",
-        "exp": now() + (86400 * 30) // 30 Day expiry
-    };
-    
+    // Check if user already has an active key for this Roblox ID
+    let existingKey = null;
+    for (let k in data.keys) {
+        let keyObj = data.keys[k];
+        if (keyObj.rbx === rbxId && keyObj.user === currentUser) {
+            // Check if still valid (either INF or not expired)
+            if (keyObj.exp === "INF" || keyObj.exp > now()) {
+                existingKey = k;
+                break;
+            }
+        }
+    }
+
+    if (existingKey) {
+        document.getElementById('keyOut').innerText = existingKey;
+        status.innerText = "Active key found.";
+    } else {
+        const newKey = "RSQ-" + Math.random().toString(36).substring(2, 10).toUpperCase();
+        data.keys[newKey] = {
+            "user": currentUser,
+            "rbx": rbxId,
+            "dev": "RSQ-ELITE",
+            "exp": now() + 86400 // 24 Hours
+        };
+        await api('PUT', data);
+        document.getElementById('keyOut').innerText = newKey;
+        status.innerText = "New key active for 24 hours.";
+    }
+}
+
+// --- ADMIN KEY LOGS & ACTIONS ---
+async function renderAdminKeys() {
+    const log = document.getElementById('keyLogs');
+    const data = await api('GET');
+    if(!data.keys || Object.keys(data.keys).length === 0) return log.innerHTML = "No Keys.";
+
+    log.innerHTML = Object.keys(data.keys).map(k => {
+        const keyObj = data.keys[k];
+        const isInf = keyObj.exp === "INF";
+        const timeLeft = isInf ? "Never" : new Date(keyObj.exp * 1000).toLocaleString();
+        
+        return `
+        <div class="key-item">
+            <div class="key-txt">${k}</div>
+            <div class="key-meta">Owner: ${keyObj.user} | Roblox: ${keyObj.rbx}</div>
+            <div class="key-meta">Expires: ${timeLeft}</div>
+            <div class="key-actions">
+                <button class="mini danger" onclick="keyAction('${k}', 'delete')">Delete</button>
+                <button class="mini warning" onclick="keyAction('${k}', 'renew')">Renew</button>
+                <button class="mini success" onclick="keyAction('${k}', 'inf')">Inf</button>
+            </div>
+        </div>`;
+    }).reverse().join('');
+}
+
+async function keyAction(key, type) {
+    const data = await api('GET');
+    if(!data.keys[key]) return;
+
+    if(type === 'delete') {
+        delete data.keys[key];
+    } else if (type === 'renew') {
+        data.keys[key].exp = now() + 86400;
+    } else if (type === 'inf') {
+        data.keys[key].exp = "INF";
+    }
+
     await api('PUT', data);
-    document.getElementById('keyOut').innerText = key;
-    status.innerText = "Key active for 30 days.";
+    renderAdminKeys();
 }
 
 // --- SYSTEM RESET FIX ---
@@ -413,7 +485,7 @@ async function masterReset() {
     location.reload();
 }
 
-// --- CHAT UPDATES (DELETE ADDED) ---
+// --- CHAT UPDATES ---
 async function sendChat() {
     const input = document.getElementById('chatIn');
     let txt = input.value.trim();
@@ -451,8 +523,6 @@ async function updateChat() {
     box.innerHTML = (data.chat || []).map((m, i) => {
         const isOwner = m.user === SUPER_ADMIN;
         const isSystem = m.user === "SYSTEM";
-        
-        // Only show delete button if admin is logged in
         const delBtn = isAdminAuthenticated ? `<span class="del-btn" onclick="deleteChatMessage(${i})">DEL</span>` : '';
         
         return `<div class="msg-item ${isOwner ? 'owner-msg' : ''} ${isSystem ? 'system' : ''}">
@@ -501,7 +571,10 @@ function toggleChat() { document.getElementById('chat-window').classList.toggle(
 function startChatLoop() { setInterval(updateChat, 5000); updateChat(); }
 
 document.getElementById('adminBtn').onclick = () => {
-    if(isAdminAuthenticated) { document.getElementById('adminPanel').classList.remove('hidden'); }
+    if(isAdminAuthenticated) { 
+        document.getElementById('adminPanel').classList.remove('hidden'); 
+        renderAdminKeys();
+    }
     else document.getElementById('adminInput').classList.toggle('hidden');
 };
 
@@ -510,7 +583,8 @@ document.getElementById('adminInput').onchange = function() {
         isAdminAuthenticated = true; 
         this.classList.add('hidden'); 
         document.getElementById('adminPanel').classList.remove('hidden'); 
-        updateChat(); // Refresh to show delete buttons
+        renderAdminKeys();
+        updateChat();
     }
     else { triggerShake('userPanel'); this.value = ""; }
 };
@@ -579,7 +653,6 @@ function closeSingleFeedback() {
     document.getElementById('adminFeedbackListView').classList.remove('hidden');
 }
 
-// Handle Enter key for chat
 document.getElementById('chatIn').addEventListener('keypress', (e) => {
     if(e.key === 'Enter') sendChat();
 });
