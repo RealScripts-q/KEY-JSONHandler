@@ -117,6 +117,15 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
 }
 .del-btn:hover { background: var(--danger); color: white; }
 
+.timeout-overlay {
+    background: rgba(255, 59, 48, 0.1);
+    padding: 10px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--danger);
+    font-weight: bold;
+}
+
 /* Admin Full View */
 .adminFull {
     position: fixed; inset: 15px; background: #0b0f1a; border-radius: 20px;
@@ -170,10 +179,12 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
         <div style="padding:10px; background:rgba(255,255,255,0.05); font-size:12px; font-weight:bold;">NETWORK CHAT</div>
         <div id="pinned-area" class="hidden"></div>
         <div id="chat-msgs"></div>
-        <div style="padding:10px; display:flex; gap:5px; background: rgba(0,0,0,0.2);">
+        
+        <div id="chat-controls" style="padding:10px; display:flex; gap:5px; background: rgba(0,0,0,0.2);">
             <input id="chatIn" placeholder="Message..." style="margin:0; font-size:12px;">
             <button id="sendChat" style="margin:0; width:50px;">➔</button>
         </div>
+        <div id="timeout-msg" class="timeout-overlay hidden"></div>
     </div>
 </div>
 
@@ -216,6 +227,11 @@ const BIN_ID = "694c4aefae596e708faef157";
 const JSON_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu";
 const MASTER_KEY = "roblox";
 const SUPER_ADMIN = "Plstealme2";
+
+// AUTO-MOD CONFIG
+const BAD_WORDS = ["slur1", "slur2", "slur3"]; // Add prohibited words here
+const TIMEOUT_DURATION = 600; // 10 minutes in seconds
+const WARN_RESET_TIME = 86400; // 24 hours in seconds
 
 let currentUser = null;
 let isAdminAuthenticated = false;
@@ -263,14 +279,13 @@ async function handleAuth(type) {
 
     if(type === 'signup') {
         if(data.users[u]) return status.innerText = "User exists";
-        data.users[u] = { pass: p, dev: "N/A", warns: 0, timeoutUntil: 0 };
+        data.users[u] = { pass: p, dev: "N/A", warns: 0, lastWarn: 0, timeoutUntil: 0 };
         await api('PUT', data);
         status.innerText = "Success! Login now.";
         toggleAuth(false);
     } else {
         if(data.users[u] && data.users[u].pass === p) {
             currentUser = u;
-            // Admin Check
             if(u === SUPER_ADMIN) document.getElementById('adminBtn').classList.remove('hidden');
             
             document.getElementById('authPanel').style.animation = "fadeOut 0.4s forwards";
@@ -287,31 +302,69 @@ async function handleAuth(type) {
     }
 }
 
-async function deleteMsg(index) {
-    if(!confirm("Delete this message forever?")) return;
-    const data = await api('GET');
-    data.chat.splice(index, 1);
-    await api('PUT', data);
-    updateChat();
-}
-
 async function sendChat() {
     const input = document.getElementById('chatIn');
-    const txt = input.value.trim();
+    let txt = input.value.trim();
     if(!txt) return;
+
     const data = await api('GET');
+    const userProfile = data.users[currentUser];
+
+    // Check Timeout
+    if(userProfile.timeoutUntil > now()) return;
+
+    // Warning Reset Logic (24 hours)
+    if(userProfile.warns > 0 && (now() - userProfile.lastWarn) > WARN_RESET_TIME) {
+        userProfile.warns = 0;
+    }
+
+    // Slur Detection
+    const hasSlur = BAD_WORDS.some(word => txt.toLowerCase().includes(word));
+    
+    if(hasSlur) {
+        userProfile.warns++;
+        userProfile.lastWarn = now();
+        input.value = "";
+
+        if(userProfile.warns > 1) {
+            userProfile.timeoutUntil = now() + TIMEOUT_DURATION;
+            data.chat.push({ user: "SYSTEM", txt: `${currentUser} has been TIMED OUT for repeated violations.` });
+        } else {
+            data.chat.push({ user: "SYSTEM", txt: `WARNING for ${currentUser}: Prohibited language detected.` });
+        }
+        
+        await api('PUT', data);
+        updateChat();
+        return;
+    }
+
     data.chat ||= [];
     data.chat.push({ user: currentUser, txt: txt });
     await api('PUT', data);
     input.value = "";
     updateChat();
 }
-document.getElementById('sendChat').onclick = sendChat;
 
 async function updateChat() {
     const data = await api('GET');
     const box = document.getElementById('chat-msgs');
     const pin = document.getElementById('pinned-area');
+    const controls = document.getElementById('chat-controls');
+    const timeoutBox = document.getElementById('timeout-msg');
+
+    // Handle Local Timeout UI
+    const userProfile = data.users[currentUser];
+    if(userProfile && userProfile.timeoutUntil > now()) {
+        const remaining = userProfile.timeoutUntil - now();
+        const mins = Math.floor(remaining / 60);
+        const secs = remaining % 60;
+        controls.classList.add('hidden');
+        timeoutBox.classList.remove('hidden');
+        timeoutBox.innerText = `YOU ARE TIMED OUT: WAIT ${mins}m ${secs}s`;
+    } else {
+        controls.classList.remove('hidden');
+        timeoutBox.classList.add('hidden');
+    }
 
     if(data.pinnedMsg) {
         pin.classList.remove('hidden');
@@ -327,7 +380,19 @@ async function updateChat() {
     box.scrollTop = box.scrollHeight;
 }
 
-function startChatLoop() { setInterval(updateChat, 5000); updateChat(); }
+// Tick every second for the timeout timer UI
+function startChatLoop() { 
+    setInterval(updateChat, 3000); // Server sync
+    setInterval(() => {
+        // Fast UI update for the countdown timer
+        const timeoutBox = document.getElementById('timeout-msg');
+        if(!timeoutBox.classList.contains('hidden')) updateChat();
+    }, 1000); 
+    updateChat(); 
+}
+
+document.getElementById('sendChat').onclick = sendChat;
+document.getElementById('chatIn').addEventListener("keypress", (e) => { if(e.key === "Enter") sendChat(); });
 
 /* Admin Logic */
 document.getElementById('adminBtn').onclick = () => {
@@ -351,8 +416,13 @@ document.getElementById('adminInput').onchange = function() {
     }
 };
 
-function closeAdmin() {
-    document.getElementById('adminPanel').classList.add('hidden');
+function closeAdmin() { document.getElementById('adminPanel').classList.add('hidden'); }
+
+async function deleteMsg(index) {
+    const data = await api('GET');
+    data.chat.splice(index, 1);
+    await api('PUT', data);
+    updateChat();
 }
 
 async function processBan() {
@@ -371,10 +441,10 @@ async function processBan() {
 
 async function sendGlobalMsg(isPinned) {
     const txt = document.getElementById('banReason').value;
-    if(!txt) return alert("Enter text in 'Reason' box");
+    if(!txt) return alert("Enter text");
     const data = await api('GET');
     data.chat ||= [];
-    const msg = { user: "SYSTEM", txt: txt.toUpperCase(), type: isPinned ? 'pinned' : 'announcement' };
+    const msg = { user: "SYSTEM", txt: txt.toUpperCase() };
     if(isPinned) data.pinnedMsg = msg;
     data.chat.push(msg);
     await api('PUT', data);
@@ -386,7 +456,6 @@ async function clearGlobals() {
     data.pinnedMsg = null;
     data.chat = data.chat.filter(m => m.user !== 'SYSTEM');
     await api('PUT', data);
-    alert("System Messages Purged");
     updateChat();
 }
 
@@ -397,9 +466,6 @@ async function renderAdmin() {
             <b>ROBLOX ID: ${id}</b> ${v.reason}
             <button class="mini danger" onclick="unban('${id}')">UNBAN</button>
         </div>
-    `).join('');
-    document.getElementById('keyLogs').innerHTML = Object.entries(data.keys || {}).map(([k, v]) => `
-        <div class="msg-item"><b>KEY: ${k}</b><br>Owner: ${v.rbx}</div>
     `).join('');
 }
 
