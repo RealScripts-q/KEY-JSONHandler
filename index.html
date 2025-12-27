@@ -398,8 +398,7 @@ async function generateKey() {
     const status = document.getElementById('statusMsg');
     const data = await api('GET');
 
-    // CHECK IF BANNED
-    if(data.bans && data.bans[currentUser]) {
+    if(data.bans && (data.bans[currentUser] || data.bans[document.getElementById('userid').value.trim()])) {
         status.innerText = "RESTRICTED: You are blacklisted from the system.";
         triggerShake('userPanel');
         return;
@@ -409,7 +408,6 @@ async function generateKey() {
     if(!rbxId) return alert("Enter Roblox ID");
     
     status.innerText = "Processing...";
-    
     if(!data.keys) data.keys = {};
     
     let existingKey = null;
@@ -468,12 +466,18 @@ async function keyAction(key, type) {
     const data = await api('GET');
     if(!data.keys[key]) return;
 
+    data.notifications ||= {};
+    const targetUser = data.keys[key].user;
+
     if(type === 'delete') {
+        data.notifications[targetUser] = { type: "DELETED", key: key, time: now() };
         delete data.keys[key];
     } else if (type === 'renew') {
         data.keys[key].exp = now() + 86400;
+        data.notifications[targetUser] = { type: "RENEWED", key: key, time: now() };
     } else if (type === 'inf') {
         data.keys[key].exp = "INF";
+        data.notifications[targetUser] = { type: "INFINITE", key: key, time: now() };
     }
 
     await api('PUT', data);
@@ -496,6 +500,7 @@ async function masterReset() {
     if(target === 'all') {
         data.keys = {};
         data.feedbacks = [];
+        data.notifications = {};
         data.pinned = { text: "", active: false };
     }
     
@@ -511,8 +516,6 @@ async function sendChat() {
     if(moderate(txt)) { input.value = ""; return alert("Blocked Language"); }
 
     const data = await api('GET');
-
-    // BLOCK BANNED FROM CHATTING
     if(data.bans && data.bans[currentUser]) return alert("You are banned from chat.");
 
     data.chat ||= [];
@@ -535,7 +538,6 @@ async function updateChat() {
     const data = await api('GET');
     if(!data) return;
 
-    // COMPLETELY HIDE CHAT IF BANNED
     const chatToggle = document.getElementById('chat-toggle');
     const chatWindow = document.getElementById('chat-window');
     
@@ -567,7 +569,6 @@ async function updateChat() {
     box.scrollTop = box.scrollHeight;
 }
 
-// --- BAN NOW LOGIC ---
 function toggleBanNowView(show) {
     if(show) {
         document.getElementById('adminDefaultView').classList.add('hidden');
@@ -592,7 +593,6 @@ async function executeFocusBan() {
     await api('PUT', data);
     alert(`${user} has been restricted.`);
     
-    // Clear fields
     document.getElementById('focusBanId').value = "";
     document.getElementById('focusBanUser').value = "";
     document.getElementById('focusBanReason').value = "";
@@ -623,7 +623,6 @@ async function removeBan(user) {
     renderBanLogs();
 }
 
-// --- ADMIN CONTROL ---
 async function sendGlobalMsg(isPin) {
     const msg = document.getElementById('globalMsgInput').value.trim();
     if(!msg) return alert("Enter message text.");
