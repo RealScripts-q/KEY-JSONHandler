@@ -7,7 +7,6 @@ local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
 local TeleportService = game:GetService("TeleportService")
-
 local player = Players.LocalPlayer
 local USER_ID = tostring(player.UserId)
 local USER_NAME = player.Name
@@ -19,29 +18,31 @@ local PLACE_ID = game.PlaceId
 local JSONBIN_URL = "https://api.jsonbin.io/v3/b/694c4aefae596e708faef157/latest"
 local GET_KEY_URL = "https://realscripts-q.github.io/KEY-JSONHandler/"
 local DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1453515343833338017/7VwwcpKDpSvIYr0PA3Ceh8YgMwIEba47CoyISHCZkvdaF2hUsvyUYw3zNV_TbYyDFTMy"
-
 local SCRIPT_URLS = {
     "https://raw.githubusercontent.com/RealScripts-q/KEY-JSONHandler/main/D.lua",
     "https://raw.githubusercontent.com/RealScripts-q/KEY-JSONHandler/main/I.lua",
     "https://raw.githubusercontent.com/RealScripts-q/KEY-JSONHandler/main/N.lua",
 }
-
-local CHECK_INTERVAL = 5 -- Interval to check if key is still valid or user is banned
+local CHECK_INTERVAL = 5 
 
 --==================================================--
 -- STATE
 --==================================================--
 local CurrentKey = nil
 local KeyActive = false
+local LastNotifTime = 0
 
 --==================================================--
--- UI SETUP
+-- UI SETUP (KEY PANEL)
 --==================================================--
 local gui = Instance.new("ScreenGui")
 gui.Name = "RSQ_KeySystem"
 gui.IgnoreGuiInset = true
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
+
+local notifyGui = Instance.new("ScreenGui", player.PlayerGui)
+notifyGui.Name = "RSQ_Notifications"
 
 local card = Instance.new("Frame", gui)
 card.Size = UDim2.new(0, 430, 0, 300)
@@ -104,6 +105,10 @@ TweenService:Create(card, TweenInfo.new(0.5), {BackgroundTransparency = 0}):Play
 --==================================================--
 -- HELPERS
 --==================================================--
+local function string_trim(s)
+    return s:match("^%s*(.-)%s*$")
+end
+
 local function fetchData()
     local ok, res = pcall(function()
         return HttpService:JSONDecode(game:HttpGet(JSONBIN_URL))
@@ -120,12 +125,41 @@ local function kickBanned(reason)
     end
 end
 
+local function createNotify(msg, color)
+    local frame = Instance.new("Frame", notifyGui)
+    frame.Size = UDim2.new(0, 300, 0, 60)
+    frame.Position = UDim2.new(1, 10, 0.8, 0) -- Hidden off-right
+    frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    frame.BorderSizePixel = 0
+    Instance.new("UICorner", frame)
+    
+    local accent = Instance.new("Frame", frame)
+    accent.Size = UDim2.new(0, 5, 1, 0)
+    accent.BackgroundColor3 = color
+    Instance.new("UICorner", accent)
+
+    local label = Instance.new("TextLabel", frame)
+    label.Size = UDim2.new(1, -20, 1, 0)
+    label.Position = UDim2.new(0, 15, 0, 0)
+    label.Text = msg
+    label.TextColor3 = Color3.new(1, 1, 1)
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 13
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.BackgroundTransparency = 1
+
+    frame:TweenPosition(UDim2.new(1, -310, 0.8, 0), "Out", "Back", 0.5)
+    task.delay(5, function()
+        frame:TweenPosition(UDim2.new(1, 10, 0.8, 0), "In", "Sine", 0.5)
+        task.wait(0.5)
+        frame:Destroy()
+    end)
+end
+
 local function sendWebhook(key, expires)
     if not DISCORD_WEBHOOK or DISCORD_WEBHOOK == "" then return end
-    
     local thumb = "https://www.roblox.com/headshot-thumbnail/image?userId="..USER_ID.."&width=420&height=420&format=png"
     local expireText = (expires == "INF") and "♾️ Permanent" or os.date("%Y-%m-%d %H:%M:%S", expires)
-
     local payload = {
         embeds = {{
             title = "🔑 Key Authenticated",
@@ -138,7 +172,6 @@ local function sendWebhook(key, expires)
             thumbnail = { url = thumb }
         }}
     }
-
     pcall(function()
         HttpService:PostAsync(DISCORD_WEBHOOK, HttpService:JSONEncode(payload))
     end)
@@ -151,7 +184,7 @@ local function validate(keyToVerify)
     local data = fetchData()
     if not data then return false, "Connection Error" end
 
-    -- 1. Check Blacklist (By Username or ID)
+    -- 1. Check Blacklist
     if data.bans then
         if data.bans[USER_NAME] or data.bans[USER_ID] then
             local bInfo = data.bans[USER_NAME] or data.bans[USER_ID]
@@ -160,20 +193,35 @@ local function validate(keyToVerify)
         end
     end
 
-    if not keyToVerify then return false, "" end
-
-    -- 2. Validate Key
-    local entry = data.keys and data.keys[keyToVerify]
-    if not entry then
-        return false, "❌ Key not found or expired"
+    -- 2. Check Admin Notifications
+    if data.notifications and data.notifications[USER_NAME] then
+        local n = data.notifications[USER_NAME]
+        if n.time > LastNotifTime then
+            LastNotifTime = n.time
+            if n.type == "DELETED" then
+                createNotify("⚠️ Admin has revoked your key!", Color3.fromRGB(255, 50, 50))
+            elseif n.type == "RENEWED" then
+                createNotify("✅ Key renewed for 24h by Admin!", Color3.fromRGB(50, 255, 50))
+            elseif n.type == "INFINITE" then
+                createNotify("💎 Admin made your key PERMANENT!", Color3.fromRGB(0, 200, 255))
+            end
+        end
     end
 
-    -- 3. Match Roblox ID (Using 'rbx' field from your Panel)
+    if not keyToVerify then return false, "" end
+
+    -- 3. Validate Key Entry
+    local entry = data.keys and data.keys[keyToVerify]
+    if not entry then
+        return false, "❌ Key was removed or expired"
+    end
+
+    -- 4. Match Roblox ID
     if tostring(entry.rbx) ~= USER_ID then
         return false, "❌ Key tied to different Roblox ID"
     end
 
-    -- 4. Check Expiration
+    -- 5. Check Expiration
     if entry.exp ~= "INF" then
         if os.time() > tonumber(entry.exp) then
             return false, "❌ Key has expired"
@@ -187,7 +235,7 @@ end
 -- BUTTON EVENTS
 --==================================================--
 unlock.MouseButton1Click:Connect(function()
-    local inputKey = input.Text:trim()
+    local inputKey = string_trim(input.Text)
     if inputKey == "" then return end
 
     status.Text = "Checking database..."
@@ -203,7 +251,6 @@ unlock.MouseButton1Click:Connect(function()
         task.wait(0.5)
         gui.Enabled = false
 
-        -- Run Scripts
         for _, url in ipairs(SCRIPT_URLS) do
             task.spawn(function()
                 local s, err = pcall(function()
@@ -225,30 +272,14 @@ end)
 --==================================================--
 -- SECURITY LOOPS
 --==================================================--
-
--- 1. Anti-Ban Loop (Kicks banned users instantly on join or later)
 task.spawn(function()
     while true do
-        validate(nil) -- Check only for bans
-        task.wait(CHECK_INTERVAL)
-    end
-end)
-
--- 2. Live Key Re-verification
-task.spawn(function()
-    while true do
-        task.wait(CHECK_INTERVAL)
-        if KeyActive and CurrentKey then
-            local ok, _ = validate(CurrentKey)
-            if not ok then
-                -- Key was deleted or expired while playing
-                TeleportService:Teleport(PLACE_ID, player)
-            end
+        local ok, _ = validate(CurrentKey)
+        if KeyActive and CurrentKey and not ok then
+            -- Key was deleted or expired while playing
+            task.wait(2)
+            TeleportService:Teleport(PLACE_ID, player)
         end
+        task.wait(CHECK_INTERVAL)
     end
 end)
-
--- String trim helper
-function string.trim(s)
-   return s:match("^%s*(.-)%s*$")
-end
