@@ -1,5 +1,5 @@
 --==================================================
--- RSQ KEY SYSTEM — UPDATED FOR RECORD NESTING
+-- RSQ KEY SYSTEM — FULL LOCAL SCRIPT (WITH NOTIFICATIONS)
 --==================================================
 
 -- SERVICES
@@ -9,7 +9,7 @@ local TweenService = game:GetService("TweenService")
 local TeleportService = game:GetService("TeleportService")
 
 local player = Players.LocalPlayer
-local USER_ID = tostring(player.UserId) 
+local USER_ID = tostring(player.UserId)
 local PLACE_ID = game.PlaceId
 
 --==================================================
@@ -25,7 +25,8 @@ local SCRIPT_URLS = {
 	"https://raw.githubusercontent.com/RealScripts-q/KEY-JSONHandler/main/N.lua",
 }
 
-local CHECK_INTERVAL = 10 -- Re-verify key every 10 seconds
+local CHECK_INTERVAL = 1.0 
+local HAS_WARNED = false -- Prevents notification spam
 
 --==================================================
 -- UI SETUP
@@ -36,6 +37,24 @@ gui.IgnoreGuiInset = true
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
+-- Notification UI
+local notif = Instance.new("Frame", gui)
+notif.Size = UDim2.new(0, 250, 0, 60)
+notif.Position = UDim2.new(1, 10, 0.1, 0) -- Hidden off-screen right
+notif.BackgroundColor3 = Color3.fromRGB(30, 35, 50)
+notif.BorderSizePixel = 0
+Instance.new("UICorner", notif).CornerRadius = UDim.new(0, 8)
+local notifText = Instance.new("TextLabel", notif)
+notifText.Size = UDim2.new(1, -20, 1, 0)
+notifText.Position = UDim2.new(0, 10, 0, 0)
+notifText.BackgroundTransparency = 1
+notifText.TextColor3 = Color3.new(1,1,1)
+notifText.Font = Enum.Font.GothamBold
+notifText.TextSize = 12
+notifText.TextWrapped = true
+notifText.Text = "⚠️ Key expires in 5 minutes! Please renew soon."
+
+-- Main Card UI
 local card = Instance.new("Frame", gui)
 card.Size = UDim2.new(0, 430, 0, 300)
 card.Position = UDim2.new(0.5, -215, 0.5, -150)
@@ -56,7 +75,6 @@ input.PlaceholderText = "Paste RSQ- Key Here..."
 input.Size = UDim2.new(1, -40, 0, 45)
 input.Position = UDim2.new(0, 20, 0, 70)
 input.Font = Enum.Font.Gotham
-input.TextSize = 14
 input.TextColor3 = Color3.new(1,1,1)
 input.BackgroundColor3 = Color3.fromRGB(14,18,30)
 Instance.new("UICorner", input).CornerRadius = UDim.new(0,10)
@@ -66,7 +84,6 @@ unlock.Text = "Verify Key"
 unlock.Size = UDim2.new(1, -40, 0, 45)
 unlock.Position = UDim2.new(0, 20, 0, 125)
 unlock.Font = Enum.Font.GothamBold
-unlock.TextSize = 15
 unlock.TextColor3 = Color3.new(1,1,1)
 unlock.BackgroundColor3 = Color3.fromRGB(79, 124, 255)
 Instance.new("UICorner", unlock).CornerRadius = UDim.new(0,10)
@@ -76,7 +93,6 @@ getKey.Text = "🌐 Get Key (Website)"
 getKey.Size = UDim2.new(1, -40, 0, 36)
 getKey.Position = UDim2.new(0, 20, 0, 180)
 getKey.Font = Enum.Font.GothamBold
-getKey.TextSize = 14
 getKey.TextColor3 = Color3.new(1,1,1)
 getKey.BackgroundColor3 = Color3.fromRGB(0, 210, 255)
 Instance.new("UICorner", getKey).CornerRadius = UDim.new(0,10)
@@ -86,19 +102,24 @@ status.Position = UDim2.new(0, 20, 0, 230)
 status.Size = UDim2.new(1, -40, 0, 50)
 status.TextWrapped = true
 status.Font = Enum.Font.Gotham
-status.TextSize = 13
 status.TextColor3 = Color3.fromRGB(200, 200, 200)
 status.BackgroundTransparency = 1
-status.Text = "Awaiting Authentication..."
+status.Text = "Waiting for key..."
 
 --==================================================
 -- LOGIC
 --==================================================
+local function showNotification(msg)
+	notifText.Text = msg
+	notif:TweenPosition(UDim2.new(1, -260, 0.1, 0), "Out", "Back", 0.5, true)
+	task.wait(7)
+	notif:TweenPosition(UDim2.new(1, 10, 0.1, 0), "In", "Quad", 0.5, true)
+end
+
 local function fetchData()
 	local ok, res = pcall(function()
 		return HttpService:JSONDecode(game:HttpGet(JSONBIN_URL))
 	end)
-	-- Accessing the .record property as requested
 	return (ok and res and res.record) and res.record or nil
 end
 
@@ -106,27 +127,23 @@ local function validateKey(key)
 	local data = fetchData()
 	if not data then return false, "Database Connection Error" end
 
-	-- Check for Bans
 	if data.bans and data.bans[USER_ID] then
 		player:Kick("Banned by System Overseer.")
 		return false
 	end
 
-	-- Look inside the 'keys' table
 	if not data.keys or not data.keys[key] then
 		return false, "Invalid Key"
 	end
 
 	local entry = data.keys[key]
 
-	-- Compare Roblox ID (stored as 'rbx' in your JSON)
 	if tostring(entry.rbx) ~= USER_ID then
 		return false, "This key is registered to another user."
 	end
 
-	-- Check Expiry timestamp ('exp')
 	if entry.exp < os.time() then
-		return false, "Key Expired (24h limit reached)."
+		return false, "Key Expired."
 	end
 
 	return true, entry
@@ -134,23 +151,22 @@ end
 
 unlock.MouseButton1Click:Connect(function()
 	local key = input.Text:gsub("%s+", "")
-	status.Text = "Authenticating..."
+	status.Text = "Verifying..."
 	
 	local success, result = validateKey(key)
 	
 	if success then
+		CurrentKey = key
+		KeyActive = true
 		status.TextColor3 = Color3.fromRGB(40, 205, 65)
-		status.Text = "Access Granted! Welcome, " .. result.user
+		status.Text = "Access Granted! Loading scripts..."
 		
 		task.wait(1)
 		card:Destroy()
 		
-		-- Load the external scripts
 		for _, url in ipairs(SCRIPT_URLS) do
 			task.spawn(function()
-				pcall(function()
-					loadstring(game:HttpGet(url))()
-				end)
+				pcall(function() loadstring(game:HttpGet(url))() end)
 			end)
 		end
 	else
@@ -162,4 +178,36 @@ end)
 getKey.MouseButton1Click:Connect(function()
 	setclipboard(GET_KEY_URL)
 	status.Text = "Website link copied!"
+end)
+
+--==================================================
+-- SECURITY & NOTIFICATION LOOP
+--==================================================
+task.spawn(function()
+	while true do
+		task.wait(CHECK_INTERVAL)
+		if KeyActive and CurrentKey then
+			local valid, result = validateKey(CurrentKey)
+			if not valid then
+				TeleportService:Teleport(PLACE_ID, player)
+			else
+				-- Expiry Warning Logic
+				local timeLeft = result.exp - os.time()
+				
+				-- If between 4m 30s and 5m 30s left, and not already warned
+				if timeLeft <= 300 and timeLeft > 0 and not HAS_WARNED then
+					-- Ignore infinite keys (Year 3000)
+					if result.exp < 30000000000 then
+						HAS_WARNED = true
+						showNotification("⚠️ Your key expires in 5 minutes! Renew it at the RSQ Panel to avoid being kicked.")
+					end
+				end
+				
+				-- Reset warning if key is renewed (renewed keys have > 5 mins left)
+				if timeLeft > 305 then
+					HAS_WARNED = false
+				end
+			end
+		end
+	end
 end)
