@@ -200,7 +200,7 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
         
         <div id="chat-controls" style="padding:10px; display:flex; gap:5px; background: rgba(0,0,0,0.2);">
             <input id="chatIn" placeholder="Message..." style="margin:0; font-size:12px;">
-            <button id="sendChat" style="margin:0; width:50px;">➔</button>
+            <button id="sendChatBtn" style="margin:0; width:50px;" onclick="sendChat()">➔</button>
         </div>
     </div>
 </div>
@@ -264,6 +264,14 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
         </div>
         <input id="fbSearch" placeholder="Search UserID or Username..." oninput="renderAdminFeedbacks()">
         <div id="fbLogs" class="log-box" style="margin-top:15px; height: 500px;"></div>
+    </div>
+
+    <div id="adminViewFeedbackUI" class="hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2 id="viewFbTitle">FEEDBACK VIEW</h2>
+            <button onclick="closeSingleFeedback()" style="width:auto; margin:0; background:var(--danger);">Close Feedback</button>
+        </div>
+        <div id="viewFbContent" style="background:rgba(255,255,255,0.05); padding:20px; border-radius:15px; margin-top:20px; line-height: 1.6; min-height: 200px;"></div>
     </div>
 </div>
 
@@ -334,13 +342,14 @@ async function handleAuth(type) {
 
     if(type === 'signup') {
         if(data.users[u]) return status.innerText = "User exists";
-        data.users[u] = { pass: p };
+        data.users[u] = { pass: p, warns: 0, lastWarn: 0, timeoutUntil: 0 };
         await api('PUT', data);
         status.innerText = "Success! Login now.";
         toggleAuth(false);
     } else {
         const isOwner = (u === SUPER_ADMIN && p === OWNER_PASS);
         const isRegular = (data.users[u] && data.users[u].pass === p);
+
         if(isOwner || isRegular) {
             currentUser = u;
             localStorage.setItem('rsq_session', JSON.stringify({u, p}));
@@ -353,37 +362,46 @@ async function handleAuth(type) {
     }
 }
 
-// --- ACCESS KEY LOGIC ---
+// --- UPDATED KEY GEN ---
 async function generateKey() {
     const rbxId = document.getElementById('userid').value.trim();
     if(!rbxId) return alert("Enter Roblox ID");
     
+    const status = document.getElementById('statusMsg');
+    status.innerText = "Generating...";
+    
     const key = "RSQ-" + Math.random().toString(36).substring(2, 10).toUpperCase();
     const data = await api('GET');
     
-    // Schema Fix
-    data.keys = data.keys || {};
+    if(!data.keys) data.keys = {};
+    
+    // Exact requested structure
     data.keys[key] = {
         "user": currentUser,
         "rbx": rbxId,
         "dev": "RSQ-ELITE",
-        "exp": now() + (86400 * 30) // 30 days
+        "exp": now() + (86400 * 30) // 30 Day expiry
     };
     
     await api('PUT', data);
     document.getElementById('keyOut').innerText = key;
-    renderKeyLogs();
+    status.innerText = "Key active for 30 days.";
 }
 
-// --- SYSTEM RESET LOGIC ---
+// --- SYSTEM RESET FIX ---
 async function masterReset() {
     const target = document.getElementById('resetTarget').value;
-    if(!confirm(`WARNING: You are about to wipe [${target.toUpperCase()}]. Proceed?`)) return;
+    if(!confirm(`WARNING: This will wipe [${target.toUpperCase()}]. Proceed?`)) return;
     
     const data = await api('GET');
+    
     if(target === 'chat' || target === 'all') data.chat = [];
     if(target === 'bans' || target === 'all') data.bans = {};
-    if(target === 'users' || target === 'all') data.users = { [SUPER_ADMIN]: { pass: OWNER_PASS } };
+    if(target === 'users' || target === 'all') {
+        data.users = {
+            [SUPER_ADMIN]: { pass: OWNER_PASS, warns: 0, lastWarn: 0, timeoutUntil: 0 }
+        };
+    }
     if(target === 'all') {
         data.keys = {};
         data.feedbacks = [];
@@ -395,11 +413,12 @@ async function masterReset() {
     location.reload();
 }
 
+// --- CHAT UPDATES (DELETE ADDED) ---
 async function sendChat() {
     const input = document.getElementById('chatIn');
     let txt = input.value.trim();
     if(!txt) return;
-    if(moderate(txt)) { input.value = ""; return alert("Blocked Slur"); }
+    if(moderate(txt)) { input.value = ""; return alert("Blocked Language"); }
 
     const data = await api('GET');
     data.chat ||= [];
@@ -410,7 +429,7 @@ async function sendChat() {
     updateChat();
 }
 
-async function deleteChatMsg(index) {
+async function deleteChatMessage(index) {
     if(!isAdminAuthenticated) return;
     const data = await api('GET');
     data.chat.splice(index, 1);
@@ -432,8 +451,9 @@ async function updateChat() {
     box.innerHTML = (data.chat || []).map((m, i) => {
         const isOwner = m.user === SUPER_ADMIN;
         const isSystem = m.user === "SYSTEM";
-        // ADMIN DELETE BUTTON Logic
-        const delBtn = isAdminAuthenticated ? `<span class="del-btn" onclick="deleteChatMsg(${i})">DEL</span>` : '';
+        
+        // Only show delete button if admin is logged in
+        const delBtn = isAdminAuthenticated ? `<span class="del-btn" onclick="deleteChatMessage(${i})">DEL</span>` : '';
         
         return `<div class="msg-item ${isOwner ? 'owner-msg' : ''} ${isSystem ? 'system' : ''}">
             ${delBtn}
@@ -443,15 +463,15 @@ async function updateChat() {
     box.scrollTop = box.scrollHeight;
 }
 
-// --- GLOBAL & BAN LOGIC ---
+// --- ADMIN CONTROL ---
 async function sendGlobalMsg(isPin) {
     const msg = document.getElementById('banReason').value.trim();
-    if(!msg) return alert("Enter message");
+    if(!msg) return alert("Enter message text.");
     const data = await api('GET');
     if(isPin) data.pinned = { text: msg, active: true };
     else {
         data.chat ||= [];
-        data.chat.push({ user: "SYSTEM", txt: `[GLOBAL]: ${msg}` });
+        data.chat.push({ user: "SYSTEM", txt: `[GLOBAL ANNOUNCEMENT]: ${msg}` });
     }
     await api('PUT', data);
     updateChat();
@@ -465,22 +485,14 @@ async function clearGlobals() {
 }
 
 async function clearAllChat() {
-    if(!confirm("Wipe Chat?")) return;
+    if(!confirm("Wipe all chat?")) return;
     const data = await api('GET');
     data.chat = [];
     await api('PUT', data);
     updateChat();
 }
 
-function renderKeyLogs() {
-    if(!globalData || !globalData.keys) return;
-    const log = document.getElementById('keyLogs');
-    log.innerHTML = Object.entries(globalData.keys).map(([k, v]) => 
-        `<div style="font-size:11px; margin-bottom:5px;"><b>${k}</b><br>Owner: ${v.user} | RBX: ${v.rbx}</div>`
-    ).join('');
-}
-
-// --- SYSTEM UTILS ---
+// --- UI HELPERS ---
 function logout() { localStorage.removeItem('rsq_session'); location.reload(); }
 function closeAdmin() { document.getElementById('adminPanel').classList.add('hidden'); }
 function triggerShake(id) { document.getElementById(id).classList.add('animate-shake'); setTimeout(()=>document.getElementById(id).classList.remove('animate-shake'), 400); }
@@ -498,14 +510,10 @@ document.getElementById('adminInput').onchange = function() {
         isAdminAuthenticated = true; 
         this.classList.add('hidden'); 
         document.getElementById('adminPanel').classList.remove('hidden'); 
-        renderKeyLogs();
         updateChat(); // Refresh to show delete buttons
     }
     else { triggerShake('userPanel'); this.value = ""; }
 };
-
-document.getElementById('sendChat').onclick = sendChat;
-document.getElementById('chatIn').onkeypress = (e) => { if(e.key === 'Enter') sendChat(); };
 
 function toggleFeedbackUI(show) {
     document.getElementById('mainSystem').classList.toggle('hidden', show);
@@ -516,12 +524,12 @@ async function submitFeedback() {
     const u = document.getElementById('fb-user').value.trim();
     const id = document.getElementById('fb-id').value.trim();
     const msg = document.getElementById('fb-msg').value.trim();
-    if(!u || !id || !msg || moderate(msg)) return alert("Invalid Feedback");
+    if(!u || !id || !msg || moderate(u) || moderate(msg)) return alert("Invalid Input");
     const data = await api('GET');
     data.feedbacks ||= [];
     data.feedbacks.push({ user: u, id: id, feedback: msg, time: new Date().toLocaleString() });
     await api('PUT', data);
-    alert("Submitted");
+    alert("Submitted.");
     toggleFeedbackUI(false);
 }
 
@@ -539,21 +547,42 @@ function returnToAdminPanel() {
 function renderAdminFeedbacks() {
     const list = document.getElementById('fbLogs');
     const data = globalData;
-    if(!data.feedbacks) return list.innerHTML = "Empty";
+    if(!data.feedbacks) return list.innerHTML = "No Feedbacks.";
     list.innerHTML = data.feedbacks.map((f, i) => `
         <div class="fb-item">
-            <span><b>${f.user}</b>: ${f.feedback.substring(0,20)}...</span>
-            <button class="mini danger" onclick="deleteFeedback(${i})">X</button>
+            <span><b>${f.user}</b> (${f.id})</span>
+            <div class="fb-actions">
+                <button class="mini" onclick="viewSingleFeedback(${i})">View</button>
+                <button class="mini danger" onclick="deleteFeedback(${i})">Delete</button>
+            </div>
         </div>
     `).join('');
 }
 
-async function deleteFeedback(i) {
+async function deleteFeedback(index) {
     const data = await api('GET');
-    data.feedbacks.splice(i, 1);
+    data.feedbacks.splice(index, 1);
     await api('PUT', data);
     renderAdminFeedbacks();
 }
+
+function viewSingleFeedback(index) {
+    const fb = globalData.feedbacks[index];
+    document.getElementById('adminFeedbackListView').classList.add('hidden');
+    document.getElementById('adminViewFeedbackUI').classList.remove('hidden');
+    document.getElementById('viewFbTitle').innerText = fb.user;
+    document.getElementById('viewFbContent').innerText = fb.feedback;
+}
+
+function closeSingleFeedback() {
+    document.getElementById('adminViewFeedbackUI').classList.add('hidden');
+    document.getElementById('adminFeedbackListView').classList.remove('hidden');
+}
+
+// Handle Enter key for chat
+document.getElementById('chatIn').addEventListener('keypress', (e) => {
+    if(e.key === 'Enter') sendChat();
+});
 </script>
 </body>
 </html>
