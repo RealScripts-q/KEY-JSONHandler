@@ -32,6 +32,7 @@ body {
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-10px); } }
 @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(79, 124, 255, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(79, 124, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(79, 124, 255, 0); } }
 
 .animate-fade { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
 .animate-shake { animation: shake 0.2s ease-in-out 0s 2; }
@@ -84,38 +85,37 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
 
 /* Chat Toggle Redesign */
 #chat-toggle {
-    position: fixed; 
-    bottom: 25px; 
-    right: 25px; 
-    width: 60px; 
-    height: 60px;
-    border-radius: 50%; 
-    background: white; 
-    display: flex;
-    align-items: center; 
-    justify-content: center; 
-    cursor: pointer; 
-    z-index: 1000;
+    position: fixed; bottom: 25px; right: 25px; width: 60px; height: 60px;
+    border-radius: 50%; background: white; display: flex;
+    align-items: center; justify-content: center; cursor: pointer; z-index: 1000;
     box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     border: 3px solid var(--primary);
     transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-#chat-toggle:hover { transform: scale(1.1) rotate(10deg); }
 #chat-toggle svg { width: 30px; height: 30px; fill: var(--primary); }
 
 #chat-window {
-    position: fixed; bottom: 100px; right: 25px; width: 320px; height: 450px;
+    position: fixed; bottom: 100px; right: 25px; width: 340px; height: 500px;
     background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--border);
     border-radius: 15px; display: flex; flex-direction: column; z-index: 999; overflow: hidden;
     transform-origin: bottom right; transition: 0.3s ease;
 }
 
-#chat-msgs { flex: 1; overflow-y: auto; padding: 15px; font-size: 13px; }
+#chat-msgs { flex: 1; overflow-y: auto; padding: 15px; font-size: 13px; scroll-behavior: smooth;}
 #pinned-area { background: rgba(255, 204, 0, 0.1); border-bottom: 1px solid var(--warning); padding: 10px; font-size: 12px; }
 
-.msg-item { margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; animation: fadeIn 0.3s forwards; }
-.msg-item b { color: var(--secondary); font-size: 11px; display: block; }
-.pin-tag { color: var(--warning); font-weight: bold; margin-right: 5px; }
+.msg-item { 
+    margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; 
+    animation: fadeIn 0.3s forwards; position: relative; border-left: 2px solid transparent;
+}
+.msg-item.system { border-left-color: var(--primary); background: rgba(79, 124, 255, 0.1); animation: fadeIn 0.3s forwards, pulse 2s infinite; }
+.msg-item b { color: var(--secondary); font-size: 11px; display: block; margin-bottom: 3px;}
+.del-btn { 
+    position: absolute; top: 8px; right: 8px; color: var(--danger); 
+    cursor: pointer; font-weight: 800; font-size: 10px; background: rgba(255,0,0,0.1);
+    padding: 2px 5px; border-radius: 4px; transition: 0.2s;
+}
+.del-btn:hover { background: var(--danger); color: white; }
 
 /* Admin Full View */
 .adminFull {
@@ -157,7 +157,7 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
         <div id="keyOut" style="text-align:center; margin-top:10px; color:var(--secondary); font-family:monospace; font-weight:bold;"></div>
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:20px;">
-            <button id="adminBtn" class="danger">Admin</button>
+            <button id="adminBtn" class="danger hidden">Admin</button>
             <button style="background:none; border: 1px solid var(--border);" onclick="logout()">Logout</button>
         </div>
         <input id="adminInput" class="hidden" type="password" placeholder="Master Key">
@@ -170,7 +170,7 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
         <div style="padding:10px; background:rgba(255,255,255,0.05); font-size:12px; font-weight:bold;">NETWORK CHAT</div>
         <div id="pinned-area" class="hidden"></div>
         <div id="chat-msgs"></div>
-        <div style="padding:10px; display:flex; gap:5px;">
+        <div style="padding:10px; display:flex; gap:5px; background: rgba(0,0,0,0.2);">
             <input id="chatIn" placeholder="Message..." style="margin:0; font-size:12px;">
             <button id="sendChat" style="margin:0; width:50px;">➔</button>
         </div>
@@ -180,11 +180,11 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
 <div id="adminPanel" class="adminFull hidden">
     <div style="display:flex; justify-content:space-between; align-items:center;">
         <h2>👑 OVERSEER CONTROL</h2>
-        <button onclick="document.getElementById('adminPanel').classList.add('hidden')" style="width:auto; margin:0; background:#444;">Exit</button>
+        <button onclick="closeAdmin()" style="width:auto; margin:0; background:#444;">Exit</button>
     </div>
 
     <div style="background:rgba(255,255,255,0.05); padding:20px; border-radius:15px; margin-top:20px;">
-        <h3 style="margin-top:0">🔨 Ban & Broadcast</h3>
+        <h3 style="margin-top:0">🔨 Ban & Global Messaging</h3>
         <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
             <input id="banUserId" placeholder="Target Roblox ID">
             <div style="display:flex; gap:5px;">
@@ -201,7 +201,7 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
             <button onclick="processBan()">BAN USER</button>
             <button class="warning" onclick="sendGlobalMsg(true)">PIN LIVE</button>
             <button class="warning" onclick="sendGlobalMsg(false)">ANNOUNCE</button>
-            <button class="danger" onclick="clearGlobals()">CLEAR ALL MSG</button>
+            <button class="danger" onclick="clearGlobals()">PURGE GLOBALS</button>
         </div>
     </div>
 
@@ -215,8 +215,11 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
 const BIN_ID = "694c4aefae596e708faef157";
 const JSON_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu";
 const MASTER_KEY = "roblox";
+const SUPER_ADMIN = "Plstealme2";
 
 let currentUser = null;
+let isAdminAuthenticated = false;
+
 const now = () => Math.floor(Date.now()/1000);
 
 async function api(method, data = null) {
@@ -260,13 +263,16 @@ async function handleAuth(type) {
 
     if(type === 'signup') {
         if(data.users[u]) return status.innerText = "User exists";
-        data.users[u] = { pass: p };
+        data.users[u] = { pass: p, dev: "N/A", warns: 0, timeoutUntil: 0 };
         await api('PUT', data);
         status.innerText = "Success! Login now.";
         toggleAuth(false);
     } else {
         if(data.users[u] && data.users[u].pass === p) {
             currentUser = u;
+            // Admin Check
+            if(u === SUPER_ADMIN) document.getElementById('adminBtn').classList.remove('hidden');
+            
             document.getElementById('authPanel').style.animation = "fadeOut 0.4s forwards";
             setTimeout(() => {
                 document.getElementById('authPanel').classList.add('hidden');
@@ -281,50 +287,26 @@ async function handleAuth(type) {
     }
 }
 
-async function processBan() {
-    const id = document.getElementById('banUserId').value;
-    const time = document.getElementById('banTime').value;
-    const unit = document.getElementById('banUnit').value;
-    const reason = document.getElementById('banReason').value;
-
-    if(!id || !time) return alert("Fill ID and Time");
-
+async function deleteMsg(index) {
+    if(!confirm("Delete this message forever?")) return;
     const data = await api('GET');
-    data.bans ||= {};
-    data.bans[id] = { reason: reason || "Violation", exp: now() + (time * unit) };
+    data.chat.splice(index, 1);
     await api('PUT', data);
-    alert("User Restricted");
-    renderAdmin();
+    updateChat();
 }
 
-async function sendGlobalMsg(isPinned) {
-    const txt = document.getElementById('banReason').value;
-    if(!txt) return alert("Enter text in 'Reason' box");
-    
+async function sendChat() {
+    const input = document.getElementById('chatIn');
+    const txt = input.value.trim();
+    if(!txt) return;
     const data = await api('GET');
     data.chat ||= [];
-    const msg = { user: "SYSTEM", txt: txt.toUpperCase(), type: isPinned ? 'pinned' : 'announcement' };
-    
-    if(isPinned) data.pinnedMsg = msg;
-    data.chat.push(msg);
+    data.chat.push({ user: currentUser, txt: txt });
     await api('PUT', data);
-    renderAdmin();
+    input.value = "";
+    updateChat();
 }
-
-async function clearGlobals() {
-    const data = await api('GET');
-    data.pinnedMsg = null;
-    data.chat = data.chat.filter(m => m.type !== 'announcement');
-    await api('PUT', data);
-    alert("Messages Purged");
-}
-
-async function unban(id) {
-    const data = await api('GET');
-    delete data.bans[id];
-    await api('PUT', data);
-    renderAdmin();
-}
+document.getElementById('sendChat').onclick = sendChat;
 
 async function updateChat() {
     const data = await api('GET');
@@ -336,29 +318,96 @@ async function updateChat() {
         pin.innerHTML = `<span class="pin-tag">LIVE:</span> ${data.pinnedMsg.txt}`;
     } else pin.classList.add('hidden');
 
-    box.innerHTML = (data.chat || []).map(m => `
-        <div class="msg-item"><b>${m.user}</b> ${m.txt}</div>
+    box.innerHTML = (data.chat || []).map((m, i) => `
+        <div class="msg-item ${m.user === 'SYSTEM' ? 'system' : ''}">
+            <b>${m.user}</b> ${m.txt}
+            ${currentUser === SUPER_ADMIN ? `<span class="del-btn" onclick="deleteMsg(${i})">DEL</span>` : ''}
+        </div>
     `).join('');
+    box.scrollTop = box.scrollHeight;
 }
 
 function startChatLoop() { setInterval(updateChat, 5000); updateChat(); }
 
-document.getElementById('adminBtn').onclick = () => document.getElementById('adminInput').classList.toggle('hidden');
-document.getElementById('adminInput').onchange = function() {
-    if(this.value === MASTER_KEY) {
+/* Admin Logic */
+document.getElementById('adminBtn').onclick = () => {
+    if(isAdminAuthenticated) {
         document.getElementById('adminPanel').classList.remove('hidden');
         renderAdmin();
-    } else triggerShake('userPanel');
+    } else {
+        document.getElementById('adminInput').classList.toggle('hidden');
+    }
 };
+
+document.getElementById('adminInput').onchange = function() {
+    if(this.value === MASTER_KEY) {
+        isAdminAuthenticated = true;
+        this.classList.add('hidden');
+        document.getElementById('adminPanel').classList.remove('hidden');
+        renderAdmin();
+    } else {
+        triggerShake('userPanel');
+        this.value = "";
+    }
+};
+
+function closeAdmin() {
+    document.getElementById('adminPanel').classList.add('hidden');
+}
+
+async function processBan() {
+    const id = document.getElementById('banUserId').value;
+    const time = document.getElementById('banTime').value;
+    const unit = document.getElementById('banUnit').value;
+    const reason = document.getElementById('banReason').value;
+    if(!id || !time) return alert("Fill ID and Time");
+    const data = await api('GET');
+    data.bans ||= {};
+    data.bans[id] = { reason: reason || "Violation", exp: now() + (time * unit) };
+    await api('PUT', data);
+    alert("User Restricted");
+    renderAdmin();
+}
+
+async function sendGlobalMsg(isPinned) {
+    const txt = document.getElementById('banReason').value;
+    if(!txt) return alert("Enter text in 'Reason' box");
+    const data = await api('GET');
+    data.chat ||= [];
+    const msg = { user: "SYSTEM", txt: txt.toUpperCase(), type: isPinned ? 'pinned' : 'announcement' };
+    if(isPinned) data.pinnedMsg = msg;
+    data.chat.push(msg);
+    await api('PUT', data);
+    updateChat();
+}
+
+async function clearGlobals() {
+    const data = await api('GET');
+    data.pinnedMsg = null;
+    data.chat = data.chat.filter(m => m.user !== 'SYSTEM');
+    await api('PUT', data);
+    alert("System Messages Purged");
+    updateChat();
+}
 
 async function renderAdmin() {
     const data = await api('GET');
     document.getElementById('banLogs').innerHTML = Object.entries(data.bans || {}).map(([id, v]) => `
         <div class="msg-item">
-            <b>ROBLOX: ${id}</b> ${v.reason}
-            <button class="mini danger" onclick="unban('${id}')">REMOVE BAN</button>
+            <b>ROBLOX ID: ${id}</b> ${v.reason}
+            <button class="mini danger" onclick="unban('${id}')">UNBAN</button>
         </div>
     `).join('');
+    document.getElementById('keyLogs').innerHTML = Object.entries(data.keys || {}).map(([k, v]) => `
+        <div class="msg-item"><b>KEY: ${k}</b><br>Owner: ${v.rbx}</div>
+    `).join('');
+}
+
+async function unban(id) {
+    const data = await api('GET');
+    delete data.bans[id];
+    await api('PUT', data);
+    renderAdmin();
 }
 
 function logout() { location.reload(); }
