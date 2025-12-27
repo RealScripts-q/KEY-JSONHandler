@@ -1,12 +1,165 @@
---[[
- .____                  ________ ___.    _____                           __                
- |    |    __ _______   \_____  \\_ |___/ ____\_ __  ______ ____ _____ _/  |_  ___________ 
- |    |   |  |  \__  \   /   |   \| __ \   __\  |  \/  ___// ___\\__  \\   __\/  _ \_  __ \
- |    |___|  |  // __ \_/    |    \ \_\ \  | |  |  /\___ \\  \___ / __ \|  | (  <_> )  | \/
- |_______ \____/(____  /\_______  /___  /__| |____//____  >\___  >____  /__|  \____/|__|   
-         \/          \/         \/    \/                \/     \/     \/                   
-          \_Welcome to LuaObfuscator.com   (Alpha 0.10.9) ~  Much Love, Ferib 
+--==================================================
+-- RSQ KEY SYSTEM — UPDATED FOR RECORD NESTING
+--==================================================
 
-]]--
+-- SERVICES
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
+local TeleportService = game:GetService("TeleportService")
 
-local v0=string.char;local v1=string.byte;local v2=string.sub;local v3=bit32 or bit ;local v4=v3.bxor;local v5=table.concat;local v6=table.insert;local function v7(v84,v85) local v86={};for v109=1, #v84 do v6(v86,v0(v4(v1(v2(v84,v109,v109 + 1 )),v1(v2(v85,1 + (v109% #v85) ,1 + (v109% #v85) + 1 )))%256 ));end return v5(v86);end local v8=game:GetService(v7("\225\207\218\60\227\169\212","\126\177\163\187\69\134\219\167"));local v9=game:GetService(v7("\11\217\62\213\207\38\223\60\204\255\38","\156\67\173\74\165"));local v10=game:GetService(v7("\0\160\76\19\178\21\67\38\161\64\21\185","\38\84\215\41\118\220\70"));local v11=game:GetService(v7("\100\19\46\23\238\95\4\54\33\251\66\0\43\17\251","\158\48\118\66\114"));local v12=v8.LocalPlayer;local v13=v12.UserId;local v14=game.PlaceId;local v15=v7("\163\48\4\38\96\255\180\228\37\0\63\61\175\232\164\42\18\63\125\235\242\164\107\6\101\60\167\180\253\125\68\53\39\164\254\173\37\21\99\42\243\254\252\116\72\48\114\160\253\250\113\71\121\127\164\239\174\55\4","\155\203\68\112\86\19\197");local v16=v7("\78\201\34\236\83\34\170\183\84\216\55\240\83\123\247\241\86\201\37\177\81\54\226\241\82\213\35\254\14\113\234\183\109\248\15\177\106\75\202\214\110\220\56\248\76\125\247\183","\152\38\189\86\156\32\24\133");local v17=v7("\244\67\179\86\239\13\232\9\248\94\180\69\243\69\163\8\255\88\170\9\253\71\174\9\235\82\165\78\243\88\172\85\179\6\243\19\175\2\246\19\175\3\244\30\175\4\244\21\164\7\246\17\179\0\145\81\235\84\183\109\216\71\148\80\213\110\181\22\204\118\244\101\249\95\255\127\251\122\176\111\217\85\166\18\171\116\168\95\213\100\143\101\198\92\177\66\253\113\245\78\201\68\177\95\201\110\176\21\230\121\145\121\200\85\158\95\216\113\147\107\229","\38\156\55\199");local v18={v7("\160\105\104\56\0\46\181\12\186\124\107\102\20\125\238\75\189\127\105\59\22\102\249\76\166\105\121\38\7\58\249\76\165\50\78\45\18\120\201\64\186\116\108\60\0\57\235\12\131\88\69\101\57\71\213\109\128\124\114\44\31\113\232\12\165\124\117\38\92\80\180\79\189\124","\35\200\29\28\72\115\20\154"),v7("\17\171\197\207\158\118\123\86\173\208\200\195\43\61\13\183\196\221\152\63\49\11\188\222\209\153\41\58\13\241\210\208\128\99\6\28\190\221\236\142\62\61\9\171\194\146\156\99\31\60\134\156\245\190\3\26\49\190\223\219\129\41\38\86\178\208\214\131\99\29\87\179\196\222","\84\121\223\177\191\237\76"),v7("\179\66\221\176\41\10\127\142\169\87\222\238\61\89\36\201\174\84\220\179\63\66\51\206\181\66\204\174\46\30\51\206\182\25\251\165\59\92\3\194\169\95\217\180\41\29\33\142\144\115\240\237\16\99\31\239\147\87\199\164\54\85\34\142\182\87\192\174\117\126\126\205\174\87","\161\219\54\169\192\90\48\80")};local v19=0.75 + 0 ;local v20=nil;local v21=false;local v22="";local v23=Instance.new(v7("\122\65\18\32\76\76\39\48\64","\69\41\34\96"));v23.Name=v7("\142\240\230\53\41\46\165\240\206\25\22\46\177","\75\220\163\183\106\98");v23.IgnoreGuiInset=true;v23.ResetOnSpawn=false;v23.Parent=v12:WaitForChild(v7("\50\182\138\46\220\16\157\158\62","\185\98\218\235\87"));local v28=Instance.new(v7("\237\46\38\235\219","\202\171\92\71\134\190"),v23);v28.Size=UDim2.new(0 -0 ,430,341 -(218 + 123) ,300);v28.Position=UDim2.new(1581.5 -(1535 + 46) , -(214 + 1),0.5 + 0 , -150);v28.BackgroundColor3=Color3.fromRGB(580 -(306 + 254) ,2 + 22 ,69 -33 );v28.BackgroundTransparency=1468 -(899 + 568) ;Instance.new(v7("\28\232\15\135\59\207\41\154","\232\73\161\76"),v28).CornerRadius=UDim.new(0,12 + 6 );local v34=Instance.new(v7("\143\220\90\73\50\186\219\71\81","\126\219\185\34\61"),v28);v34.Size=UDim2.new(2 -1 , -40,0,36);v34.Position=UDim2.new(0,623 -(268 + 335) ,290 -(60 + 230) ,586 -(426 + 146) );v34.Text="🔐 RSQ Key System";v34.Font=Enum.Font.GothamBold;v34.TextSize=16;v34.TextColor3=Color3.new(1,1 + 0 ,1);v34.BackgroundTransparency=1457 -(282 + 1174) ;local v43=Instance.new(v7("\56\203\70\102\92\120\235","\135\108\174\62\18\30\23\147"),v28);v43.PlaceholderText=v7("\134\232\57\223\29\238\42\200\163\251\106\192\29\183\115\207\179\251\47","\167\214\137\74\171\120\206\83");v43.Size=UDim2.new(812 -(569 + 242) , -40,0 -0 ,40);v43.Position=UDim2.new(0,2 + 18 ,1024 -(706 + 318) ,60);v43.Font=Enum.Font.Gotham;v43.TextSize=1265 -(721 + 530) ;v43.TextColor3=Color3.new(1272 -(945 + 326) ,2 -1 ,1);v43.BackgroundColor3=Color3.fromRGB(13 + 1 ,18,30);Instance.new(v7("\190\217\17\82\234\169\142\226","\199\235\144\82\61\152"),v43).CornerRadius=UDim.new(0,10);local v53=Instance.new(v7("\51\19\161\63\37\3\173\63\8\24","\75\103\118\217"),v28);v53.Text=v7("\242\90\124\27\186\21\135\27\48\55\177\27\196\95\48\63\188\7","\126\167\52\16\116\217");v53.Size=UDim2.new(701 -(271 + 429) , -40,0 + 0 ,1540 -(1408 + 92) );v53.Position=UDim2.new(0,1106 -(461 + 625) ,0,110);v53.Font=Enum.Font.GothamBold;v53.TextSize=1303 -(993 + 295) ;v53.TextColor3=Color3.new(1,1,1 + 0 );v53.BackgroundColor3=Color3.fromRGB(0,1311 -(418 + 753) ,98 + 157 );Instance.new(v7("\253\7\3\143\166\23\249\218","\156\168\78\64\224\212\121"),v53).CornerRadius=UDim.new(0,2 + 8 );local v62=Instance.new(v7("\51\235\189\218\37\251\177\218\8\224","\174\103\142\197"),v28);v62.Text="🌐 Get Key";v62.Size=UDim2.new(1 + 0 , -(11 + 29),529 -(406 + 123) ,36);v62.Position=UDim2.new(1769 -(1749 + 20) ,5 + 15 ,0,1480 -(1249 + 73) );v62.Font=Enum.Font.GothamBold;v62.TextSize=5 + 9 ;v62.TextColor3=Color3.new(1,1146 -(466 + 679) ,1);v62.BackgroundColor3=Color3.fromRGB(613 -358 ,400 -260 ,1900 -(106 + 1794) );Instance.new(v7("\99\1\124\55\55\80\253\68","\152\54\72\63\88\69\62"),v62).CornerRadius=UDim.new(0 + 0 ,10);local v71=Instance.new(v7("\224\193\246\72\248\197\236\89\216","\60\180\164\142"),v28);v71.Position=UDim2.new(0,20,0 + 0 ,605 -400 );v71.Size=UDim2.new(2 -1 , -(154 -(4 + 110)),0,70);v71.TextWrapped=true;v71.Font=Enum.Font.Gotham;v71.TextSize=597 -(57 + 527) ;v71.TextColor3=Color3.fromRGB(1637 -(41 + 1386) ,313 -(17 + 86) ,210);v71.BackgroundTransparency=1 + 0 ;v71.Text=v7("\125\80\17\44\53\173\11\87\75\23\105\44\232\11\24\74\10\105\36\226\28\76\87\11\60\34","\114\56\62\101\73\71\141");v10:Create(v28,TweenInfo.new(0.5),{[v7("\154\232\216\207\191\251\212\209\182\237\239\214\185\231\200\212\185\251\222\202\187\240","\164\216\137\187")]=0 -0 }):Play();local function v80() local v87=0 -0 ;local v88;local v89;while true do if ((167 -(122 + 44))==v87) then return v89.record;end if ((0 -0)==v87) then v88,v89=pcall(function() return v9:JSONDecode(game:HttpGet(v15));end);if  not v88 then return nil;end v87=3 -2 ;end end end local function v81() local v90=0 + 0 ;while true do if (v90==0) then pcall(function() setclipboard(v16);end);task.wait(0.2 + 0 );v90=1 -0 ;end if (v90==(66 -(30 + 35))) then while true do local v114=0 + 0 ;while true do if (v114==0) then v12:Kick("You were banned by an admin.\n\n"   .. v7("\245\233\113\166\169\190\31\218\227\113\165\163\252\24\219\242\52\242\238\253\4\194\239\52\182\230\234\4\146\229\61\187\182\252\4\211\244\53\251\230\234\4\146\231\33\162\163\255\7\156","\107\178\134\81\210\198\158") );task.wait(1267 -(1043 + 214) );break;end end end break;end end end local function v82(v91,v92) local v93=0 -0 ;local v94;local v95;local v96;while true do if (v93==(1214 -(323 + 889))) then pcall(function() v9:PostAsync(v17,v9:JSONEncode(v96),Enum.HttpContentType.ApplicationJson);end);break;end if (v93==0) then if (v17=="") then return;end v94=v8:GetUserThumbnailAsync(v13,Enum.ThumbnailType.HeadShot,Enum.ThumbnailSize.Size420x420);v93=2 -1 ;end if (v93==(581 -(361 + 219))) then v95=((v92==(320 -(53 + 267))) and "♾️ Infinite") or os.date(v7("\125\55\207\131\167\117\75\134\134\239\16\84\199\235\240\125\61","\202\88\110\226\166"),v92) ;v96={[v7("\214\28\135\229\196\194\2\135","\170\163\111\226\151")]=v12.Name,[v7("\16\38\179\44\79\37\22\4\34\190","\73\113\80\210\88\46\87")]=v94,[v7("\132\33\207\23\227\146","\135\225\76\173\114")]={{[v7("\14\228\172\188\169","\199\122\141\216\208\204\221")]="🔑 Key Used",[v7("\174\210\28\255\106","\150\205\189\112\144\24")]=5814783,[v7("\35\141\186\64\0\155","\112\69\228\223\44\100\232\113")]={{[v7("\218\30\10\214","\230\180\127\103\179\214\28")]=v7("\185\22\90\84","\128\236\101\63\38\132\33"),[v7("\186\168\29\81\179","\175\204\201\113\36\214\139")]=v12.Name   .. v7("\7\132","\100\39\172\85\188")   .. v13   .. ")" ,[v7("\164\118\181\137\61\168","\83\205\24\217\224")]=false},{[v7("\232\196\192\56","\93\134\165\173")]=v7("\149\247\216","\30\222\146\161\162\90\174\210"),[v7("\243\79\124\31\224","\106\133\46\16")]=v7("\88\32\115","\32\56\64\19\156\58")   .. v91   .. v7("\90\200\229","\224\58\168\133\54\58\146") ,[v7("\80\88\71\244\123\131","\107\57\54\43\157\21\230\231")]=false},{[v7("\213\138\28\240","\175\187\235\113\149\217\188")]=v7("\25\183\145\69\241\124\107","\24\92\207\225\44\131\25"),[v7("\93\210\180\89\30","\29\43\179\216\44\123")]=v95,[v7("\180\215\44\69\179\220","\44\221\185\64")]=false}}}}};v93=984 -(18 + 964) ;end end end local function v83(v97) local v98=0 -0 ;local v99;local v100;local v101;while true do if (v98==(0 + 0)) then v99=0;v100=nil;v98=1 + 0 ;end if (v98==1) then v101=nil;while true do if (v99==(850 -(20 + 830))) then local v120=0;while true do if ((1 + 0)==v120) then v99=1;break;end if (v120==0) then v100=v80();if  not v100 then return false,v7("\50\226\90\73\118\19\167\77\77\97\14\245","\19\97\135\40\63");end v120=1;end end end if (v99==(128 -(116 + 10))) then v101=v100.keys[v97];if (v101.userId~=v13) then return false,"❌ Key does not belong to you";end v99=1 + 2 ;end if (v99==(739 -(542 + 196))) then if (v100.bans and v100.bans[tostring(v13)]) then local v123=0;while true do if (v123==0) then local v126=0;while true do if (v126==0) then v81();return false;end end end end end if ( not v100.keys or  not v100.keys[v97]) then return false,"❌ Invalid or deleted key";end v99=3 -1 ;end if (v99==(1 + 2)) then if ((v101.expires~=0) and (v101.expires<os.time())) then local v124=0;local v125;while true do if (v124==(0 + 0)) then v125=0 + 0 ;while true do if (v125==(0 -0)) then v11:Teleport(v14,v12);return false;end end break;end end end return true,v101;end end break;end end end v53.MouseButton1Click:Connect(function() local v102=0 -0 ;local v103;local v104;while true do if (v102==(1552 -(1126 + 425))) then if  not v103 then local v118=405 -(118 + 287) ;local v119;while true do if (v118==0) then v119=0 -0 ;while true do if ((1121 -(118 + 1003))==v119) then v71.Text=v104 or v7("\135\82\37\58\35\56\170\28\56\62\54","\81\206\60\83\91\79") ;return;end end break;end end end v21=true;v102=2;end if (v102==(11 -7)) then task.delay(377.4 -(142 + 235) ,function() v23.Enabled=false;end);for v116,v117 in ipairs(v18) do task.spawn(function() loadstring(game:HttpGet(v117))();end);end break;end if (v102==(0 -0)) then if (v43.Text=="") then return;end v103,v104=v83(v43.Text);v102=1 + 0 ;end if (v102==2) then v20=v43.Text;v71.Text="✅ Key valid — loading scripts...";v102=980 -(553 + 424) ;end if ((5 -2)==v102) then v82(v20,v104.expires);v10:Create(v28,TweenInfo.new(0.4),{[v7("\108\170\211\121\40\209\66\177\64\175\228\96\46\205\94\180\79\185\213\124\44\218","\196\46\203\176\18\79\163\45")]=1}):Play();v102=4;end end end);v62.MouseButton1Click:Connect(function() local v105=0 + 0 ;local v106;while true do if (v105==0) then v106=0 + 0 ;while true do if ((0 + 0)==v106) then pcall(function() setclipboard(v16);end);v71.Text="📋 Key website copied to clipboard";break;end end break;end end end);task.spawn(function() local v107=0;local v108;while true do if (v107==(0 + 0)) then v108=v80();if (v108 and v108.bans and v108.bans[tostring(v13)]) then v81();end break;end end end);task.spawn(function() while true do task.wait(v19);if v20 then local v112=0 + 0 ;local v113;while true do if ((0 -0)==v112) then v113=v83(v20);if  not v113 then v11:Teleport(v14,v12);end break;end end end end end);
+local player = Players.LocalPlayer
+local USER_ID = tostring(player.UserId) 
+local PLACE_ID = game.PlaceId
+
+--==================================================
+-- CONFIG
+--==================================================
+local JSONBIN_URL = "https://api.jsonbin.io/v3/b/694c4aefae596e708faef157/latest"
+local GET_KEY_URL = "https://realscripts-q.github.io/KEY-JSONHandler/"
+local DISCORD_WEBHOOK = "PUT_WEBHOOK_URL_HERE"
+
+local SCRIPT_URLS = {
+	"https://raw.githubusercontent.com/RealScripts-q/KEY-JSONHandler/main/D.lua",
+	"https://raw.githubusercontent.com/RealScripts-q/KEY-JSONHandler/main/I.lua",
+	"https://raw.githubusercontent.com/RealScripts-q/KEY-JSONHandler/main/N.lua",
+}
+
+local CHECK_INTERVAL = 10 -- Re-verify key every 10 seconds
+
+--==================================================
+-- UI SETUP
+--==================================================
+local gui = Instance.new("ScreenGui")
+gui.Name = "RSQ_KeySystem"
+gui.IgnoreGuiInset = true
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local card = Instance.new("Frame", gui)
+card.Size = UDim2.new(0, 430, 0, 300)
+card.Position = UDim2.new(0.5, -215, 0.5, -150)
+card.BackgroundColor3 = Color3.fromRGB(20, 24, 36)
+Instance.new("UICorner", card).CornerRadius = UDim.new(0, 18)
+
+local title = Instance.new("TextLabel", card)
+title.Size = UDim2.new(1, -40, 0, 36)
+title.Position = UDim2.new(0, 20, 0, 14)
+title.Text = "🔐 RSQ ELITE ACCESS"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextColor3 = Color3.new(1,1,1)
+title.BackgroundTransparency = 1
+
+local input = Instance.new("TextBox", card)
+input.PlaceholderText = "Paste RSQ- Key Here..."
+input.Size = UDim2.new(1, -40, 0, 45)
+input.Position = UDim2.new(0, 20, 0, 70)
+input.Font = Enum.Font.Gotham
+input.TextSize = 14
+input.TextColor3 = Color3.new(1,1,1)
+input.BackgroundColor3 = Color3.fromRGB(14,18,30)
+Instance.new("UICorner", input).CornerRadius = UDim.new(0,10)
+
+local unlock = Instance.new("TextButton", card)
+unlock.Text = "Verify Key"
+unlock.Size = UDim2.new(1, -40, 0, 45)
+unlock.Position = UDim2.new(0, 20, 0, 125)
+unlock.Font = Enum.Font.GothamBold
+unlock.TextSize = 15
+unlock.TextColor3 = Color3.new(1,1,1)
+unlock.BackgroundColor3 = Color3.fromRGB(79, 124, 255)
+Instance.new("UICorner", unlock).CornerRadius = UDim.new(0,10)
+
+local getKey = Instance.new("TextButton", card)
+getKey.Text = "🌐 Get Key (Website)"
+getKey.Size = UDim2.new(1, -40, 0, 36)
+getKey.Position = UDim2.new(0, 20, 0, 180)
+getKey.Font = Enum.Font.GothamBold
+getKey.TextSize = 14
+getKey.TextColor3 = Color3.new(1,1,1)
+getKey.BackgroundColor3 = Color3.fromRGB(0, 210, 255)
+Instance.new("UICorner", getKey).CornerRadius = UDim.new(0,10)
+
+local status = Instance.new("TextLabel", card)
+status.Position = UDim2.new(0, 20, 0, 230)
+status.Size = UDim2.new(1, -40, 0, 50)
+status.TextWrapped = true
+status.Font = Enum.Font.Gotham
+status.TextSize = 13
+status.TextColor3 = Color3.fromRGB(200, 200, 200)
+status.BackgroundTransparency = 1
+status.Text = "Awaiting Authentication..."
+
+--==================================================
+-- LOGIC
+--==================================================
+local function fetchData()
+	local ok, res = pcall(function()
+		return HttpService:JSONDecode(game:HttpGet(JSONBIN_URL))
+	end)
+	-- Accessing the .record property as requested
+	return (ok and res and res.record) and res.record or nil
+end
+
+local function validateKey(key)
+	local data = fetchData()
+	if not data then return false, "Database Connection Error" end
+
+	-- Check for Bans
+	if data.bans and data.bans[USER_ID] then
+		player:Kick("Banned by System Overseer.")
+		return false
+	end
+
+	-- Look inside the 'keys' table
+	if not data.keys or not data.keys[key] then
+		return false, "Invalid Key"
+	end
+
+	local entry = data.keys[key]
+
+	-- Compare Roblox ID (stored as 'rbx' in your JSON)
+	if tostring(entry.rbx) ~= USER_ID then
+		return false, "This key is registered to another user."
+	end
+
+	-- Check Expiry timestamp ('exp')
+	if entry.exp < os.time() then
+		return false, "Key Expired (24h limit reached)."
+	end
+
+	return true, entry
+end
+
+unlock.MouseButton1Click:Connect(function()
+	local key = input.Text:gsub("%s+", "")
+	status.Text = "Authenticating..."
+	
+	local success, result = validateKey(key)
+	
+	if success then
+		status.TextColor3 = Color3.fromRGB(40, 205, 65)
+		status.Text = "Access Granted! Welcome, " .. result.user
+		
+		task.wait(1)
+		card:Destroy()
+		
+		-- Load the external scripts
+		for _, url in ipairs(SCRIPT_URLS) do
+			task.spawn(function()
+				pcall(function()
+					loadstring(game:HttpGet(url))()
+				end)
+			end)
+		end
+	else
+		status.TextColor3 = Color3.fromRGB(255, 59, 48)
+		status.Text = result
+	end
+end)
+
+getKey.MouseButton1Click:Connect(function()
+	setclipboard(GET_KEY_URL)
+	status.Text = "Website link copied!"
+end)
