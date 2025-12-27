@@ -28,22 +28,13 @@ body {
     justify-content: center;
 }
 
-/* Base Animations */
+/* Animations */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-10px); } }
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-10px); }
-    75% { transform: translateX(10px); }
-}
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
 
 .animate-fade { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
 .animate-shake { animation: shake 0.2s ease-in-out 0s 2; }
-
-/* Snowflake Animation */
-.snowflake { color: #fff; font-size: 1em; position: fixed; top: -10%; z-index: 0; user-select: none; animation: fall linear infinite, shake_snow ease-in-out infinite; }
-@keyframes fall { 0% { top: -10%; } 100% { top: 110%; } }
-@keyframes shake_snow { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(50px); } }
 
 #bg-wrap { position: fixed; inset: 0; background: radial-gradient(circle at center, #0f172a 0%, #05070a 100%); z-index: -1; }
 
@@ -57,12 +48,11 @@ body {
     border-radius: 24px;
     padding: 30px;
     box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .hidden { display: none !important; }
 
-input, textarea, select {
+input, select {
     width: 100%;
     box-sizing: border-box;
     padding: 12px;
@@ -72,9 +62,7 @@ input, textarea, select {
     border-radius: 10px;
     color: white;
     outline: none;
-    transition: border 0.3s ease;
 }
-input:focus { border-color: var(--secondary); }
 
 button {
     width: 100%;
@@ -86,37 +74,55 @@ button {
     cursor: pointer;
     background: linear-gradient(135deg, var(--primary), var(--secondary));
     color: white;
-    transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: 0.3s;
 }
+
 button:hover { transform: scale(1.02); filter: brightness(1.2); }
-button:active { transform: scale(0.98); }
 button.danger { background: linear-gradient(135deg, #ff3b30, #ff7b30); }
 button.warning { background: linear-gradient(135deg, #ffcc00, #ffae00); color: #000; }
+button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
 
-/* Chat Window Animation */
+/* Chat Toggle Redesign */
+#chat-toggle {
+    position: fixed; 
+    bottom: 25px; 
+    right: 25px; 
+    width: 60px; 
+    height: 60px;
+    border-radius: 50%; 
+    background: white; 
+    display: flex;
+    align-items: center; 
+    justify-content: center; 
+    cursor: pointer; 
+    z-index: 1000;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    border: 3px solid var(--primary);
+    transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+#chat-toggle:hover { transform: scale(1.1) rotate(10deg); }
+#chat-toggle svg { width: 30px; height: 30px; fill: var(--primary); }
+
 #chat-window {
-    position: fixed; bottom: 90px; right: 25px; width: 320px; height: 450px;
+    position: fixed; bottom: 100px; right: 25px; width: 320px; height: 450px;
     background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--border);
     border-radius: 15px; display: flex; flex-direction: column; z-index: 999; overflow: hidden;
-    transform-origin: bottom right;
-    transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.3s ease;
-}
-#chat-window.hidden { transform: scale(0); opacity: 0; display: flex !important; pointer-events: none; }
-
-#chat-msgs { flex: 1; overflow-y: auto; padding: 15px; font-size: 13px; scroll-behavior: smooth; }
-
-.msg-item { 
-    margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; 
-    position: relative; animation: fadeIn 0.3s ease forwards; 
+    transform-origin: bottom right; transition: 0.3s ease;
 }
 
-/* Admin Panel Transition */
+#chat-msgs { flex: 1; overflow-y: auto; padding: 15px; font-size: 13px; }
+#pinned-area { background: rgba(255, 204, 0, 0.1); border-bottom: 1px solid var(--warning); padding: 10px; font-size: 12px; }
+
+.msg-item { margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; animation: fadeIn 0.3s forwards; }
+.msg-item b { color: var(--secondary); font-size: 11px; display: block; }
+.pin-tag { color: var(--warning); font-weight: bold; margin-right: 5px; }
+
+/* Admin Full View */
 .adminFull {
     position: fixed; inset: 15px; background: #0b0f1a; border-radius: 20px;
     padding: 25px; z-index: 2000; overflow-y: auto; border: 1px solid var(--border);
-    transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.adminFull.hidden { opacity: 0; transform: scale(0.95); display: block !important; pointer-events: none; }
+.log-box { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; height: 350px; overflow-y: auto; }
 </style>
 </head>
 <body>
@@ -157,7 +163,9 @@ button.warning { background: linear-gradient(135deg, #ffcc00, #ffae00); color: #
         <input id="adminInput" class="hidden" type="password" placeholder="Master Key">
     </div>
 
-    <div id="chat-toggle" onclick="toggleChat()">💬</div>
+    <div id="chat-toggle" onclick="toggleChat()">
+        <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+    </div>
     <div id="chat-window" class="hidden">
         <div style="padding:10px; background:rgba(255,255,255,0.05); font-size:12px; font-weight:bold;">NETWORK CHAT</div>
         <div id="pinned-area" class="hidden"></div>
@@ -172,39 +180,34 @@ button.warning { background: linear-gradient(135deg, #ffcc00, #ffae00); color: #
 <div id="adminPanel" class="adminFull hidden">
     <div style="display:flex; justify-content:space-between; align-items:center;">
         <h2>👑 OVERSEER CONTROL</h2>
-        <div style="display:flex; gap:10px;">
-            <button onclick="nukeAll()" class="danger" style="width:auto; margin:0;">NUKE ALL</button>
-            <button onclick="document.getElementById('adminPanel').classList.add('hidden')" style="width:auto; margin:0; background:#444;">Exit</button>
-        </div>
+        <button onclick="document.getElementById('adminPanel').classList.add('hidden')" style="width:auto; margin:0; background:#444;">Exit</button>
     </div>
 
     <div style="background:rgba(255,255,255,0.05); padding:20px; border-radius:15px; margin-top:20px;">
-        <h3 style="margin-top:0">🔨 Global Ban System</h3>
+        <h3 style="margin-top:0">🔨 Ban & Broadcast</h3>
         <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
             <input id="banUserId" placeholder="Target Roblox ID">
             <div style="display:flex; gap:5px;">
                 <input id="banTime" type="number" placeholder="Value" style="width:60px">
                 <select id="banUnit" style="width:auto">
-                    <option value="3600">Hours (H)</option>
-                    <option value="86400">Days (D)</option>
-                    <option value="604800">Weeks (W)</option>
-                    <option value="2592000">Months (M)</option>
+                    <option value="3600">Hours</option>
+                    <option value="86400">Days</option>
+                    <option value="604800">Weeks</option>
                 </select>
             </div>
-            <input id="banReason" placeholder="Reason/Message">
+            <input id="banReason" placeholder="Reason / Broadcast Text">
         </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
-            <button onclick="processBan()">BAN USER ID</button>
-            <button class="warning" onclick="sendGlobalMsg(true)">SEND LIVE (PINNED)</button>
-            <button class="warning" onclick="sendGlobalMsg(false)">GLOBAL ANNOUNCEMENT</button>
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:10px;">
+            <button onclick="processBan()">BAN USER</button>
+            <button class="warning" onclick="sendGlobalMsg(true)">PIN LIVE</button>
+            <button class="warning" onclick="sendGlobalMsg(false)">ANNOUNCE</button>
+            <button class="danger" onclick="clearGlobals()">CLEAR ALL MSG</button>
         </div>
     </div>
-    
-    <input id="adminSearch" placeholder="Search Logs..." style="margin-top:20px;" oninput="renderAdmin()">
-    <div class="admin-grid" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:20px; margin-top:20px;">
-        <div><h3>System Keys</h3><div id="keyLogs" style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; height:400px; overflow-y:auto;"></div></div>
-        <div><h3>Active Users</h3><div id="userLogs" style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; height:400px; overflow-y:auto;"></div></div>
-        <div><h3>Banned Database</h3><div id="banLogs" style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; height:400px; overflow-y:auto;"></div></div>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-top:20px;">
+        <div><h3>Active Bans</h3><div id="banLogs" class="log-box"></div></div>
+        <div><h3>System Keys</h3><div id="keyLogs" class="log-box"></div></div>
     </div>
 </div>
 
@@ -213,6 +216,7 @@ const BIN_ID = "694c4aefae596e708faef157";
 const JSON_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu";
 const MASTER_KEY = "roblox";
 
+let currentUser = null;
 const now = () => Math.floor(Date.now()/1000);
 
 async function api(method, data = null) {
@@ -225,127 +229,139 @@ async function api(method, data = null) {
     return res.record;
 }
 
-/* UI HELPERS */
-function triggerShake(elementId) {
-    const el = document.getElementById(elementId);
+function triggerShake(id) {
+    const el = document.getElementById(id);
     el.classList.remove('animate-shake');
-    void el.offsetWidth; // Force reflow
+    void el.offsetWidth;
     el.classList.add('animate-shake');
 }
 
 function toggleAuth(isSignup) {
-    const authPanel = document.getElementById('authPanel');
-    authPanel.style.opacity = '0';
+    document.getElementById('authPanel').style.opacity = '0';
     setTimeout(() => {
         document.getElementById('signupView').classList.toggle('hidden', !isSignup);
         document.getElementById('loginView').classList.toggle('hidden', isSignup);
-        authPanel.style.opacity = '1';
+        document.getElementById('authPanel').style.opacity = '1';
     }, 200);
 }
 
-function toggleChat() {
-    document.getElementById('chat-window').classList.toggle('hidden');
-}
+function toggleChat() { document.getElementById('chat-window').classList.toggle('hidden'); }
 
 async function handleAuth(type) {
     const status = document.getElementById('authStatus');
-    status.innerText = "Syncing...";
-    
-    try {
-        const data = await api('GET');
-        data.users ||= {};
-
-        if(type === 'signup') {
-            const u = document.getElementById('s-user').value.trim();
-            const p = document.getElementById('s-pass').value.trim();
-            if(!u || !p) { triggerShake('authPanel'); return status.innerText = "Fields empty"; }
-            data.users[u] = { pass: p, dev: "LINKED", warns: 0 };
-            await api('PUT', data);
-            status.innerText = "Created! Signing in...";
-            toggleAuth(false);
-        } else {
-            const u = document.getElementById('l-user').value.trim();
-            const p = document.getElementById('l-pass').value.trim();
-            if(data.users[u] && data.users[u].pass === p) {
-                // FADE OUT LOGIN -> FADE IN SYSTEM
-                document.getElementById('authPanel').style.animation = "fadeOut 0.4s forwards";
-                setTimeout(() => {
-                    document.getElementById('authPanel').classList.add('hidden');
-                    document.getElementById('mainSystem').classList.remove('hidden');
-                    document.getElementById('welcomeUser').innerText = `USER: ${u}`;
-                    startChatLoop();
-                }, 400);
-            } else {
-                triggerShake('authPanel');
-                status.innerText = "Invalid credentials";
-            }
-        }
-    } catch(e) { status.innerText = "API Error"; }
-}
-
-function logout() {
-    document.body.style.opacity = '0';
-    document.body.style.transition = 'opacity 0.5s';
-    setTimeout(() => location.reload(), 500);
-}
-
-/* KEY GEN ANIMATION */
-document.getElementById('genBtn').onclick = async () => {
-    const rbxId = document.getElementById('userid').value.trim();
-    const status = document.getElementById('statusMsg');
-    
-    if(!rbxId) {
-        triggerShake('userPanel');
-        status.innerText = "Enter Roblox ID!";
-        return;
-    }
-
-    status.innerText = "Generating...";
+    status.innerText = "Connecting...";
     const data = await api('GET');
-    data.keys ||= {};
+    data.users ||= {};
 
-    const newKey = "RSQ-" + Math.random().toString(36).substr(2, 9).toUpperCase();
-    data.keys[newKey] = { user: "Admin", rbx: rbxId, exp: now() + 86400 };
+    const u = document.getElementById(type === 'signup' ? 's-user' : 'l-user').value.trim();
+    const p = document.getElementById(type === 'signup' ? 's-pass' : 'l-pass').value.trim();
 
+    if(!u || !p) { triggerShake('authPanel'); return status.innerText = "Empty fields"; }
+
+    if(type === 'signup') {
+        if(data.users[u]) return status.innerText = "User exists";
+        data.users[u] = { pass: p };
+        await api('PUT', data);
+        status.innerText = "Success! Login now.";
+        toggleAuth(false);
+    } else {
+        if(data.users[u] && data.users[u].pass === p) {
+            currentUser = u;
+            document.getElementById('authPanel').style.animation = "fadeOut 0.4s forwards";
+            setTimeout(() => {
+                document.getElementById('authPanel').classList.add('hidden');
+                document.getElementById('mainSystem').classList.remove('hidden');
+                document.getElementById('welcomeUser').innerText = `SESSION: ${u}`;
+                startChatLoop();
+            }, 400);
+        } else {
+            triggerShake('authPanel');
+            status.innerText = "Access Denied";
+        }
+    }
+}
+
+async function processBan() {
+    const id = document.getElementById('banUserId').value;
+    const time = document.getElementById('banTime').value;
+    const unit = document.getElementById('banUnit').value;
+    const reason = document.getElementById('banReason').value;
+
+    if(!id || !time) return alert("Fill ID and Time");
+
+    const data = await api('GET');
+    data.bans ||= {};
+    data.bans[id] = { reason: reason || "Violation", exp: now() + (time * unit) };
     await api('PUT', data);
-    status.style.color = "var(--success)";
-    status.innerText = "SUCCESS!";
-    document.getElementById('keyOut').innerText = newKey;
-    document.getElementById('keyOut').classList.add('animate-fade');
-};
+    alert("User Restricted");
+    renderAdmin();
+}
 
-/* CHAT LOOP */
-function startChatLoop() { setInterval(updateChat, 4000); updateChat(); }
+async function sendGlobalMsg(isPinned) {
+    const txt = document.getElementById('banReason').value;
+    if(!txt) return alert("Enter text in 'Reason' box");
+    
+    const data = await api('GET');
+    data.chat ||= [];
+    const msg = { user: "SYSTEM", txt: txt.toUpperCase(), type: isPinned ? 'pinned' : 'announcement' };
+    
+    if(isPinned) data.pinnedMsg = msg;
+    data.chat.push(msg);
+    await api('PUT', data);
+    renderAdmin();
+}
+
+async function clearGlobals() {
+    const data = await api('GET');
+    data.pinnedMsg = null;
+    data.chat = data.chat.filter(m => m.type !== 'announcement');
+    await api('PUT', data);
+    alert("Messages Purged");
+}
+
+async function unban(id) {
+    const data = await api('GET');
+    delete data.bans[id];
+    await api('PUT', data);
+    renderAdmin();
+}
 
 async function updateChat() {
     const data = await api('GET');
     const box = document.getElementById('chat-msgs');
+    const pin = document.getElementById('pinned-area');
+
+    if(data.pinnedMsg) {
+        pin.classList.remove('hidden');
+        pin.innerHTML = `<span class="pin-tag">LIVE:</span> ${data.pinnedMsg.txt}`;
+    } else pin.classList.add('hidden');
+
     box.innerHTML = (data.chat || []).map(m => `
         <div class="msg-item"><b>${m.user}</b> ${m.txt}</div>
     `).join('');
 }
 
-/* ADMIN AUTH */
+function startChatLoop() { setInterval(updateChat, 5000); updateChat(); }
+
 document.getElementById('adminBtn').onclick = () => document.getElementById('adminInput').classList.toggle('hidden');
 document.getElementById('adminInput').onchange = function() {
     if(this.value === MASTER_KEY) {
         document.getElementById('adminPanel').classList.remove('hidden');
         renderAdmin();
-    } else {
-        triggerShake('userPanel');
-        this.value = "";
-    }
+    } else triggerShake('userPanel');
 };
 
 async function renderAdmin() {
     const data = await api('GET');
-    document.getElementById('keyLogs').innerHTML = Object.entries(data.keys || {}).map(([k, v]) => `
-        <div class="msg-item"><b>${k}</b> <br> ID: ${v.rbx}</div>
+    document.getElementById('banLogs').innerHTML = Object.entries(data.bans || {}).map(([id, v]) => `
+        <div class="msg-item">
+            <b>ROBLOX: ${id}</b> ${v.reason}
+            <button class="mini danger" onclick="unban('${id}')">REMOVE BAN</button>
+        </div>
     `).join('');
 }
 
-function nukeAll() { if(confirm("Nuke everything?")) location.reload(); }
+function logout() { location.reload(); }
 </script>
-
 </body>
 </html>
