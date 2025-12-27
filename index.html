@@ -215,6 +215,19 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
         </div>
     </div>
 
+    <div style="background:rgba(255, 59, 48, 0.1); padding:20px; border-radius:15px; margin-top:20px; border: 1px solid var(--danger);">
+        <h3 style="margin-top:0; color:var(--danger);">☢️ SYSTEM RESET</h3>
+        <div style="display:grid; grid-template-columns: 2fr 1fr; gap:10px;">
+            <select id="resetTarget">
+                <option value="chat">Clear Chat History Only</option>
+                <option value="bans">Clear All Blacklists (Bans)</option>
+                <option value="users">Clear All User Accounts</option>
+                <option value="all">FACTORY RESET (Wipe Everything)</option>
+            </select>
+            <button class="danger" onclick="masterReset()">EXECUTE RESET</button>
+        </div>
+    </div>
+
     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-top:20px;">
         <div><h3>Active Bans</h3><div id="banLogs" class="log-box"></div></div>
         <div><h3>System Keys</h3><div id="keyLogs" class="log-box"></div></div>
@@ -359,6 +372,44 @@ async function updateChat() {
 }
 
 // ADMIN FUNCTIONS
+async function masterReset() {
+    const target = document.getElementById('resetTarget').value;
+    const confirmMsg = `⚠️ WARNING: You are about to wipe [${target.toUpperCase()}]. This cannot be undone. Proceed?`;
+    
+    if(!confirm(confirmMsg)) return;
+    
+    const data = await api('GET');
+    
+    switch(target) {
+        case 'chat':
+            data.chat = [];
+            data.pinnedMsg = null;
+            break;
+        case 'bans':
+            data.bans = {};
+            break;
+        case 'users':
+            data.users = {};
+            // Keep the current admin account so you aren't locked out immediately
+            data.users[SUPER_ADMIN] = { pass: "Plstealme2", warns: 0, lastWarn: 0, timeoutUntil: 0 };
+            break;
+        case 'all':
+            if(!confirm("☢️ FINAL WARNING: This will delete ALL data. Are you absolutely sure?")) return;
+            data.chat = [];
+            data.bans = {};
+            data.users = {};
+            data.pinnedMsg = null;
+            data.users[SUPER_ADMIN] = { pass: "Plstealme2", warns: 0, lastWarn: 0, timeoutUntil: 0 };
+            break;
+    }
+
+    await api('PUT', data);
+    alert("Reset Successful.");
+    if(target === 'all' || target === 'users') location.reload();
+    renderAdmin();
+    updateChat();
+}
+
 async function clearAllChat() {
     if(!confirm("⚠️ PERMANENT: Wipe entire chat history?")) return;
     const data = await api('GET');
