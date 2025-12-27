@@ -28,10 +28,22 @@ body {
     justify-content: center;
 }
 
+/* Base Animations */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-10px); } }
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+.animate-fade { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.animate-shake { animation: shake 0.2s ease-in-out 0s 2; }
+
 /* Snowflake Animation */
-.snowflake { color: #fff; font-size: 1em; position: fixed; top: -10%; z-index: 0; user-select: none; animation: fall linear infinite, shake ease-in-out infinite; }
+.snowflake { color: #fff; font-size: 1em; position: fixed; top: -10%; z-index: 0; user-select: none; animation: fall linear infinite, shake_snow ease-in-out infinite; }
 @keyframes fall { 0% { top: -10%; } 100% { top: 110%; } }
-@keyframes shake { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(50px); } }
+@keyframes shake_snow { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(50px); } }
 
 #bg-wrap { position: fixed; inset: 0; background: radial-gradient(circle at center, #0f172a 0%, #05070a 100%); z-index: -1; }
 
@@ -45,6 +57,7 @@ body {
     border-radius: 24px;
     padding: 30px;
     box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .hidden { display: none !important; }
@@ -59,7 +72,9 @@ input, textarea, select {
     border-radius: 10px;
     color: white;
     outline: none;
+    transition: border 0.3s ease;
 }
+input:focus { border-color: var(--secondary); }
 
 button {
     width: 100%;
@@ -71,48 +86,44 @@ button {
     cursor: pointer;
     background: linear-gradient(135deg, var(--primary), var(--secondary));
     color: white;
-    transition: 0.2s;
+    transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
-button:hover { transform: translateY(-2px); filter: brightness(1.2); }
+button:hover { transform: scale(1.02); filter: brightness(1.2); }
+button:active { transform: scale(0.98); }
 button.danger { background: linear-gradient(135deg, #ff3b30, #ff7b30); }
 button.warning { background: linear-gradient(135deg, #ffcc00, #ffae00); color: #000; }
-button.mini { width: auto; padding: 5px 10px; font-size: 10px; margin: 2px; margin-top: 5px; }
 
-/* Chat Box */
-#chat-toggle {
-    position: fixed; bottom: 25px; right: 25px; width: 55px; height: 55px;
-    border-radius: 50%; background: var(--primary); display: flex;
-    align-items: center; justify-content: center; cursor: pointer; z-index: 1000;
-}
-
+/* Chat Window Animation */
 #chat-window {
     position: fixed; bottom: 90px; right: 25px; width: 320px; height: 450px;
     background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--border);
     border-radius: 15px; display: flex; flex-direction: column; z-index: 999; overflow: hidden;
+    transform-origin: bottom right;
+    transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.3s ease;
+}
+#chat-window.hidden { transform: scale(0); opacity: 0; display: flex !important; pointer-events: none; }
+
+#chat-msgs { flex: 1; overflow-y: auto; padding: 15px; font-size: 13px; scroll-behavior: smooth; }
+
+.msg-item { 
+    margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; 
+    position: relative; animation: fadeIn 0.3s ease forwards; 
 }
 
-#chat-msgs { flex: 1; overflow-y: auto; padding: 15px; font-size: 13px; }
-#pinned-area { background: rgba(255, 204, 0, 0.1); border-bottom: 1px solid var(--warning); padding: 10px; font-size: 12px; }
-
-.msg-item { margin-bottom: 10px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; position: relative; }
-.msg-item b { color: var(--secondary); font-size: 10px; display: block; }
-.pin-tag { color: var(--warning); font-weight: bold; font-size: 9px; margin-right: 5px; }
-.del-msg { position: absolute; top: 5px; right: 8px; color: var(--danger); font-size: 9px; cursor: pointer; font-weight: bold; }
-
-/* Admin Panel */
+/* Admin Panel Transition */
 .adminFull {
     position: fixed; inset: 15px; background: #0b0f1a; border-radius: 20px;
     padding: 25px; z-index: 2000; overflow-y: auto; border: 1px solid var(--border);
+    transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.admin-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 20px; }
-.log-box { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; height: 400px; overflow-y: auto; border: 1px solid var(--border); }
+.adminFull.hidden { opacity: 0; transform: scale(0.95); display: block !important; pointer-events: none; }
 </style>
 </head>
 <body>
 
 <div id="bg-wrap"></div>
 
-<div id="authPanel" class="panel">
+<div id="authPanel" class="panel animate-fade">
     <h1 style="text-align:center; margin:0;">RSQ <span style="color:var(--secondary)">GATE</span></h1>
     <div id="loginView">
         <input id="l-user" placeholder="Username">
@@ -130,7 +141,7 @@ button.mini { width: auto; padding: 5px 10px; font-size: 10px; margin: 2px; marg
 </div>
 
 <div id="mainSystem" class="hidden">
-    <div id="userPanel" class="panel">
+    <div id="userPanel" class="panel animate-fade">
         <h1 style="text-align:center; margin:0;">RSQ <span style="color:var(--secondary)">ELITE</span></h1>
         <p id="welcomeUser" style="text-align:center; opacity:0.5; font-size: 11px;"></p>
         
@@ -146,7 +157,7 @@ button.mini { width: auto; padding: 5px 10px; font-size: 10px; margin: 2px; marg
         <input id="adminInput" class="hidden" type="password" placeholder="Master Key">
     </div>
 
-    <div id="chat-toggle">💬</div>
+    <div id="chat-toggle" onclick="toggleChat()">💬</div>
     <div id="chat-window" class="hidden">
         <div style="padding:10px; background:rgba(255,255,255,0.05); font-size:12px; font-weight:bold;">NETWORK CHAT</div>
         <div id="pinned-area" class="hidden"></div>
@@ -178,7 +189,6 @@ button.mini { width: auto; padding: 5px 10px; font-size: 10px; margin: 2px; marg
                     <option value="86400">Days (D)</option>
                     <option value="604800">Weeks (W)</option>
                     <option value="2592000">Months (M)</option>
-                    <option value="31536000">Years (Y)</option>
                 </select>
             </div>
             <input id="banReason" placeholder="Reason/Message">
@@ -189,13 +199,12 @@ button.mini { width: auto; padding: 5px 10px; font-size: 10px; margin: 2px; marg
             <button class="warning" onclick="sendGlobalMsg(false)">GLOBAL ANNOUNCEMENT</button>
         </div>
     </div>
-
-    <input id="adminSearch" placeholder="Search Logs..." style="margin-top:20px;" oninput="renderAdmin()">
     
-    <div class="admin-grid">
-        <div><h3>System Keys</h3><div id="keyLogs" class="log-box"></div></div>
-        <div><h3>Active Users</h3><div id="userLogs" class="log-box"></div></div>
-        <div><h3>Banned Database</h3><div id="banLogs" class="log-box"></div></div>
+    <input id="adminSearch" placeholder="Search Logs..." style="margin-top:20px;" oninput="renderAdmin()">
+    <div class="admin-grid" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:20px; margin-top:20px;">
+        <div><h3>System Keys</h3><div id="keyLogs" style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; height:400px; overflow-y:auto;"></div></div>
+        <div><h3>Active Users</h3><div id="userLogs" style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; height:400px; overflow-y:auto;"></div></div>
+        <div><h3>Banned Database</h3><div id="banLogs" style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; height:400px; overflow-y:auto;"></div></div>
     </div>
 </div>
 
@@ -204,13 +213,6 @@ const BIN_ID = "694c4aefae596e708faef157";
 const JSON_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu";
 const MASTER_KEY = "roblox";
 
-const BANNED_WORDS = ["nigger", "fuck", "shit"];
-let currentUser = null;
-let currentWarns = 0;
-let timeoutUntil = 0;
-
-const getDevId = () => btoa(navigator.userAgent + screen.width).slice(0, 12).toUpperCase();
-const MY_ID = getDevId();
 const now = () => Math.floor(Date.now()/1000);
 
 async function api(method, data = null) {
@@ -223,189 +225,127 @@ async function api(method, data = null) {
     return res.record;
 }
 
-/* SNOW */
-function initSnow() {
-    for(let i=0; i<35; i++) {
-        let s = document.createElement('div');
-        s.className = 'snowflake'; s.innerHTML = '❄';
-        s.style.left = Math.random() * 100 + 'vw';
-        s.style.animationDuration = (Math.random() * 3 + 5) + 's';
-        document.body.appendChild(s);
-    }
+/* UI HELPERS */
+function triggerShake(elementId) {
+    const el = document.getElementById(elementId);
+    el.classList.remove('animate-shake');
+    void el.offsetWidth; // Force reflow
+    el.classList.add('animate-shake');
 }
-initSnow();
 
-/* AUTH FLOW */
 function toggleAuth(isSignup) {
-    document.getElementById('signupView').classList.toggle('hidden', !isSignup);
-    document.getElementById('loginView').classList.toggle('hidden', isSignup);
+    const authPanel = document.getElementById('authPanel');
+    authPanel.style.opacity = '0';
+    setTimeout(() => {
+        document.getElementById('signupView').classList.toggle('hidden', !isSignup);
+        document.getElementById('loginView').classList.toggle('hidden', isSignup);
+        authPanel.style.opacity = '1';
+    }, 200);
+}
+
+function toggleChat() {
+    document.getElementById('chat-window').classList.toggle('hidden');
 }
 
 async function handleAuth(type) {
     const status = document.getElementById('authStatus');
     status.innerText = "Syncing...";
-    const data = await api('GET');
-    data.users ||= {};
+    
+    try {
+        const data = await api('GET');
+        data.users ||= {};
 
-    if(type === 'signup') {
-        const u = document.getElementById('s-user').value.trim();
-        const p = document.getElementById('s-pass').value.trim();
-        if(!u || !p) return status.innerText = "Fields empty";
-        if(data.users[u]) return status.innerText = "Username taken";
-        data.users[u] = { pass: p, dev: MY_ID, warns: 0, timeoutUntil: 0 };
-        await api('PUT', data);
-        status.innerText = "Created! Login now.";
-        toggleAuth(false);
-    } else {
-        const u = document.getElementById('l-user').value.trim();
-        const p = document.getElementById('l-pass').value.trim();
-        if(data.users[u] && data.users[u].pass === p) {
-            currentUser = u;
-            document.getElementById('authPanel').classList.add('hidden');
-            document.getElementById('mainSystem').classList.remove('hidden');
-            document.getElementById('welcomeUser').innerText = `USER: ${u}`;
-            startChatLoop();
-        } else { status.innerText = "Invalid login"; }
+        if(type === 'signup') {
+            const u = document.getElementById('s-user').value.trim();
+            const p = document.getElementById('s-pass').value.trim();
+            if(!u || !p) { triggerShake('authPanel'); return status.innerText = "Fields empty"; }
+            data.users[u] = { pass: p, dev: "LINKED", warns: 0 };
+            await api('PUT', data);
+            status.innerText = "Created! Signing in...";
+            toggleAuth(false);
+        } else {
+            const u = document.getElementById('l-user').value.trim();
+            const p = document.getElementById('l-pass').value.trim();
+            if(data.users[u] && data.users[u].pass === p) {
+                // FADE OUT LOGIN -> FADE IN SYSTEM
+                document.getElementById('authPanel').style.animation = "fadeOut 0.4s forwards";
+                setTimeout(() => {
+                    document.getElementById('authPanel').classList.add('hidden');
+                    document.getElementById('mainSystem').classList.remove('hidden');
+                    document.getElementById('welcomeUser').innerText = `USER: ${u}`;
+                    startChatLoop();
+                }, 400);
+            } else {
+                triggerShake('authPanel');
+                status.innerText = "Invalid credentials";
+            }
+        }
+    } catch(e) { status.innerText = "API Error"; }
+}
+
+function logout() {
+    document.body.style.opacity = '0';
+    document.body.style.transition = 'opacity 0.5s';
+    setTimeout(() => location.reload(), 500);
+}
+
+/* KEY GEN ANIMATION */
+document.getElementById('genBtn').onclick = async () => {
+    const rbxId = document.getElementById('userid').value.trim();
+    const status = document.getElementById('statusMsg');
+    
+    if(!rbxId) {
+        triggerShake('userPanel');
+        status.innerText = "Enter Roblox ID!";
+        return;
     }
-}
 
-function logout() { location.reload(); }
-
-/* GLOBAL MESSAGING & PINNING */
-async function sendGlobalMsg(isPinned) {
-    const msg = document.getElementById('banReason').value.trim();
-    if(!msg) return alert("Enter message in 'Reason' box first!");
-    
+    status.innerText = "Generating...";
     const data = await api('GET');
-    data.chat ||= [];
-    
-    const msgObj = { 
-        user: "👑 OVERSEER", 
-        txt: msg.toUpperCase(), 
-        type: isPinned ? "pinned" : "announcement" 
-    };
+    data.keys ||= {};
 
-    if(isPinned) data.pinnedMsg = msgObj;
-    data.chat.push(msgObj);
-    
-    await api('PUT', data);
-    alert("Global Broadcast Sent!");
-    renderAdmin();
-}
-
-/* BAN SYSTEM */
-async function processBan() {
-    const rbx = document.getElementById('banUserId').value.trim();
-    const timeVal = document.getElementById('banTime').value;
-    const unit = document.getElementById('banUnit').value;
-    const msg = document.getElementById('banReason').value.trim();
-
-    if(!rbx || !timeVal) return alert("Missing ID or Duration");
-
-    const data = await api('GET');
-    data.bans ||= {};
-    
-    data.bans[rbx] = {
-        reason: msg || "Violating Network Terms",
-        exp: now() + (parseInt(timeVal) * parseInt(unit)),
-        by: currentUser
-    };
+    const newKey = "RSQ-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+    data.keys[newKey] = { user: "Admin", rbx: rbxId, exp: now() + 86400 };
 
     await api('PUT', data);
-    alert(`User ${rbx} Banned Successfully`);
-    renderAdmin();
-}
+    status.style.color = "var(--success)";
+    status.innerText = "SUCCESS!";
+    document.getElementById('keyOut').innerText = newKey;
+    document.getElementById('keyOut').classList.add('animate-fade');
+};
 
-/* CHAT LOGIC */
-document.getElementById('chat-toggle').onclick = () => document.getElementById('chat-window').classList.toggle('hidden');
-
+/* CHAT LOOP */
 function startChatLoop() { setInterval(updateChat, 4000); updateChat(); }
 
 async function updateChat() {
     const data = await api('GET');
     const box = document.getElementById('chat-msgs');
-    const pinBox = document.getElementById('pinned-area');
-    
-    // Handle Pinned Message
-    if(data.pinnedMsg) {
-        pinBox.classList.remove('hidden');
-        pinBox.innerHTML = `<span class="pin-tag">PINNED:</span> ${data.pinnedMsg.txt}`;
-    } else {
-        pinBox.classList.add('hidden');
-    }
-
-    box.innerHTML = (data.chat || []).map((m, i) => `
-        <div class="msg-item ${m.type === 'announcement' ? 'bot-msg' : ''}">
-            <b>${m.user}</b>
-            ${m.type === 'pinned' ? '<span class="pin-tag">[LIVE]</span>' : ''}
-            ${m.txt}
-            ${m.user === currentUser ? `<span class="del-msg" onclick="deleteMsg(${i})">DEL</span>` : ''}
-        </div>
+    box.innerHTML = (data.chat || []).map(m => `
+        <div class="msg-item"><b>${m.user}</b> ${m.txt}</div>
     `).join('');
 }
 
-document.getElementById('sendChat').onclick = async () => {
-    const inp = document.getElementById('chatIn');
-    const text = inp.value.trim();
-    if(!text) return;
-
-    const data = await api('GET');
-    data.chat ||= [];
-    data.chat.push({ user: currentUser, txt: text });
-    await api('PUT', data);
-    inp.value = '';
-    updateChat();
-};
-
-/* ADMIN RENDER */
+/* ADMIN AUTH */
 document.getElementById('adminBtn').onclick = () => document.getElementById('adminInput').classList.toggle('hidden');
 document.getElementById('adminInput').onchange = function() {
     if(this.value === MASTER_KEY) {
         document.getElementById('adminPanel').classList.remove('hidden');
         renderAdmin();
+    } else {
+        triggerShake('userPanel');
+        this.value = "";
     }
 };
 
 async function renderAdmin() {
     const data = await api('GET');
-    const term = document.getElementById('adminSearch').value.toUpperCase();
-    
-    // Render Keys (Unchanged)
-    document.getElementById('keyLogs').innerHTML = Object.entries(data.keys || {}).map(([k, v]) => {
-        if(!k.includes(term) && !v.user.toUpperCase().includes(term)) return '';
-        return `<div class="msg-item"><b>${k}</b> ID: ${v.rbx}<br>User: ${v.user}</div>`;
-    }).join('');
-
-    // Render Users
-    document.getElementById('userLogs').innerHTML = Object.entries(data.users || {}).map(([u, v]) => {
-        if(!u.toUpperCase().includes(term)) return '';
-        return `<div class="msg-item"><b>${u}</b> Dev: ${v.dev}</div>`;
-    }).join('');
-
-    // Render Bans
-    document.getElementById('banLogs').innerHTML = Object.entries(data.bans || {}).map(([rbx, v]) => {
-        const timeLeft = v.exp - now();
-        if(timeLeft <= 0) return '';
-        return `<div class="msg-item" style="border-left: 3px solid var(--danger)">
-            <b>ID: ${rbx}</b> Reason: ${v.reason}<br>
-            <small>Expires in: ${Math.round(timeLeft/3600)} hrs</small>
-            <button class="mini danger" onclick="unban('${rbx}')">Unban</button>
-        </div>`;
-    }).join('');
+    document.getElementById('keyLogs').innerHTML = Object.entries(data.keys || {}).map(([k, v]) => `
+        <div class="msg-item"><b>${k}</b> <br> ID: ${v.rbx}</div>
+    `).join('');
 }
 
-async function unban(rbx) {
-    const data = await api('GET');
-    delete data.bans[rbx];
-    await api('PUT', data);
-    renderAdmin();
-}
-
-async function nukeAll() {
-    if(!confirm("DELETE EVERYTHING?")) return;
-    await api('PUT', { keys: {}, users: {}, chat: [], bans: {}, pinnedMsg: null });
-    location.reload();
-}
+function nukeAll() { if(confirm("Nuke everything?")) location.reload(); }
 </script>
+
 </body>
 </html>
