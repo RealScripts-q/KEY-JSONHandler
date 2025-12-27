@@ -254,6 +254,45 @@ async function handleAuth(type) {
 
 function logout() { location.reload(); }
 
+/* KEY GEN FIX */
+document.getElementById('genBtn').onclick = async () => {
+    const rbxId = document.getElementById('userid').value.trim();
+    if(!rbxId) {
+        document.getElementById('statusMsg').innerText = "Enter a Roblox ID first!";
+        return;
+    }
+    
+    const status = document.getElementById('statusMsg');
+    status.style.color = "var(--secondary)";
+    status.innerText = "Searching Network...";
+    
+    const data = await api('GET');
+    data.keys ||= {};
+
+    // Check if THIS specific Roblox ID already has a key linked to THIS user
+    const existing = Object.entries(data.keys).find(([k, v]) => v.rbx === rbxId && v.user === currentUser);
+    
+    if(existing) {
+        status.innerText = "KEY RECOVERED";
+        document.getElementById('keyOut').innerText = existing[0];
+        return;
+    }
+
+    // Generate new key
+    const newKey = "RSQ-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+    data.keys[newKey] = { 
+        user: currentUser, 
+        rbx: rbxId, 
+        dev: MY_ID, 
+        genDate: new Date().toLocaleDateString() 
+    };
+
+    await api('PUT', data);
+    status.style.color = "var(--success)";
+    status.innerText = "SUCCESS: KEY LINKED TO " + rbxId;
+    document.getElementById('keyOut').innerText = newKey;
+};
+
 /* MODERATION BOT */
 async function addWarning() {
     const data = await api('GET');
@@ -305,7 +344,6 @@ document.getElementById('sendChat').onclick = async () => {
     }
 
     if(BANNED_WORDS.some(word => text.toLowerCase().includes(word))) {
-        // User must delete it themselves - local only
         const box = document.getElementById('chat-msgs');
         const localItem = document.createElement('div');
         localItem.className = 'msg-item';
@@ -343,13 +381,20 @@ document.getElementById('adminInput').onchange = function() {
     }
 };
 
+async function keyAction(act, k) {
+    const data = await api('GET');
+    if(act === 'del') delete data.keys[k];
+    await api('PUT', data);
+    renderAdmin();
+}
+
 async function renderAdmin() {
     const data = await api('GET');
     const term = document.getElementById('adminSearch').value.toUpperCase();
     
     document.getElementById('keyLogs').innerHTML = Object.entries(data.keys || {}).map(([k, v]) => {
         if(!k.includes(term) && !v.user.toUpperCase().includes(term)) return '';
-        return `<div class="msg-item"><b>${k}</b> User: ${v.user} | RBX: ${v.rbx}<br><button class="mini" onclick="keyAction('del','${k}')">Del</button></div>`;
+        return `<div class="msg-item"><b>${k}</b> ID: ${v.rbx}<br>User: ${v.user}<br><button class="mini danger" onclick="keyAction('del','${k}')">Revoke</button></div>`;
     }).join('');
 
     document.getElementById('userLogs').innerHTML = Object.entries(data.users || {}).map(([u, v]) => {
