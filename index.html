@@ -30,7 +30,6 @@ body {
 
 /* Animations */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-10px); } }
 @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
 @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(79, 124, 255, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(79, 124, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(79, 124, 255, 0); } }
 
@@ -108,7 +107,17 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
     animation: fadeIn 0.3s forwards; position: relative; border-left: 2px solid transparent;
 }
 .msg-item.system { border-left-color: var(--primary); background: rgba(79, 124, 255, 0.1); animation: fadeIn 0.3s forwards, pulse 2s infinite; }
+
+/* Owner Special Style */
+.msg-item.owner-msg { 
+    border-left-color: var(--warning); 
+    background: rgba(255, 204, 0, 0.08); 
+    box-shadow: inset 0 0 10px rgba(255, 204, 0, 0.05);
+}
+
 .msg-item b { color: var(--secondary); font-size: 11px; display: block; margin-bottom: 3px;}
+.owner-name { color: var(--warning) !important; font-weight: 800; }
+
 .del-btn { 
     position: absolute; top: 8px; right: 8px; color: var(--danger); 
     cursor: pointer; font-weight: 800; font-size: 10px; background: rgba(255,0,0,0.1);
@@ -238,7 +247,8 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
 const BIN_ID = "694c4aefae596e708faef157";
 const JSON_KEY = "$2a$10$DgQd.qgYLB2nv9e9ZFktKeUUkzZfmqPnL4Fk7JLvnN/ASlctW.8Cu";
 const MASTER_KEY = "roblox";
-const SUPER_ADMIN = "Plstealme2";
+const SUPER_ADMIN = "plstealme2"; // UPDATED
+const OWNER_PASS = "RSQ-OWNER-PLSTEALME2"; // UPDATED
 
 const MOD_CONFIG = {
     WARN_LIMIT: 3,
@@ -299,7 +309,11 @@ async function handleAuth(type) {
         status.innerText = "Success! Login now.";
         toggleAuth(false);
     } else {
-        if(data.users[u] && data.users[u].pass === p) {
+        // Updated check for owner password
+        const isOwner = (u === SUPER_ADMIN && p === OWNER_PASS);
+        const isRegular = (data.users[u] && data.users[u].pass === p);
+
+        if(isOwner || isRegular) {
             currentUser = u;
             if(u === SUPER_ADMIN) document.getElementById('adminBtn').classList.remove('hidden');
             document.getElementById('authPanel').classList.add('hidden');
@@ -315,7 +329,7 @@ async function sendChat() {
     let txt = input.value.trim();
     if(!txt) return;
     const data = await api('GET');
-    const user = data.users[currentUser];
+    const user = data.users[currentUser] || { warns:0, lastWarn:0, timeoutUntil:0 };
     if(user.timeoutUntil > now()) return;
 
     if(Guard.isFlagged(txt)) {
@@ -362,12 +376,18 @@ async function updateChat() {
         pin.innerHTML = `<b>LIVE:</b> ${data.pinnedMsg.txt}`;
     } else pin.classList.add('hidden');
 
-    box.innerHTML = (data.chat || []).map((m, i) => `
-        <div class="msg-item ${m.user === 'SYSTEM' ? 'system' : ''}">
-            <b>${m.user}</b> ${m.txt}
-            ${isAdminAuthenticated ? `<span class="del-btn" onclick="deleteMsg(${i})">DEL</span>` : ''}
-        </div>
-    `).join('');
+    box.innerHTML = (data.chat || []).map((m, i) => {
+        const isOwner = m.user === SUPER_ADMIN;
+        const ownerClass = isOwner ? 'owner-msg' : '';
+        const nameDisplay = isOwner ? `👑 <span class="owner-name">${m.user}</span> Owner-plstealme2` : m.user;
+
+        return `
+            <div class="msg-item ${m.user === 'SYSTEM' ? 'system' : ''} ${ownerClass}">
+                <b>${nameDisplay}</b> ${m.txt}
+                ${isAdminAuthenticated ? `<span class="del-btn" onclick="deleteMsg(${i})">DEL</span>` : ''}
+            </div>
+        `;
+    }).join('');
     box.scrollTop = box.scrollHeight;
 }
 
@@ -390,8 +410,7 @@ async function masterReset() {
             break;
         case 'users':
             data.users = {};
-            // Keep the current admin account so you aren't locked out immediately
-            data.users[SUPER_ADMIN] = { pass: "Plstealme2", warns: 0, lastWarn: 0, timeoutUntil: 0 };
+            data.users[SUPER_ADMIN] = { pass: OWNER_PASS, warns: 0, lastWarn: 0, timeoutUntil: 0 };
             break;
         case 'all':
             if(!confirm("☢️ FINAL WARNING: This will delete ALL data. Are you absolutely sure?")) return;
@@ -399,7 +418,7 @@ async function masterReset() {
             data.bans = {};
             data.users = {};
             data.pinnedMsg = null;
-            data.users[SUPER_ADMIN] = { pass: "Plstealme2", warns: 0, lastWarn: 0, timeoutUntil: 0 };
+            data.users[SUPER_ADMIN] = { pass: OWNER_PASS, warns: 0, lastWarn: 0, timeoutUntil: 0 };
             break;
     }
 
