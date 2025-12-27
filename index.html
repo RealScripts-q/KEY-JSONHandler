@@ -116,7 +116,6 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
 }
 
 .msg-item b { color: var(--secondary); font-size: 11px; display: block; margin-bottom: 3px;}
-.owner-name { color: var(--warning) !important; font-weight: 800; }
 
 .del-btn { 
     position: absolute; top: 8px; right: 8px; color: var(--danger); 
@@ -124,15 +123,6 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
     padding: 2px 5px; border-radius: 4px; transition: 0.2s;
 }
 .del-btn:hover { background: var(--danger); color: white; }
-
-.timeout-overlay {
-    background: rgba(255, 59, 48, 0.1);
-    padding: 10px;
-    text-align: center;
-    font-size: 11px;
-    color: var(--danger);
-    font-weight: bold;
-}
 
 .adminFull {
     position: fixed; inset: 15px; background: #0b0f1a; border-radius: 20px;
@@ -186,7 +176,7 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
         <p id="welcomeUser" style="text-align:center; opacity:0.5; font-size: 11px;"></p>
         
         <input id="userid" placeholder="Roblox UserID">
-        <button id="genBtn">Generate Access Key</button>
+        <button id="genBtn" onclick="generateKey()">Generate Access Key</button>
         <div id="statusMsg" style="text-align:center; margin-top:10px; font-size:12px; color:var(--danger);"></div>
         <div id="keyOut" style="text-align:center; margin-top:10px; color:var(--secondary); font-family:monospace; font-weight:bold;"></div>
 
@@ -212,7 +202,6 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
             <input id="chatIn" placeholder="Message..." style="margin:0; font-size:12px;">
             <button id="sendChat" style="margin:0; width:50px;">➔</button>
         </div>
-        <div id="timeout-msg" class="timeout-overlay hidden"></div>
     </div>
 </div>
 
@@ -276,14 +265,6 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
         <input id="fbSearch" placeholder="Search UserID or Username..." oninput="renderAdminFeedbacks()">
         <div id="fbLogs" class="log-box" style="margin-top:15px; height: 500px;"></div>
     </div>
-
-    <div id="adminViewFeedbackUI" class="hidden">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h2 id="viewFbTitle">FEEDBACK VIEW</h2>
-            <button onclick="closeSingleFeedback()" style="width:auto; margin:0; background:var(--danger);">Close Feedback</button>
-        </div>
-        <div id="viewFbContent" style="background:rgba(255,255,255,0.05); padding:20px; border-radius:15px; margin-top:20px; line-height: 1.6; min-height: 200px;"></div>
-    </div>
 </div>
 
 <script>
@@ -293,25 +274,16 @@ const MASTER_KEY = "roblox";
 const SUPER_ADMIN = "plstealme2";
 const OWNER_PASS = "RSQ-OWNER-PLSTEALME2";
 
-// --- AI ANTI-SLUR CONFIGURATION ---
 const MOD_CONFIG = {
-    // Basic detection list (Expand this list)
     BANNED: [/fuck/gi, /shit/gi, /nigger/gi, /faggot/gi, /retard/gi, /bitch/gi, /porn/gi, /sex/gi],
-    // Character normalization map to prevent bypasses like "f.u.c.k" or "f4ck"
     LEET: { '0':'o', '1':'i', '3':'e', '4':'a', '5':'s', '7':'t', '8':'b', '@':'a', '$':'s', '!':'i', '*':'' }
 };
 
 function moderate(text) {
     if (!text) return false;
     let clean = text.toLowerCase();
-    // Normalize leetspeak
-    for (let key in MOD_CONFIG.LEET) {
-        clean = clean.split(key).join(MOD_CONFIG.LEET[key]);
-    }
-    // Remove symbols to detect "f.u.c.k"
+    for (let key in MOD_CONFIG.LEET) { clean = clean.split(key).join(MOD_CONFIG.LEET[key]); }
     clean = clean.replace(/[^a-zA-Z ]/g, "");
-    
-    // Check against banned regex
     return MOD_CONFIG.BANNED.some(regex => regex.test(clean) || regex.test(text));
 }
 
@@ -358,23 +330,17 @@ async function handleAuth(type) {
     const p = document.getElementById(type === 'signup' ? 's-pass' : 'l-pass').value.trim();
 
     if(!u || !p) { triggerShake('authPanel'); return status.innerText = "Empty fields"; }
-
-    // MODERATION CHECK ON SIGNUP
-    if(type === 'signup' && moderate(u)) {
-        triggerShake('authPanel');
-        return status.innerText = "Inappropriate Username";
-    }
+    if(type === 'signup' && moderate(u)) { triggerShake('authPanel'); return status.innerText = "Inappropriate Username"; }
 
     if(type === 'signup') {
         if(data.users[u]) return status.innerText = "User exists";
-        data.users[u] = { pass: p, warns: 0, lastWarn: 0, timeoutUntil: 0 };
+        data.users[u] = { pass: p };
         await api('PUT', data);
         status.innerText = "Success! Login now.";
         toggleAuth(false);
     } else {
         const isOwner = (u === SUPER_ADMIN && p === OWNER_PASS);
         const isRegular = (data.users[u] && data.users[u].pass === p);
-
         if(isOwner || isRegular) {
             currentUser = u;
             localStorage.setItem('rsq_session', JSON.stringify({u, p}));
@@ -387,93 +353,53 @@ async function handleAuth(type) {
     }
 }
 
-function toggleFeedbackUI(show) {
-    if(show) {
-        document.getElementById('mainSystem').classList.add('hidden');
-        document.getElementById('userFeedbackUI').classList.remove('hidden');
-    } else {
-        document.getElementById('userFeedbackUI').classList.add('hidden');
-        document.getElementById('mainSystem').classList.remove('hidden');
-    }
-}
-
-async function submitFeedback() {
-    const u = document.getElementById('fb-user').value.trim();
-    const id = document.getElementById('fb-id').value.trim();
-    const msg = document.getElementById('fb-msg').value.trim();
+// --- ACCESS KEY LOGIC ---
+async function generateKey() {
+    const rbxId = document.getElementById('userid').value.trim();
+    if(!rbxId) return alert("Enter Roblox ID");
     
-    if(!u || !id || !msg) return alert("Fill all fields.");
-
-    // MODERATION CHECK
-    if(moderate(u) || moderate(msg)) {
-        return alert("Inappropriate content detected in feedback.");
-    }
-
+    const key = "RSQ-" + Math.random().toString(36).substring(2, 10).toUpperCase();
     const data = await api('GET');
-    data.feedbacks ||= [];
-    data.feedbacks.push({ user: u, id: id, feedback: msg, time: new Date().toLocaleString() });
+    
+    // Schema Fix
+    data.keys = data.keys || {};
+    data.keys[key] = {
+        "user": currentUser,
+        "rbx": rbxId,
+        "dev": "RSQ-ELITE",
+        "exp": now() + (86400 * 30) // 30 days
+    };
+    
     await api('PUT', data);
-    alert("Feedback Submitted.");
-    document.getElementById('fb-msg').value = "";
-    toggleFeedbackUI(false);
+    document.getElementById('keyOut').innerText = key;
+    renderKeyLogs();
 }
 
-// --- FIXED ADMIN FUNCTIONS ---
-
-async function sendGlobalMsg(isPin) {
-    const msg = document.getElementById('banReason').value.trim();
-    if(!msg) return alert("Enter message text first.");
+// --- SYSTEM RESET LOGIC ---
+async function masterReset() {
+    const target = document.getElementById('resetTarget').value;
+    if(!confirm(`WARNING: You are about to wipe [${target.toUpperCase()}]. Proceed?`)) return;
     
     const data = await api('GET');
-    if(isPin) {
-        // Fix: Update database pinned object
-        data.pinned = { text: msg, active: true };
-    } else {
-        // Announce: Send as a system chat message
-        data.chat ||= [];
-        data.chat.push({ user: "SYSTEM", txt: `[GLOBAL ANNOUNCEMENT]: ${msg}` });
-        if(data.chat.length > 50) data.chat.shift();
+    if(target === 'chat' || target === 'all') data.chat = [];
+    if(target === 'bans' || target === 'all') data.bans = {};
+    if(target === 'users' || target === 'all') data.users = { [SUPER_ADMIN]: { pass: OWNER_PASS } };
+    if(target === 'all') {
+        data.keys = {};
+        data.feedbacks = [];
+        data.pinned = { text: "", active: false };
     }
     
     await api('PUT', data);
-    alert(isPin ? "Live Pin Updated" : "Announcement Sent");
-    updateChat();
+    alert("System Reset Complete.");
+    location.reload();
 }
-
-async function clearGlobals() {
-    const data = await api('GET');
-    // Reset the pin state
-    data.pinned = { text: "", active: false };
-    // Optionally remove system messages from chat
-    if(data.chat) {
-        data.chat = data.chat.filter(m => !m.txt.startsWith("[GLOBAL ANNOUNCEMENT]"));
-    }
-    await api('PUT', data);
-    alert("Globals Purged");
-    updateChat();
-}
-
-async function clearAllChat() {
-    if(!confirm("Wipe all chat history?")) return;
-    const data = await api('GET');
-    data.chat = [];
-    await api('PUT', data);
-    updateChat();
-}
-
-// --- MAIN CHAT LOGIC ---
 
 async function sendChat() {
     const input = document.getElementById('chatIn');
     let txt = input.value.trim();
     if(!txt) return;
-
-    // MODERATION CHECK
-    if(moderate(txt)) {
-        input.value = "";
-        alert("Your message was blocked for inappropriate language.");
-        return;
-    }
+    if(moderate(txt)) { input.value = ""; return alert("Blocked Slur"); }
 
     const data = await api('GET');
     data.chat ||= [];
@@ -484,31 +410,77 @@ async function sendChat() {
     updateChat();
 }
 
+async function deleteChatMsg(index) {
+    if(!isAdminAuthenticated) return;
+    const data = await api('GET');
+    data.chat.splice(index, 1);
+    await api('PUT', data);
+    updateChat();
+}
+
 async function updateChat() {
     const data = await api('GET');
     if(!data) return;
 
-    // FIX: Handle Pinned Live Display
     const pinArea = document.getElementById('pinned-area');
     if(data.pinned && data.pinned.active) {
         pinArea.innerText = `📌 ${data.pinned.text}`;
         pinArea.classList.remove('hidden');
-    } else {
-        pinArea.classList.add('hidden');
-    }
+    } else { pinArea.classList.add('hidden'); }
 
     const box = document.getElementById('chat-msgs');
     box.innerHTML = (data.chat || []).map((m, i) => {
         const isOwner = m.user === SUPER_ADMIN;
         const isSystem = m.user === "SYSTEM";
+        // ADMIN DELETE BUTTON Logic
+        const delBtn = isAdminAuthenticated ? `<span class="del-btn" onclick="deleteChatMsg(${i})">DEL</span>` : '';
+        
         return `<div class="msg-item ${isOwner ? 'owner-msg' : ''} ${isSystem ? 'system' : ''}">
+            ${delBtn}
             <b>${isOwner ? '👑 ' : ''}${m.user}</b> ${m.txt}
         </div>`;
     }).join('');
     box.scrollTop = box.scrollHeight;
 }
 
-// --- UTILITIES ---
+// --- GLOBAL & BAN LOGIC ---
+async function sendGlobalMsg(isPin) {
+    const msg = document.getElementById('banReason').value.trim();
+    if(!msg) return alert("Enter message");
+    const data = await api('GET');
+    if(isPin) data.pinned = { text: msg, active: true };
+    else {
+        data.chat ||= [];
+        data.chat.push({ user: "SYSTEM", txt: `[GLOBAL]: ${msg}` });
+    }
+    await api('PUT', data);
+    updateChat();
+}
+
+async function clearGlobals() {
+    const data = await api('GET');
+    data.pinned = { text: "", active: false };
+    await api('PUT', data);
+    updateChat();
+}
+
+async function clearAllChat() {
+    if(!confirm("Wipe Chat?")) return;
+    const data = await api('GET');
+    data.chat = [];
+    await api('PUT', data);
+    updateChat();
+}
+
+function renderKeyLogs() {
+    if(!globalData || !globalData.keys) return;
+    const log = document.getElementById('keyLogs');
+    log.innerHTML = Object.entries(globalData.keys).map(([k, v]) => 
+        `<div style="font-size:11px; margin-bottom:5px;"><b>${k}</b><br>Owner: ${v.user} | RBX: ${v.rbx}</div>`
+    ).join('');
+}
+
+// --- SYSTEM UTILS ---
 function logout() { localStorage.removeItem('rsq_session'); location.reload(); }
 function closeAdmin() { document.getElementById('adminPanel').classList.add('hidden'); }
 function triggerShake(id) { document.getElementById(id).classList.add('animate-shake'); setTimeout(()=>document.getElementById(id).classList.remove('animate-shake'), 400); }
@@ -522,12 +494,36 @@ document.getElementById('adminBtn').onclick = () => {
 };
 
 document.getElementById('adminInput').onchange = function() {
-    if(this.value === MASTER_KEY) { isAdminAuthenticated = true; this.classList.add('hidden'); document.getElementById('adminPanel').classList.remove('hidden'); }
+    if(this.value === MASTER_KEY) { 
+        isAdminAuthenticated = true; 
+        this.classList.add('hidden'); 
+        document.getElementById('adminPanel').classList.remove('hidden'); 
+        renderKeyLogs();
+        updateChat(); // Refresh to show delete buttons
+    }
     else { triggerShake('userPanel'); this.value = ""; }
 };
 
 document.getElementById('sendChat').onclick = sendChat;
 document.getElementById('chatIn').onkeypress = (e) => { if(e.key === 'Enter') sendChat(); };
+
+function toggleFeedbackUI(show) {
+    document.getElementById('mainSystem').classList.toggle('hidden', show);
+    document.getElementById('userFeedbackUI').classList.toggle('hidden', !show);
+}
+
+async function submitFeedback() {
+    const u = document.getElementById('fb-user').value.trim();
+    const id = document.getElementById('fb-id').value.trim();
+    const msg = document.getElementById('fb-msg').value.trim();
+    if(!u || !id || !msg || moderate(msg)) return alert("Invalid Feedback");
+    const data = await api('GET');
+    data.feedbacks ||= [];
+    data.feedbacks.push({ user: u, id: id, feedback: msg, time: new Date().toLocaleString() });
+    await api('PUT', data);
+    alert("Submitted");
+    toggleFeedbackUI(false);
+}
 
 function openAdminFeedbacks() {
     document.getElementById('adminDefaultView').classList.add('hidden');
@@ -542,44 +538,21 @@ function returnToAdminPanel() {
 
 function renderAdminFeedbacks() {
     const list = document.getElementById('fbLogs');
-    const search = document.getElementById('fbSearch').value.toLowerCase();
     const data = globalData;
-    if(!data.feedbacks || data.feedbacks.length === 0) return list.innerHTML = "No Feedbacks.";
-
-    const filtered = data.feedbacks.filter(f => 
-        f.user.toLowerCase().includes(search) || f.id.toLowerCase().includes(search)
-    );
-
-    list.innerHTML = filtered.map((f, i) => `
+    if(!data.feedbacks) return list.innerHTML = "Empty";
+    list.innerHTML = data.feedbacks.map((f, i) => `
         <div class="fb-item">
-            <span><b>${f.user}</b> (${f.id})</span>
-            <div class="fb-actions">
-                <button class="mini" onclick="viewSingleFeedback(${i})">View</button>
-                <button class="mini danger" onclick="deleteFeedback(${i})">Delete</button>
-            </div>
+            <span><b>${f.user}</b>: ${f.feedback.substring(0,20)}...</span>
+            <button class="mini danger" onclick="deleteFeedback(${i})">X</button>
         </div>
     `).join('');
 }
 
-async function deleteFeedback(index) {
-    if(!confirm("Are you sure you want to delete this feedback?")) return;
+async function deleteFeedback(i) {
     const data = await api('GET');
-    data.feedbacks.splice(index, 1);
+    data.feedbacks.splice(i, 1);
     await api('PUT', data);
     renderAdminFeedbacks();
-}
-
-function viewSingleFeedback(index) {
-    const fb = globalData.feedbacks[index];
-    document.getElementById('adminFeedbackListView').classList.add('hidden');
-    document.getElementById('adminViewFeedbackUI').classList.remove('hidden');
-    document.getElementById('viewFbTitle').innerText = `${fb.user} - ${fb.id}`;
-    document.getElementById('viewFbContent').innerText = fb.feedback;
-}
-
-function closeSingleFeedback() {
-    document.getElementById('adminViewFeedbackUI').classList.add('hidden');
-    document.getElementById('adminFeedbackListView').classList.remove('hidden');
 }
 </script>
 </body>
