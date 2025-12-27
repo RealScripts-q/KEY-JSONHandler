@@ -251,6 +251,15 @@ button.mini { padding: 4px 8px; font-size: 10px; margin-top: 5px; width: auto; }
             </div>
         </div>
 
+        <div style="background:rgba(255, 59, 48, 0.15); padding:20px; border-radius:15px; margin-top:20px; border: 1px solid var(--danger);">
+            <h3 style="margin-top:0; color:var(--danger);">⚠️ GLOBAL ACCESS CONTROL</h3>
+            <p style="font-size: 11px; opacity: 0.8; margin-top: -10px; margin-bottom: 15px;">Warning: "Ban All" will blacklist every user who currently has an active key.</p>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <button class="danger" onclick="banAllKeyHolders()" style="margin:0">BAN ALL KEY HOLDERS</button>
+                <button class="success" onclick="unbanEveryone()" style="margin:0">UNBAN ALL USERS</button>
+            </div>
+        </div>
+
         <div style="background:rgba(255, 59, 48, 0.1); padding:20px; border-radius:15px; margin-top:20px; border: 1px solid var(--danger);">
             <h3 style="margin-top:0; color:var(--danger);">☢️ SYSTEM RESET</h3>
             <div style="display:grid; grid-template-columns: 2fr 1fr; gap:10px;">
@@ -746,6 +755,37 @@ function closeSingleFeedback() {
 document.getElementById('chatIn').addEventListener('keypress', (e) => {
     if(e.key === 'Enter') sendChat();
 });
+
+// MASS BAN AND UNBAN FUNCTIONS
+async function banAllKeyHolders() {
+    const data = await api('GET');
+    if (!data.keys || Object.keys(data.keys).length === 0) return alert("No active keys found to ban.");
+    
+    const count = Object.keys(data.keys).length;
+    if (!confirm(`Are you sure? This will blacklist ${count} users currently in the system.`)) return;
+
+    data.bans ||= {};
+    for (let k in data.keys) {
+        const keyObj = data.keys[k];
+        data.bans[keyObj.user] = { 
+            id: keyObj.rbx, 
+            reason: "MASS SYSTEM BAN", 
+            date: new Date().toLocaleString() 
+        };
+    }
+    await api('PUT', data);
+    alert(`Mass restriction complete. ${count} users added to blacklist.`);
+    renderBanLogs();
+}
+
+async function unbanEveryone() {
+    if (!confirm("This will clear the ENTIRE blacklist. Proceed?")) return;
+    const data = await api('GET');
+    data.bans = {};
+    await api('PUT', data);
+    alert("Blacklist has been cleared.");
+    renderBanLogs();
+}
 </script>
 </body>
 </html>
