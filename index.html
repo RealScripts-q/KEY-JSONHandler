@@ -187,6 +187,7 @@ const MASTER_KEY = "roblox";
 const BANNED_WORDS = ["nigger", "fuck", "shit"];
 let currentUser = null;
 let currentWarns = 0;
+let timeoutUntil = 0;
 
 const getDevId = () => btoa(navigator.userAgent + screen.width).slice(0, 12).toUpperCase();
 const MY_ID = getDevId();
@@ -233,7 +234,7 @@ async function handleAuth(type) {
         if(data.users[u]) return status.innerText = "Username taken";
         if(Object.values(data.users).some(x => x.dev === MY_ID)) return status.innerText = "Device already linked";
 
-        data.users[u] = { pass: p, dev: MY_ID, warns: 0 };
+        data.users[u] = { pass: p, dev: MY_ID, warns: 0, timeoutUntil: 0 };
         await api('PUT', data);
         status.style.color = "var(--success)";
         status.innerText = "Created! Login now.";
@@ -244,6 +245,7 @@ async function handleAuth(type) {
         if(data.users[u] && data.users[u].pass === p) {
             currentUser = u;
             currentWarns = data.users[u].warns || 0;
+            timeoutUntil = data.users[u].timeoutUntil || 0;
             document.getElementById('authPanel').classList.add('hidden');
             document.getElementById('mainSystem').classList.remove('hidden');
             document.getElementById('welcomeUser').innerText = `USER: ${u} | WARNS: ${currentWarns}`;
@@ -254,7 +256,7 @@ async function handleAuth(type) {
 
 function logout() { location.reload(); }
 
-/* KEY GEN FIX */
+/* KEY GEN WITH 24H EXPIRE */
 document.getElementById('genBtn').onclick = async () => {
     const rbxId = document.getElementById('userid').value.trim();
     if(!rbxId) {
@@ -269,38 +271,52 @@ document.getElementById('genBtn').onclick = async () => {
     const data = await api('GET');
     data.keys ||= {};
 
-    // Check if THIS specific Roblox ID already has a key linked to THIS user
-    const existing = Object.entries(data.keys).find(([k, v]) => v.rbx === rbxId && v.user === currentUser);
+    // Check for existing valid key (Valid for 24 hours)
+    const currentTime = now();
+    const existing = Object.entries(data.keys).find(([k, v]) => 
+        v.rbx === rbxId && v.user === currentUser && v.exp > currentTime
+    );
     
     if(existing) {
-        status.innerText = "KEY RECOVERED";
+        status.innerText = "KEY RECOVERED (Valid for 24h)";
         document.getElementById('keyOut').innerText = existing[0];
         return;
     }
 
-    // Generate new key
+    // Generate new key with 24 hour expiry (86400 seconds)
     const newKey = "RSQ-" + Math.random().toString(36).substr(2, 9).toUpperCase();
     data.keys[newKey] = { 
         user: currentUser, 
         rbx: rbxId, 
         dev: MY_ID, 
-        genDate: new Date().toLocaleDateString() 
+        exp: currentTime + 86400 
     };
 
     await api('PUT', data);
     status.style.color = "var(--success)";
-    status.innerText = "SUCCESS: KEY LINKED TO " + rbxId;
+    status.innerText = "SUCCESS: KEY ACTIVE FOR 24 HOURS";
     document.getElementById('keyOut').innerText = newKey;
 };
 
-/* MODERATION BOT */
+/* MODERATION BOT WITH DYNAMIC TIMEOUT */
 async function addWarning() {
     const data = await api('GET');
-    data.users[currentUser].warns = (data.users[currentUser].warns || 0) + 1;
-    currentWarns = data.users[currentUser].warns;
+    const uData = data.users[currentUser];
+    uData.warns = (uData.warns || 0) + 1;
+    currentWarns = uData.warns;
+
+    // Logic: Starts at 2nd warn. 
+    // Warn 2 = 5m. Warn 3 = 10m. Warn 4 = 15m...
+    if (currentWarns >= 2) {
+        const penaltyMinutes = (currentWarns - 1) * 5;
+        uData.timeoutUntil = now() + (penaltyMinutes * 60);
+        timeoutUntil = uData.timeoutUntil;
+        botMessage(`TIMEOUT APPLIED: ${penaltyMinutes} minutes.`);
+    }
+
     await api('PUT', data);
     document.getElementById('welcomeUser').innerText = `USER: ${currentUser} | WARNS: ${currentWarns}`;
-    botMessage("You have been warned. Any more warnings could result in a timeout.");
+    if (currentWarns < 2) botMessage("Warning added. One more results in a timeout.");
 }
 
 function botMessage(msg) {
@@ -312,13 +328,16 @@ function botMessage(msg) {
     box.scrollTop = box.scrollHeight;
 }
 
-/* CHAT */
+/* CHAT LOOP */
 document.getElementById('chat-toggle').onclick = () => document.getElementById('chat-window').classList.toggle('hidden');
 
 function startChatLoop() { setInterval(updateChat, 4000); updateChat(); }
 
 async function updateChat() {
     const data = await api('GET');
+    // Sync timeout state from DB
+    timeoutUntil = data.users[currentUser].timeoutUntil || 0;
+    
     const box = document.getElementById('chat-msgs');
     const isAtBottom = box.scrollHeight - box.clientHeight <= box.scrollTop + 1;
 
@@ -337,12 +356,17 @@ document.getElementById('sendChat').onclick = async () => {
     const text = inp.value.trim();
     if(!text) return;
 
-    if(currentWarns >= 2) {
-        botMessage("you have been timeout for 5ms");
+    // Check Timeout
+    const timeLeft = timeoutUntil - now();
+    if(timeLeft > 0) {
+        const mins = Math.floor(timeLeft / 60);
+        const secs = timeLeft % 60;
+        botMessage(`You are timed out. Time remaining: ${mins}m ${secs}s`);
         inp.value = '';
         return;
     }
 
+    // Filter Banned Words
     if(BANNED_WORDS.some(word => text.toLowerCase().includes(word))) {
         const box = document.getElementById('chat-msgs');
         const localItem = document.createElement('div');
@@ -372,7 +396,7 @@ async function deleteMsg(idx) {
     }
 }
 
-/* ADMIN PANEL RENDER */
+/* ADMIN PANEL */
 document.getElementById('adminBtn').onclick = () => document.getElementById('adminInput').classList.toggle('hidden');
 document.getElementById('adminInput').onchange = function() {
     if(this.value === MASTER_KEY) {
@@ -391,15 +415,25 @@ async function keyAction(act, k) {
 async function renderAdmin() {
     const data = await api('GET');
     const term = document.getElementById('adminSearch').value.toUpperCase();
+    const currentTime = now();
     
     document.getElementById('keyLogs').innerHTML = Object.entries(data.keys || {}).map(([k, v]) => {
         if(!k.includes(term) && !v.user.toUpperCase().includes(term)) return '';
-        return `<div class="msg-item"><b>${k}</b> ID: ${v.rbx}<br>User: ${v.user}<br><button class="mini danger" onclick="keyAction('del','${k}')">Revoke</button></div>`;
+        const isExpired = v.exp < currentTime;
+        return `<div class="msg-item" style="${isExpired ? 'opacity:0.4' : ''}">
+            <b>${k}</b> ID: ${v.rbx} ${isExpired ? '[EXPIRED]' : ''}<br>
+            User: ${v.user}<br>
+            <button class="mini danger" onclick="keyAction('del','${k}')">Revoke</button>
+        </div>`;
     }).join('');
 
     document.getElementById('userLogs').innerHTML = Object.entries(data.users || {}).map(([u, v]) => {
         if(!u.toUpperCase().includes(term)) return '';
-        return `<div class="msg-item"><b>${u}</b> Warns: ${v.warns || 0}<br>Dev: ${v.dev}</div>`;
+        const isTimed = (v.timeoutUntil || 0) > currentTime;
+        return `<div class="msg-item">
+            <b>${u}</b> Warns: ${v.warns || 0} ${isTimed ? '[TIMED OUT]' : ''}<br>
+            Dev: ${v.dev}
+        </div>`;
     }).join('');
 }
 
